@@ -1,0 +1,3 @@
+# Match the architecture project's sandbox-writable uv cache convention.
+[shell_environment_policy]
+set = { UV_CACHE_DIR = 'C:\Users\TDO-XPS15-2024\AppData\Local\Temp\localswim-uv-cache' }

@@ -68,6 +68,23 @@ localswim project's own inception board. Use this implementation board here.
 
 ### Launch procedure
 
+Terry requested project-local Codex lifecycle hooks on 2026-09-06. The normal
+launch path is now `.codex/hooks.json`, which invokes
+`scripts/localswim_session.py start` on `startup`, `resume`, and `clear`. Startup
+and resume open the board in the default browser; clear only ensures health.
+`SessionEnd` invokes `trigger-stop` with a three-second timeout; it starts a
+hidden detached coordinator that uses `localswim-cli` for final autopush and
+graceful shutdown. A failed final push must leave the service running and report
+an error, never force termination. These hooks manage only the implementation
+board. Do not import the sibling project's two-board/monitor scope here.
+
+Use [docs/localswim-session-hooks.md](docs/localswim-session-hooks.md) for the
+hook trust step, lifecycle handoff paths, failure recovery, and verification.
+Repository Python tooling uses `uv run --frozen`; keep localswim itself installed
+as a machine-level tool, outside this project's dependencies. The hook scripts
+use Python; fixed PowerShell is limited to hidden server launch and opening the
+browser. For a manual launch without the hook, use the procedure below.
+
 1. Request the health endpoint with a short timeout. Reuse a service reporting
    `ok: true` with autopush enabled; never start a duplicate. If autopush is off,
    stop it gracefully with `localswim-cli <board-file> board shutdown`, wait for

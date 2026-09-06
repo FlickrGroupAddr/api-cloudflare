@@ -1,0 +1,31 @@
+{
+  "description": "Start and gracefully stop the FGA implementation localswim board.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\TDO-XPS15-2024\\.local\\bin\\uv.exe run --project C:\\Projects\\FGA\\api-cloudflare --frozen --no-dev python C:\\Projects\\FGA\\api-cloudflare\\scripts\\localswim_session.py start",
+            "timeout": 240,
+            "statusMessage": "Starting the FGA implementation board",
+            "additionalContextLimit": 250
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\TDO-XPS15-2024\\.local\\bin\\uv.exe run --project C:\\Projects\\FGA\\api-cloudflare --frozen --no-dev python C:\\Projects\\FGA\\api-cloudflare\\scripts\\localswim_session.py trigger-stop",
+            "timeout": 3,
+            "statusMessage": "Starting graceful implementation-board shutdown"
+          }
+        ]
+      }
+    ]
+  }
+}
