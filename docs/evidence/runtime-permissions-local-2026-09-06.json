@@ -1,0 +1,1401 @@
+{
+  "schemaVersion": 1,
+  "environment": "local",
+  "runId": "rp-8fde7ca93d6098072c987144",
+  "productionConformance": false,
+  "d1": {
+    "sqliteVersion": null,
+    "cases": [
+      {
+        "id": "blocks.read",
+        "family": "blocks",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.insert",
+        "family": "blocks",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 2,
+          "originalIntact": true,
+          "addedIntact": true,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.update",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.delete",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.replace",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.upsert",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.cascade",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.check_enforced",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_check",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.foreign_key_enforced",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_foreign_key",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.drop_update_guard",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.drop_delete_guard",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.drop_table",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.rename_table",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.disable_check",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 1,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.read",
+        "family": "audit",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.insert",
+        "family": "audit",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 2,
+          "originalIntact": true,
+          "addedIntact": true,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.update",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.delete",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.replace",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.upsert",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.cascade",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.check_enforced",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_check",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.foreign_key_enforced",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_foreign_key",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.drop_update_guard",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.drop_delete_guard",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.drop_table",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.rename_table",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.disable_check",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 1,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      }
+    ],
+    "sqliteVersionObservation": "unavailable"
+  },
+  "durableObject": {
+    "sqliteVersion": null,
+    "cases": [
+      {
+        "id": "blocks.read",
+        "family": "blocks",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.insert",
+        "family": "blocks",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 2,
+          "originalIntact": true,
+          "addedIntact": true,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.update",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.delete",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.replace",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.upsert",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.cascade",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.check_enforced",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_check",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.foreign_key_enforced",
+        "family": "blocks",
+        "kind": "guard",
+        "execution": "denied_foreign_key",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "blocks.drop_update_guard",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.drop_delete_guard",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.drop_table",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.rename_table",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "blocks.disable_check",
+        "family": "blocks",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 1,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.read",
+        "family": "audit",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.insert",
+        "family": "audit",
+        "kind": "control",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 2,
+          "originalIntact": true,
+          "addedIntact": true,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.update",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.delete",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.replace",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.upsert",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.cascade",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_guard",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.check_enforced",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_check",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.foreign_key_enforced",
+        "family": "audit",
+        "kind": "guard",
+        "execution": "denied_foreign_key",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "forbiddenChangeObserved": false
+      },
+      {
+        "id": "audit.drop_update_guard",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.drop_delete_guard",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.drop_table",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.rename_table",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "audit.disable_check",
+        "family": "audit",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 2
+        },
+        "after": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 1,
+          "triggerCount": 2
+        },
+        "forbiddenChangeObserved": true
+      },
+      {
+        "id": "storage.delete_all",
+        "family": "all",
+        "kind": "capability",
+        "execution": "allowed",
+        "before": {
+          "tableExists": true,
+          "rowCount": 1,
+          "originalIntact": true,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 3
+        },
+        "after": {
+          "tableExists": false,
+          "rowCount": 0,
+          "originalIntact": false,
+          "addedIntact": false,
+          "invalidCheckRows": 0,
+          "triggerCount": 0
+        },
+        "forbiddenChangeObserved": true
+      }
+    ],
+    "sqliteVersionObservation": "unavailable"
+  },
+  "harness": {
+    "compatibilityDate": "2026-08-06",
+    "checks": [
+      "missing_token",
+      "wrong_token",
+      "wrong_method",
+      "unknown_path",
+      "query_refused",
+      "body_refused",
+      "wrong_fixture",
+      "second_run_refused"
+    ],
+    "externalNetworkCalls": 0,
+    "expectedD1Cases": 28
+  },
+  "summary": {
+    "observedCases": 57,
+    "runtimeProtection": "violated",
+    "forbiddenChanges": {
+      "d1": [
+        "blocks.drop_update_guard",
+        "blocks.drop_delete_guard",
+        "blocks.drop_table",
+        "blocks.rename_table",
+        "blocks.disable_check",
+        "audit.drop_update_guard",
+        "audit.drop_delete_guard",
+        "audit.drop_table",
+        "audit.rename_table",
+        "audit.disable_check"
+      ],
+      "durableObject": [
+        "blocks.drop_update_guard",
+        "blocks.drop_delete_guard",
+        "blocks.drop_table",
+        "blocks.rename_table",
+        "blocks.disable_check",
+        "audit.drop_update_guard",
+        "audit.drop_delete_guard",
+        "audit.drop_table",
+        "audit.rename_table",
+        "audit.disable_check",
+        "storage.delete_all"
+      ]
+    },
+    "inconclusiveCases": {
+      "d1": [],
+      "durableObject": []
+    }
+  },
+  "provenance": {
+    "collectedAt": "2026-09-06T22:28:50.091850+00:00",
+    "hashAlgorithm": "SHA2-256",
+    "fileHashes": {
+      "package-lock.json": "df3363d021be581b230ef0dca43694a0b6d481579de932c194249ae17d9a4649",
+      "package.json": "73e0540225c205355a739fa728f8dd2029ad772891e8b02d985561bf55f7795f",
+      "tsconfig.json": "4addeba885169722242a2ecc89124f2eb496d55fb90a0ce56d0d50479fd2cf81",
+      "probes/runtime-permissions/worker.ts": "f043f32dffcfe82afec8042ff70602400c164d0531504e8e8ec5357d462e0f04",
+      "probes/runtime-permissions/cases.ts": "e69ae7a86ec1016e7ac639cca72baf1ef64c98b3a66d58626c085a8616bd82d4",
+      "probes/runtime-permissions/wrangler.jsonc": "4e59d01f8487648ae4d35a7094efaa2a631f001464f014150859ca34b4e857af",
+      "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+      "probes/runtime-permissions/local.mjs": "3ae2921afd8132baafadaedac55cf5c694a4981d3becdf382abb85eb7eadd91d",
+      ".probe-build/worker.js": "13872eb6aedb686db6b0a03de8cd7f15eeac60d5019c833901d6d8329422b564"
+    },
+    "toolVersions": {
+      "typescript": "7.0.2",
+      "wrangler": "4.116.0",
+      "miniflare": "4.20260730.0"
+    },
+    "node": "v24.19.0",
+    "compatibilityDateRequested": "2026-09-06"
+  }
+}

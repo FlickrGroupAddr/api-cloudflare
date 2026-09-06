@@ -11,6 +11,17 @@ native evaluation. The [architecture authority policy][authority] and accepted
 contracts control semantics; this research supplies evidence and a proof plan.
 Private board coordination: implementation #0003, parent #0002.
 
+## Runtime-permission follow-up
+
+The [hosted permission probe](2026-09-06-native-runtime-permission-evidence.md)
+now supplies negative evidence for the direct D1 binding and owning Durable
+Object patterns: ordinary guards held, but each runtime could remove its
+enforcement and erase protected records. The original mapping below remains
+research provenance, subject to the storage-boundary decision in #0007.
+It is not a selected production authority map. Cloudflare compute remains
+selected; the RDS fallback and any custom native privilege boundary retain
+their separate evidence/review requirements.
+
 ## Recommendation for the proofs
 
 Evaluate one D1 database as the authority for the private deployment's relational

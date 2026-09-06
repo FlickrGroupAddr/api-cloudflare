@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-06T22:42:11.756009+00:00",
+  "namespaceInventoryComplete": true,
+  "probeNamespacesRemaining": {
+    "rp-1a27bccb4073c364319ee10e": 0,
+    "rp-ae4f9969d731a67cdad36417": 0,
+    "rp-e41967f8e6510cf7fba83485": 0
+  },
+  "workerAndD1CleanupConfirmed": true,
+  "taskCredentialLogCopiesRedacted": 3,
+  "credentialLogRemediationCheckedAt": "2026-09-06T22:25:34.892441+00:00",
+  "syntheticTokenDiskLoggingCheck": "passed"
+}

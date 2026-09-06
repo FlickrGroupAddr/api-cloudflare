@@ -39,6 +39,27 @@ Localswim state-store repository remains private because its board content is
 sensitive. Third-party components and separately licensed materials retain
 their own terms and notices.
 
+## TypeScript compiler
+
+Terry made the TypeScript compiler requirement explicit on 2026-09-06: all
+TypeScript code must use the latest stable TypeScript 7 release and its native
+Go compiler. Verify the current stable 7.x version when adding or updating
+TypeScript tooling, pin that exact version in `package.json` and the npm lockfile,
+and use `npm ci` for reproducible installs. Do not substitute TypeScript 6, the
+legacy JavaScript compiler, or a nightly/preview build. Run the pinned native
+`tsc` as the required TypeScript validation gate before provider bundling.
+
+Treat Cloudflare `compatibility_date` as a versioned dependency, as Terry directed
+on 2026-09-06. Keep it current with the latest supported production date when
+updating the Worker toolchain, review compatibility changes, and rerun the
+TypeScript and affected local/hosted probe checks. Record any local emulator
+lag separately; never present a local run as proof of a newer hosted runtime.
+
+Use the latest Node.js LTS line, as Terry directed on 2026-09-06; prefer stable
+dependencies and ordinary tooling. If a newer tool release requires a prerelease
+dependency, prefer the newest stable dependency combination and document the
+version tradeoff. Keep npm on a compatible stable release.
+
 ## Git workflow
 
 Terry gave Codex standing authorization on 2026-09-06 for all remote pushes of

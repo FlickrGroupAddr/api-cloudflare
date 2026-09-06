@@ -9,6 +9,10 @@ records the proposed Durable Objects/D1 proof boundaries, accepted-contract
 references, failure cases, and fallback criteria. Production storage selection
 and live provider conformance remain outstanding.
 
+The [runtime permission probe](probes/runtime-permissions/README.md) evaluates
+insert-only record protection through isolated Worker D1 and Durable Object
+bindings, with reproducible local/hosted runs and scoped cleanup.
+
 ## Local session hooks
 
 Codex session hooks start and gracefully stop the **FGA implementation** localswim

@@ -148,3 +148,10 @@ __pycache__/
 *.py[cod]
 .ruff_cache/
 .pytest_cache/
+
+# Isolated Cloudflare probe state and credentials
+.wrangler/
+.probe-build/
+.probe-runs/
+.dev.vars
+.dev.vars.*
