@@ -2,6 +2,13 @@
 
 Public, Cloudflare-hosted components for FlickrGroupAddr.
 
+## Hosted foundation
+
+The [Cloudflare native authority mapping](docs/research/2026-09-06-cloudflare-native-authority-mapping.md)
+records the proposed Durable Objects/D1 proof boundaries, accepted-contract
+references, failure cases, and fallback criteria. Production storage selection
+and live provider conformance remain outstanding.
+
 ## Local session hooks
 
 Codex session hooks start and gracefully stop the **FGA implementation** localswim
