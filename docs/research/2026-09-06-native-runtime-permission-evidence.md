@@ -146,10 +146,12 @@ bounded private diagnostics. A synthetic-token execution proved that the token
 command can return data in memory without writing a debug log.
 
 The [toolchain audit][probe] records TS7 7.0.2's native Go compiler, Node LTS,
-the available Node 24.20.0 update, current npm 12.0.2, the stable
+the subsequent Node 24.20.0 upgrade, retained npm 12.0.2, the stable
 Wrangler/Miniflare pairing, vendor prerelease helper exceptions, and the local
 2026-08-06 versus hosted 2026-09-06 compatibility dates. No machine-wide Node
-installation was changed.
+installation was changed during the permission probes. Terry subsequently
+requested the Node 24.20.0 LTS upgrade recorded in that audit; the original
+probe environment remains unchanged in the retained evidence.
 
 Validation includes a clean `npm ci`, native TS7 checking, Ruff, Pyright,
 26 Python tests, local/hosted capability collection, source-integrity checks,

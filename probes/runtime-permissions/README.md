@@ -100,7 +100,7 @@ evidence. Only reviewed, sanitized reports belong in `docs/evidence/`.
 
 | Component | Selected/observed version | Reason or available update |
 | --- | --- | --- |
-| Node.js | Installed 24.19.0 LTS | Latest LTS is 24.20.0. Terry selected the LTS line; this probe does not modify the machine installation. Current 26.8.1 is a different release channel. |
+| Node.js | 24.20.0 LTS after probe closeout | Upgraded from 24.19.0 at Terry's request. The retained permission-probe evidence correctly records its original 24.19.0 environment. |
 | npm | 12.0.2 | Current stable release; compatible with the installed Node LTS. |
 | TypeScript | 7.0.2 | Current stable TS7, with the native Go compiler. The installed launcher executes the Windows native `tsc.exe`. |
 | Wrangler | 4.116.0 | Newest inspected release using stable Miniflare. Latest Wrangler 4.129.0 selects Miniflare 5 alpha. |
@@ -153,3 +153,18 @@ configuration were preserved. The controller now disables vendor disk logging
 and retains sanitization, and a synthetic-token check verifies the logging
 boundary. This was a local diagnostic-copy issue; the public probe evidence
 contains no Cloudflare credential.
+
+## Node LTS upgrade after probe closeout
+
+On 2026-09-06, Terry requested the machine upgrade from Node 24.19.0 to
+24.20.0 LTS. WinGet identified the existing MSI installation but had not yet
+indexed 24.20.0, so the upgrade used the official
+[Node 24.20.0 x64 MSI](https://nodejs.org/dist/v24.20.0/node-v24.20.0-x64.msi).
+Its SHA2-256 matched Node's release manifest, and Windows verified a valid
+OpenJS Foundation signature. Installer exit status was 0; no reboot was required.
+
+Fresh processes reported Node `v24.20.0`, LTS name `Krypton`, and npm `12.0.2`.
+The existing npm installation was retained. Native TS7 checking (`npm run check`)
+and the local Wrangler dry-run build (`npm run probe:build`) passed. The earlier
+local/hosted permission reports retain Node 24.19.0 as historical evidence;
+no hosted permission probe was rerun for this toolchain-only update.
