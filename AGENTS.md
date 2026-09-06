@@ -39,6 +39,14 @@ Localswim state-store repository remains private because its board content is
 sensitive. Third-party components and separately licensed materials retain
 their own terms and notices.
 
+## Git workflow
+
+Terry gave Codex standing authorization on 2026-09-06 for all remote pushes of
+validated, in-scope project work. Commit and push the current branch without
+asking again. This does not authorize force-pushing, changing another
+repository's visibility, publishing a package or release, or including unrelated
+work.
+
 ## Local swimlane board
 
 When Terry asks to launch or open this project's localswim board, use these known
