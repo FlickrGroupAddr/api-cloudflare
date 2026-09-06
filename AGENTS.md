@@ -31,12 +31,13 @@ plug-in installation credential through the same-origin Cloudflare HTTPS edge,
 the FGA API backend, and the selected durable store. It makes no Flickr call and
 performs no protected mutation after fixture provisioning.
 
-Accepted architecture ADR 0003 requires original hosted code to use the MIT
-License. Terry's request to keep this repository private and unlicensed remains
-unresolved on implementation-board card `#0001`. Do not land production
-implementation code until Terry chooses private-plus-MIT or records an explicit
-owner override in the architecture repository. Planning documents, board
-coordination, and bounded proof-card definitions may proceed.
+Accepted architecture ADR 0003 licenses original FGA source code and
+documentation, including this hosted implementation, under the MIT License,
+copyright 2026 Terry Ott. Terry reaffirmed this project-wide choice on
+2026-09-06 and directed that this implementation repository be public. The
+Localswim state-store repository remains private because its board content is
+sensitive. Third-party components and separately licensed materials retain
+their own terms and notices.
 
 ## Local swimlane board
 
