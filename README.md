@@ -17,9 +17,9 @@ bindings, with reproducible local/hosted runs and scoped cleanup.
 
 The [Worker routing proof](probes/routes/README.md) derives a route inventory and
 OpenAPI from one typed registry and tests local HTTP plus isolated Cloudflare
-HTTPS with real static assets. Its [current evidence](docs/research/2026-09-07-worker-routing-proof.md)
-records the remaining malformed-request response decision; it is not a
-production API or a passing release gate.
+HTTPS with real static assets. Its [current evidence](docs/research/2026-09-07-worker-routing-clarification.md)
+records passing fixture gates after the accepted malformed-target clarification.
+It is not a production API or a production release approval.
 
 ## Local session hooks
 

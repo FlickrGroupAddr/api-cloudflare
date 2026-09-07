@@ -3,8 +3,8 @@
 This fixture exercises the Cloudflare Worker and Static Assets routing boundary.
 It is not the production FGA API backend. Authentication, database lookup, login
 transactions, Flickr calls, and business mutations are deliberately unimplemented.
-The routing gate currently **fails** on the hosted malformed-target response;
-see the [dated evidence and decision](../../docs/research/2026-09-07-worker-routing-proof.md).
+The fixture routing gate passes after the accepted early-provider-rejection
+clarification; see the [current evidence](../../docs/research/2026-09-07-worker-routing-clarification.md).
 
 ## Structure
 
@@ -17,6 +17,8 @@ see the [dated evidence and decision](../../docs/research/2026-09-07-worker-rout
   `generated/`. Neither artifact lists a production origin or secrets. The
   OpenAPI describes only the fixture's safe response surface, with no invented
   successful database/authentication schemas.
+  Generated JSON uses explicit LF line endings on both Windows and Linux so
+  tracked snapshots and runtime artifact hashes agree.
 - `scripts/route_conformance.py` runs the native TypeScript validation gate,
   generates artifacts and hashed static assets, bundles once, starts local HTTP,
   deploys the same bundle to a unique disposable Worker, repeats the matrix,
@@ -30,6 +32,15 @@ see the [dated evidence and decision](../../docs/research/2026-09-07-worker-rout
   Node is required for Miniflare and this raw Node HTTP integration; orchestration
   and the black-box collector remain Python. Outbound Worker fetches are rejected
   and counted locally; the fixture has no hosted outbound-fetch call or secret.
+
+Worker responses and raw local rejections carry isolated-fixture component/build
+headers derived from the source digest. Ordinary responses must match the current
+build. These diagnostics are confined to this probe and are not a production
+health response design. Early provider rejection is accepted only for a malformed
+target returning HTTP 400, without fixture markers, with the exact previously
+observed provider body fingerprint, and without a cookie or redirect. An unknown
+HTML body, application-generated HTML error, or provider error on a valid path
+still fails. The accepted exception does not weaken application JSON/no-store.
 
 The shell is a small fixture at `/admin/`, with a restrictive CSP, no-referrer,
 nosniff, and no-store. No additional client-side navigation is currently

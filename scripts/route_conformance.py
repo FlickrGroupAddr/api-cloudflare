@@ -32,6 +32,9 @@ PROBE = ROOT / "probes/routes"
 RUNS = ROOT / ".route-runs"
 GENERATED = PROBE / "generated"
 USER_AGENT = "FlickrGroupAddr-RouteConformance/0.0.0"
+# Exact, non-reflecting early Cloudflare HTTP 400 observed in the dated evidence.
+# A different body fails closed until it has been investigated; never accept arbitrary HTML.
+PROVIDER_BAD_REQUEST_SHA2_256 = "efca0895b4d88b27a94249f8e7ac0083eff0a4ff3ac37c2841b3f6d7e11c1905"
 EXPIRE = (
     "__Host-fga_admin=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; "
     "Secure; HttpOnly; SameSite=Strict"
@@ -44,7 +47,7 @@ def digest(path: Path) -> str:
 
 def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def sources() -> dict[str, str]:
@@ -55,6 +58,9 @@ def sources() -> dict[str, str]:
 
 
 def generate(run: Run) -> dict[str, Any]:
+    run.state["buildId"] = hashlib.sha256(
+        json.dumps(sources(), sort_keys=True).encode()
+    ).hexdigest()
     command(run, "typescript", [NODE, str(ROOT / "node_modules/typescript/bin/tsc"), "--noEmit"])
     result = command(run, "registry", [NODE, str(PROBE / "export.mjs")])
     data = json.loads(result.stdout)
@@ -101,7 +107,7 @@ def generate(run: Run) -> dict[str, Any]:
         "workers_dev": False,
         "preview_urls": False,
         "observability": {"enabled": False},
-        "vars": {"ROUTING_PROOF": "isolated-fixture"},
+        "vars": {"ROUTING_PROOF": "isolated-fixture", "PROOF_BUILD_ID": run.state["buildId"]},
         "assets": {"directory": str(assets), **data["assetConfig"]},
     }
     write_json(run.directory / "build.json", base)
@@ -218,7 +224,7 @@ def matrix(inventory: dict[str, Any], asset: dict[str, str]) -> list[dict[str, A
             "/admin\\",
         ]
     ):
-        add(f"malformed_{i}", "GET", path, 400)
+        add(f"malformed_{i}", "GET", path, 400, malformed=True)
     add("admin_shell", "GET", "/admin/", 200, boundary="shell")
     add("admin_shell_head", "HEAD", "/admin/", 200, boundary="shell")
     add("admin_shell_unsafe", "POST", "/admin/", 405)
@@ -235,7 +241,9 @@ def matrix(inventory: dict[str, Any], asset: dict[str, str]) -> list[dict[str, A
     return cases
 
 
-def probe(origin: str, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def probe(
+    origin: str, cases: list[dict[str, Any]], expected_build: str | None = None
+) -> list[dict[str, Any]]:
     target = urlsplit(origin)
     if target.scheme not in {"http", "https"} or not target.hostname or target.path:
         raise ProbeError("Invalid probe origin.")
@@ -254,13 +262,30 @@ def probe(origin: str, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
             reply = connection.getresponse()
             body = reply.read(65537)
             h = {k.lower(): v for k, v in reply.getheaders()}
+            component = h.get("x-fga-routing-component")
+            provider_rejection = bool(
+                case.get("malformed")
+                and reply.status == 400
+                and component is None
+                and "x-fga-routing-build" not in h
+                and hashlib.sha256(body).hexdigest() == PROVIDER_BAD_REQUEST_SHA2_256
+            )
             errors = []
             if reply.status != case["status"]:
                 errors.append("status")
             if len(body) > 65536 or "location" in h:
                 errors.append("body_or_redirect")
             boundary = case.get("boundary")
-            if h.get("cache-control") != "no-store":
+            if (
+                expected_build
+                and not provider_rejection
+                and (
+                    component not in {"worker", "raw-target-guard"}
+                    or h.get("x-fga-routing-build") != expected_build
+                )
+            ):
+                errors.append("response_ownership")
+            if not provider_rejection and h.get("cache-control") != "no-store":
                 errors.append("cache")
             if case["method"] == "HEAD" and body:
                 errors.append("head_body")
@@ -280,7 +305,7 @@ def probe(origin: str, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "sha2_256"
                 ] or "javascript" not in h.get("content-type", ""):
                     errors.append("asset_bytes_or_type")
-            elif case["status"] != 204:
+            elif case["status"] != 204 and not provider_rejection:
                 if h.get("content-type", "").split(";")[0] != "application/json":
                     errors.append("json_type")
                 if case["method"] != "HEAD":
@@ -318,6 +343,8 @@ def probe(origin: str, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "mediaType": h.get("content-type", "").split(";")[0],
                     "bodySha2_256": hashlib.sha256(body).hexdigest(),
                     "providerErrorCode": error_code.group(1).decode() if error_code else None,
+                    "component": component if component in {"worker", "raw-target-guard"} else None,
+                    "acceptedProviderRejection": provider_rejection,
                 }
             )
         finally:
@@ -351,7 +378,7 @@ def local(run: Run, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     continue
                 if ready.get("url"):
                     startup_timeout.cancel()
-                    results = probe(ready["url"], cases)
+                    results = probe(ready["url"], cases, run.state["buildId"])
                     break
             else:
                 raise ProbeError("Local asset router did not report readiness.")
@@ -406,7 +433,7 @@ def hosted(run: Run, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
     consecutive = 0
     settling_started = time.monotonic()
     for _ in range(60):
-        sample = probe(found.group(0), readiness)
+        sample = probe(found.group(0), readiness, run.state["buildId"])
         samples.append(sample)
         consecutive = consecutive + 1 if all(row["passed"] for row in sample) else 0
         if consecutive >= 5 and time.monotonic() - settling_started >= 30:
@@ -416,10 +443,10 @@ def hosted(run: Run, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
         write_json(run.directory / "readiness.json", samples)
         raise ProbeError("Preview did not become ready; inspect readiness.json.")
     write_json(run.directory / "readiness.json", samples)
-    results = probe(found.group(0), cases)
+    results = probe(found.group(0), cases, run.state["buildId"])
     run.state["firstHostedMatrix"] = results
     run.save()
-    results = probe(found.group(0), cases)
+    results = probe(found.group(0), cases, run.state["buildId"])
     after = wrangler(
         run, "deployment-after", "deployments", "list", "--name", name, "--json"
     ).stdout

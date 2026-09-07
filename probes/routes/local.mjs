@@ -6,7 +6,8 @@ import { safePath } from "./worker.ts";
 const config = JSON.parse(await readFile(process.argv[2], "utf8"));
 let outboundCalls = 0;
 const mf = new Miniflare({ modules: true, scriptPath: config.main,
-  compatibilityDate: config.compatibility_date, host: "127.0.0.1", port: 0,
+  compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
+  host: "127.0.0.1", port: 0,
   cf: false, logRequests: false, telemetry: { enabled: false }, bindings: config.vars,
   assets: { directory: config.assets.directory, binding: config.assets.binding,
     routerConfig: { has_user_worker: true, invoke_user_worker_ahead_of_assets: config.assets.run_worker_first },
@@ -18,7 +19,8 @@ const mf = new Miniflare({ modules: true, scriptPath: config.main,
 const upstream = await mf.ready;
 const server = createServer((req, res) => {
   if (!req.url?.startsWith("/") || safePath("http://local.invalid" + req.url) === null) {
-    res.writeHead(400, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.writeHead(400, { "Content-Type": "application/json", "Cache-Control": "no-store",
+      "X-FGA-Routing-Component": "raw-target-guard", "X-FGA-Routing-Build": config.vars.PROOF_BUILD_ID });
     res.end('{"error":"invalid_request_target"}');
     return;
   }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 import unittest
@@ -111,6 +112,52 @@ class CollectorTests(unittest.TestCase):
         ]:
             self.assertIn(pair, paths)
         self.assertEqual(len(cases), len({case["id"] for case in cases}))
+
+    def test_only_known_early_provider_400_gets_representation_exception(self) -> None:
+        body = b"<html>Fixed synthetic provider bad request</html>"
+        fingerprint = hashlib.sha256(body).hexdigest()
+        case = {
+            "id": "malformed",
+            "method": "GET",
+            "path": "/api/%00",
+            "status": 400,
+            "malformed": True,
+        }
+        with patch.object(routes, "PROVIDER_BAD_REQUEST_SHA2_256", fingerprint):
+            result = self.collect(Response(400, body, [("Content-Type", "text/html")]), case)
+            self.assertTrue(result["passed"])
+            self.assertTrue(result["acceptedProviderRejection"])
+            for wrong_body, extra in [
+                (b"<html>Application shell</html>", []),
+                (body, [("X-FGA-Routing-Component", "worker")]),
+                (body, [("Set-Cookie", "synthetic=1")]),
+                (body, [("Location", "/admin/")]),
+            ]:
+                result = self.collect(
+                    Response(400, wrong_body, [("Content-Type", "text/html"), *extra]), case
+                )
+                self.assertFalse(result["passed"])
+            result = self.collect(
+                Response(400, body, [("Content-Type", "text/html")]), {**case, "malformed": False}
+            )
+            self.assertFalse(result["passed"])
+
+    def test_normal_responses_require_the_current_fixture_build(self) -> None:
+        response = Response(
+            401,
+            b'{"error":"unauthorized"}',
+            [
+                ("Content-Type", "application/json"),
+                ("Cache-Control", "no-store"),
+                ("X-FGA-Routing-Component", "worker"),
+                ("X-FGA-Routing-Build", "stale"),
+            ],
+        )
+        case = {"id": "session", "method": "GET", "path": "/api/v001/admin/session", "status": 401}
+        with patch.object(routes.http.client, "HTTPConnection", return_value=Connection(response)):
+            result = routes.probe("http://127.0.0.1:8799", [case], "current")[0]
+        self.assertFalse(result["passed"])
+        self.assertIn("response_ownership", result["errors"])
 
 
 if __name__ == "__main__":

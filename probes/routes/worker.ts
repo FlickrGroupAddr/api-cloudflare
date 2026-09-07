@@ -1,6 +1,6 @@
 import { ASSET_PREFIX, GUARDS, matches, ROUTES, SHELL_PATHS, validateRegistry } from "./registry.ts";
 
-interface Env { ASSETS: Fetcher; ROUTING_PROOF: string }
+interface Env { ASSETS: Fetcher; ROUTING_PROOF: string; PROOF_BUILD_ID?: string }
 const SECURITY = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'; base-uri 'none'" };
 const EXPIRE = "__Host-fga_admin=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Strict";
@@ -60,6 +60,12 @@ async function dispatch(request: Request, env: Env): Promise<Response> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const reply = await dispatch(request, env);
-    return request.method === "HEAD" ? new Response(null, { status: reply.status, headers: reply.headers }) : reply;
+    const headers = new Headers(reply.headers);
+    // Build-bound diagnostic markers belong only to this isolated fixture.
+    if (env.ROUTING_PROOF === "isolated-fixture" && env.PROOF_BUILD_ID) {
+      headers.set("X-FGA-Routing-Component", "worker");
+      headers.set("X-FGA-Routing-Build", env.PROOF_BUILD_ID);
+    }
+    return new Response(request.method === "HEAD" ? null : reply.body, { status: reply.status, headers });
   },
 } satisfies ExportedHandler<Env>;

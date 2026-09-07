@@ -1,10 +1,11 @@
-# Worker and Static Assets routing proof
+# Initial Worker and Static Assets routing proof
 
 Date: 2026-09-07
 
-Status: Implemented isolated fixture and collected local/hosted evidence;
-malformed-target response contract clarification requires owner review.
-No production route-conformance pass or contract exception is accepted.
+Status: Historical failure record for implementation commit `0919c1d`.
+Terry subsequently accepted the malformed-target clarification on 2026-09-07;
+see the [current implementation and passing evidence](2026-09-07-worker-routing-clarification.md).
+The original results below are retained as history, not current contract authority.
 
 ## Result and decision
 
