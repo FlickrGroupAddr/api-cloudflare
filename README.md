@@ -13,6 +13,11 @@ The [runtime permission probe](probes/runtime-permissions/README.md) evaluates
 insert-only record protection through isolated Worker D1 and Durable Object
 bindings, with reproducible local/hosted runs and scoped cleanup.
 
+The [Flickr credential-store recommendation](docs/research/2026-09-07-flickr-credential-store-decision.md)
+compares native secrets with AWS Secrets Manager, including exact version reads,
+independent credential deletion and Workers authentication. It awaits owner
+decision; no backing store or production identity has been adopted.
+
 ## Routing proof
 
 The [Worker routing proof](probes/routes/README.md) derives a route inventory and
