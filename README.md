@@ -13,6 +13,14 @@ The [runtime permission probe](probes/runtime-permissions/README.md) evaluates
 insert-only record protection through isolated Worker D1 and Durable Object
 bindings, with reproducible local/hosted runs and scoped cleanup.
 
+## Routing proof
+
+The [Worker routing proof](probes/routes/README.md) derives a route inventory and
+OpenAPI from one typed registry and tests local HTTP plus isolated Cloudflare
+HTTPS with real static assets. Its [current evidence](docs/research/2026-09-07-worker-routing-proof.md)
+records the remaining malformed-request response decision; it is not a
+production API or a passing release gate.
+
 ## Local session hooks
 
 Codex session hooks start and gracefully stop the **FGA implementation** localswim

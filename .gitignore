@@ -155,3 +155,6 @@ __pycache__/
 .probe-runs/
 .dev.vars
 .dev.vars.*
+
+# Isolated routing deployments and private evidence
+.route-runs/

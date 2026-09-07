@@ -10,7 +10,9 @@
   "packageManager": "npm@12.0.2",
   "scripts": {
     "check": "tsc --noEmit",
-    "probe:build": "wrangler deploy --dry-run --config probes/runtime-permissions/wrangler.jsonc --outdir .probe-build"
+    "probe:build": "wrangler deploy --dry-run --config probes/runtime-permissions/wrangler.jsonc --outdir .probe-build",
+    "route-conformance": "uv run --frozen python scripts/route_conformance.py run",
+    "routes:test": "node --test probes/routes/registry.test.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",

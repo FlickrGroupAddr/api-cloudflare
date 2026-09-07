@@ -1,0 +1,2899 @@
+{
+  "schemaVersion": 1,
+  "scope": "isolated-routing-proof",
+  "productionConformance": false,
+  "passed": false,
+  "at": "2026-09-07T12:08:17.464640+00:00",
+  "cleanupConfirmed": true,
+  "localCompatibilityDate": "2026-08-06",
+  "hostedCompatibilityDate": "2026-09-07",
+  "architectureCommit": "a02d02558fe0a384f27c6b9c5aee59f340f2fc4a",
+  "artifactHashes": {
+    "package-lock.json": "df3363d021be581b230ef0dca43694a0b6d481579de932c194249ae17d9a4649",
+    "package.json": "058b4a80974a1fea3a029aaabe39965a9e16e9f6e34b1752cd1ba177987cce6d",
+    "probes/routes/export.mjs": "b200c1336a74f4fd8651d2648246d73f245700883bdc362681a0d4e6127ec51f",
+    "probes/routes/local.mjs": "f316afe2e185fec6c5f690cc5bc2d9674d5f9235f948b653624b3c8da43c6812",
+    "probes/routes/registry.test.mjs": "a1de2a03105e250b9aa6c8e13218204f51030299e8974836269d24f20d84befb",
+    "probes/routes/registry.ts": "bc21a24acdeaa866cdd29cec0ef80803bac65833eac7c79c733a9746d446b90a",
+    "probes/routes/worker.ts": "707b33be4a431f9e6325e8dc3c657448fe9b11bb98ed87dca6e64264d61f9421",
+    "scripts/route_conformance.py": "38216b2a5d2a345d09f1902faa4d4467a80854747da7c4ad0c29f1f2413e65fe",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "tsconfig.json": "fc87ee3d8ac7a8933faca63d455895e06066a104b7e5d3b07000d8b211cd982d",
+    "probes/routes/generated/openapi.json": "744defd8cca24d56a9f50c69dc8c5e02c492c9b0c249bbb06e4f552261311944",
+    "probes/routes/generated/route-inventory.json": "b523cca05b472b45af31d586cf4680b8148159146711094a0504e903f65f2a26",
+    "run/assets/admin/google-login": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/admin/index.html": "435513d4543969e6ded9e2adc9954d0fab437c0740400b62cb7be2c3671a342b",
+    "run/assets/admin/login": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/healthz/live": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/healthz/startup": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/existing-public-photo-bindings": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/existing-public-photos": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/group-submission-batches": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/groups": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/upload-authorizations": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/admin/deployment": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/admin/group-submission-intents": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/group-submission-intents/conformance-missing": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/group-submission-intents/index.html": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/installations/current": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/photo-bindings/conformance-missing/group-memberships": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/admin/session/index.html": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/admin/session/logout": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/api/v001/admin/session/reauthentication": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/assets/admin/assets/proof.3f23d91306c81750.js": "3f23d91306c817505059622dab5bf897799c05723f57b55b752b4d5e1b23522c",
+    "run/assets/admin/flickr-oauth/callback": "022a2f683b80680b9c056c507819ce833900ca0c99f8eb9816ec3a3cf2cca0a7",
+    "run/bundle/worker.js": "d0ee7e0b3767eaae2863ccfa7366156c64da7dd60dabf9146a3ffe475148ed79",
+    "run/local.json": "614b0f5497423fc998fa509186806f7bb61c67a2241a99569c7223a2b4a5648a",
+    "run/deploy.json": "b4505adc3b66753014968d83a21dfe7aa4898f3f47cab7e360b10b4e15658736"
+  },
+  "deployments": [
+    {
+      "id": "34075171-a6e1-407a-8814-58e3d3d64d1c",
+      "versions": [
+        {
+          "version_id": "044342ac-45cb-4571-943a-83e866726c8b",
+          "percentage": 100
+        }
+      ]
+    }
+  ],
+  "readinessSampleCount": 27,
+  "local": {
+    "passed": 100,
+    "total": 100,
+    "cases": [
+      {
+        "id": "admin_deployment_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_deployment_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_deployment_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_safe",
+        "status": 204,
+        "passed": true,
+        "errors": [],
+        "mediaType": "",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_navigation",
+        "status": 204,
+        "passed": true,
+        "errors": [],
+        "mediaType": "",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_safe",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_navigation",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_safe",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_navigation",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_safe",
+        "status": 503,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "6e356b04b1d062b57f7ade490a7b2dbd734aa5862a022e8eedbb9f3e956a8ae3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_navigation",
+        "status": 503,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "6e356b04b1d062b57f7ade490a7b2dbd734aa5862a022e8eedbb9f3e956a8ae3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_0",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_1",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_2",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_3",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_4",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_5",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_6",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_7",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_8",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_9",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_10",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_11",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_0",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_1",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_2",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_3",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_4",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_wrong_method",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_wrong_method",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "debug_headers",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_headers_startup",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_headers_live",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_0",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_1",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_2",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_3",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_4",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_5",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_6",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_7",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/html",
+        "bodySha2_256": "435513d4543969e6ded9e2adc9954d0fab437c0740400b62cb7be2c3671a342b",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell_head",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/html",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell_unsafe",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "asset",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/javascript",
+        "bodySha2_256": "3f23d91306c817505059622dab5bf897799c05723f57b55b752b4d5e1b23522c",
+        "providerErrorCode": null
+      },
+      {
+        "id": "asset_unsafe",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "missing_asset",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "logout_wrong_origin",
+        "status": 403,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "2815fee6edc3716bd6c85027399f06e03168706e7fcac786ecf0c66e6190843f",
+        "providerErrorCode": null
+      }
+    ]
+  },
+  "cloudflareInitial": {
+    "passed": 97,
+    "total": 100,
+    "cases": [
+      {
+        "id": "admin_deployment_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_deployment_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_deployment_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_safe",
+        "status": 204,
+        "passed": true,
+        "errors": [],
+        "mediaType": "",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_navigation",
+        "status": 204,
+        "passed": true,
+        "errors": [],
+        "mediaType": "",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_unsupported",
+        "status": 404,
+        "passed": false,
+        "errors": [
+          "status",
+          "cache",
+          "json_type",
+          "json_body"
+        ],
+        "mediaType": "text/plain",
+        "bodySha2_256": "a4daf148dd64d1a3e8e8101040915e50d12df29153c5936d377cf2260ccc8ba0",
+        "providerErrorCode": "1042"
+      },
+      {
+        "id": "batch_admission_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_safe",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_navigation",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_safe",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_navigation",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_unsupported",
+        "status": 404,
+        "passed": false,
+        "errors": [
+          "status",
+          "cache",
+          "json_type",
+          "json_body"
+        ],
+        "mediaType": "text/plain",
+        "bodySha2_256": "a4daf148dd64d1a3e8e8101040915e50d12df29153c5936d377cf2260ccc8ba0",
+        "providerErrorCode": "1042"
+      },
+      {
+        "id": "installation_current_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_safe",
+        "status": 503,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "6e356b04b1d062b57f7ade490a7b2dbd734aa5862a022e8eedbb9f3e956a8ae3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_navigation",
+        "status": 503,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "6e356b04b1d062b57f7ade490a7b2dbd734aa5862a022e8eedbb9f3e956a8ae3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_0",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_1",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_2",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_3",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_4",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_5",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_6",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_7",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_8",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_9",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_10",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_11",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_0",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_1",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_2",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_3",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_4",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_wrong_method",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_wrong_method",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "debug_headers",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_headers_startup",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_headers_live",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_0",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_1",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_2",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_3",
+        "status": 400,
+        "passed": false,
+        "errors": [
+          "cache",
+          "json_type",
+          "json_body"
+        ],
+        "mediaType": "text/html",
+        "bodySha2_256": "efca0895b4d88b27a94249f8e7ac0083eff0a4ff3ac37c2841b3f6d7e11c1905",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_4",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_5",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_6",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_7",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/html",
+        "bodySha2_256": "435513d4543969e6ded9e2adc9954d0fab437c0740400b62cb7be2c3671a342b",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell_head",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/html",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell_unsafe",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "asset",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/javascript",
+        "bodySha2_256": "3f23d91306c817505059622dab5bf897799c05723f57b55b752b4d5e1b23522c",
+        "providerErrorCode": null
+      },
+      {
+        "id": "asset_unsafe",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "missing_asset",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "logout_wrong_origin",
+        "status": 403,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "2815fee6edc3716bd6c85027399f06e03168706e7fcac786ecf0c66e6190843f",
+        "providerErrorCode": null
+      }
+    ]
+  },
+  "cloudflare": {
+    "passed": 97,
+    "total": 100,
+    "cases": [
+      {
+        "id": "admin_deployment_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_deployment_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_deployment_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_intents_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_safe",
+        "status": 204,
+        "passed": true,
+        "errors": [],
+        "mediaType": "",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_logout_navigation",
+        "status": 204,
+        "passed": true,
+        "errors": [],
+        "mediaType": "",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_reauthentication_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_session_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "batch_admission_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_bindings_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "existing_photos_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_safe",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "flickr_callback_navigation",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_safe",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "google_login_navigation",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "52977cef16ffb1e7392b602fc98ae422b15b03d9403f17ac43ad8e59b51c8782",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "groups_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_current_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intent_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "intents_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_get_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "live_head_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_safe",
+        "status": 503,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "6e356b04b1d062b57f7ade490a7b2dbd734aa5862a022e8eedbb9f3e956a8ae3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "login_start_navigation",
+        "status": 503,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "6e356b04b1d062b57f7ade490a7b2dbd734aa5862a022e8eedbb9f3e956a8ae3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "memberships_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_get_navigation",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_safe",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "startup_head_navigation",
+        "status": 404,
+        "passed": false,
+        "errors": [
+          "status",
+          "cache",
+          "json_type"
+        ],
+        "mediaType": "text/html",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_safe",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_unsupported",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "upload_authorizations_navigation",
+        "status": 401,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "782eeaa7f1915f6783146f8180751785584f0f24bd4e503165c7fc4a597da600",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_0",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_1",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_2",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_3",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_4",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_5",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_6",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_7",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_8",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_9",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_10",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "unknown_11",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_0",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_1",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_2",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_3",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "retired_mutation_4",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "installation_wrong_method",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_wrong_method",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "debug_headers",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_headers_startup",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "health_headers_live",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "ce536fcfc31375db60ff240dc87e4653c60d665db54c1d8b2da515abac261fe3",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_0",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_1",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_2",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_3",
+        "status": 400,
+        "passed": false,
+        "errors": [
+          "cache",
+          "json_type",
+          "json_body"
+        ],
+        "mediaType": "text/html",
+        "bodySha2_256": "efca0895b4d88b27a94249f8e7ac0083eff0a4ff3ac37c2841b3f6d7e11c1905",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_4",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_5",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_6",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "malformed_7",
+        "status": 400,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "1645040d80de0c2311a78f12ae08ae87921b7a605a0e521d03fbb805a5b62795",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell",
+        "status": 404,
+        "passed": false,
+        "errors": [
+          "status",
+          "cache",
+          "shell_type",
+          "shell_bytes",
+          "shell_security"
+        ],
+        "mediaType": "text/plain",
+        "bodySha2_256": "a4daf148dd64d1a3e8e8101040915e50d12df29153c5936d377cf2260ccc8ba0",
+        "providerErrorCode": "1042"
+      },
+      {
+        "id": "admin_shell_head",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/html",
+        "bodySha2_256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "providerErrorCode": null
+      },
+      {
+        "id": "admin_shell_unsafe",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "asset",
+        "status": 200,
+        "passed": true,
+        "errors": [],
+        "mediaType": "text/javascript",
+        "bodySha2_256": "3f23d91306c817505059622dab5bf897799c05723f57b55b752b4d5e1b23522c",
+        "providerErrorCode": null
+      },
+      {
+        "id": "asset_unsafe",
+        "status": 405,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "48ceae43089b9c26f0b2e5e53afe122639812aaa791c84f311d6b992f2332fef",
+        "providerErrorCode": null
+      },
+      {
+        "id": "missing_asset",
+        "status": 404,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "d2dfdc9511fbeaa0701d1f8730f4989313b062ca1b61a2bd8bed8f4f5d654b5d",
+        "providerErrorCode": null
+      },
+      {
+        "id": "logout_wrong_origin",
+        "status": 403,
+        "passed": true,
+        "errors": [],
+        "mediaType": "application/json",
+        "bodySha2_256": "2815fee6edc3716bd6c85027399f06e03168706e7fcac786ecf0c66e6190843f",
+        "providerErrorCode": null
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "id": "rp-665a8dbef2ec2694e7783a81",
+      "hostedAttempted": true,
+      "cleanupConfirmed": true,
+      "counts": {
+        "local": {
+          "total": 100,
+          "passed": 100
+        },
+        "cloudflare": {
+          "total": 100,
+          "passed": 97
+        }
+      }
+    },
+    {
+      "id": "rp-8adc587d1f4f58512577ebed",
+      "hostedAttempted": true,
+      "cleanupConfirmed": true,
+      "counts": {
+        "local": {
+          "total": 100,
+          "passed": 100
+        },
+        "cloudflare": {
+          "total": 100,
+          "passed": 71
+        }
+      }
+    },
+    {
+      "id": "rp-98a3cefb05dace9f32090a7c",
+      "hostedAttempted": true,
+      "cleanupConfirmed": true,
+      "counts": {
+        "local": {
+          "total": 100,
+          "passed": 100
+        },
+        "cloudflare": {
+          "total": 100,
+          "passed": 99
+        }
+      }
+    },
+    {
+      "id": "rp-efeb28aec7765190623a85b3",
+      "hostedAttempted": true,
+      "cleanupConfirmed": true,
+      "counts": {
+        "local": {
+          "total": 100,
+          "passed": 100
+        },
+        "cloudflareInitial": {
+          "total": 100,
+          "passed": 97
+        },
+        "cloudflare": {
+          "total": 100,
+          "passed": 97
+        }
+      }
+    },
+    {
+      "id": "rp-f98069031e8c3e98e0af86e3",
+      "hostedAttempted": false,
+      "cleanupConfirmed": false,
+      "counts": {
+        "local": {
+          "total": 100,
+          "passed": 99
+        }
+      }
+    },
+    {
+      "id": "rp-fd20c1d01628706b87d3e10b",
+      "hostedAttempted": true,
+      "cleanupConfirmed": true,
+      "counts": {
+        "local": {
+          "total": 100,
+          "passed": 99
+        },
+        "cloudflare": {
+          "total": 100,
+          "passed": 54
+        }
+      }
+    }
+  ]
+}

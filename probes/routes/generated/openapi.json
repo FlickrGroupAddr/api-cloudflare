@@ -1,0 +1,296 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FGA routing proof (not production API)",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/api/v001/admin/deployment": {
+      "get": {
+        "operationId": "admin_deployment",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe admin_deployment_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/admin/group-submission-intents": {
+      "get": {
+        "operationId": "admin_intents",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe admin_intents_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/admin/session/logout": {
+      "post": {
+        "operationId": "admin_logout",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "204": {
+            "description": "Safe admin_logout_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/admin/session/reauthentication": {
+      "post": {
+        "operationId": "admin_reauthentication",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe admin_reauthentication_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/admin/session": {
+      "get": {
+        "operationId": "admin_session",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe admin_session_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/group-submission-batches": {
+      "post": {
+        "operationId": "batch_admission",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe batch_admission_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/existing-public-photo-bindings": {
+      "post": {
+        "operationId": "existing_bindings",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe existing_bindings_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/existing-public-photos": {
+      "get": {
+        "operationId": "existing_photos",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe existing_photos_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/admin/flickr-oauth/callback": {
+      "get": {
+        "operationId": "flickr_callback",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "400": {
+            "description": "Safe flickr_callback_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/admin/google-login": {
+      "post": {
+        "operationId": "google_login",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "400": {
+            "description": "Safe google_login_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/groups": {
+      "get": {
+        "operationId": "groups",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe groups_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/installations/current": {
+      "get": {
+        "operationId": "installation_current",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe installation_current_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/group-submission-intents/{intent_id}": {
+      "get": {
+        "operationId": "intent",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe intent_safe routing discriminator"
+          }
+        },
+        "parameters": [
+          {
+            "name": "intent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v001/group-submission-intents": {
+      "get": {
+        "operationId": "intents",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe intents_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/healthz/live": {
+      "get": {
+        "operationId": "live_get",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "200": {
+            "description": "Safe live_get_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      },
+      "head": {
+        "operationId": "live_head",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "200": {
+            "description": "Safe live_head_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/admin/login": {
+      "get": {
+        "operationId": "login_start",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "503": {
+            "description": "Safe login_start_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/photo-bindings/{binding_id}/group-memberships": {
+      "get": {
+        "operationId": "memberships",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe memberships_safe routing discriminator"
+          }
+        },
+        "parameters": [
+          {
+            "name": "binding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/healthz/startup": {
+      "get": {
+        "operationId": "startup_get",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "200": {
+            "description": "Safe startup_get_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      },
+      "head": {
+        "operationId": "startup_head",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "200": {
+            "description": "Safe startup_head_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/api/v001/upload-authorizations": {
+      "post": {
+        "operationId": "upload_authorizations",
+        "x-routing-proof-only": true,
+        "description": "Isolated routing fixture. Authentication and business operations are not implemented.",
+        "responses": {
+          "401": {
+            "description": "Safe upload_authorizations_safe routing discriminator"
+          }
+        },
+        "parameters": []
+      }
+    }
+  }
+}

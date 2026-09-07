@@ -16,6 +16,7 @@
   },
   "include": [
     "probes/runtime-permissions/worker.ts",
-    "probes/runtime-permissions/cases.ts"
+    "probes/runtime-permissions/cases.ts",
+    "probes/routes/*.ts"
   ]
 }

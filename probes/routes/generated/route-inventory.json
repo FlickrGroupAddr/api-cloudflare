@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "scope": "isolated-routing-proof",
+  "routes": [
+    {
+      "id": "admin_deployment",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/deployment",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "session",
+      "probe": "admin_deployment_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "admin_intents",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/group-submission-intents",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "session",
+      "probe": "admin_intents_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "admin_logout",
+      "method": "POST",
+      "pathPattern": "/api/v001/admin/session/logout",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "logout",
+      "probe": "admin_logout_safe",
+      "expectedStatus": 204
+    },
+    {
+      "id": "admin_reauthentication",
+      "method": "POST",
+      "pathPattern": "/api/v001/admin/session/reauthentication",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "session",
+      "probe": "admin_reauthentication_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "admin_session",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/session",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "session",
+      "probe": "admin_session_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "batch_admission",
+      "method": "POST",
+      "pathPattern": "/api/v001/group-submission-batches",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "batch_admission_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "existing_bindings",
+      "method": "POST",
+      "pathPattern": "/api/v001/existing-public-photo-bindings",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "existing_bindings_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "existing_photos",
+      "method": "GET",
+      "pathPattern": "/api/v001/existing-public-photos",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "existing_photos_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "flickr_callback",
+      "method": "GET",
+      "pathPattern": "/admin/flickr-oauth/callback",
+      "owner": "fga_oauth_handler",
+      "routingClass": "worker_first",
+      "authBoundary": "callback",
+      "probe": "flickr_callback_safe",
+      "expectedStatus": 400
+    },
+    {
+      "id": "google_login",
+      "method": "POST",
+      "pathPattern": "/admin/google-login",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "google",
+      "probe": "google_login_safe",
+      "expectedStatus": 400
+    },
+    {
+      "id": "groups",
+      "method": "GET",
+      "pathPattern": "/api/v001/groups",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "groups_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "installation_current",
+      "method": "GET",
+      "pathPattern": "/api/v001/installations/current",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "installation_current_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "intent",
+      "method": "GET",
+      "pathPattern": "/api/v001/group-submission-intents/{intent_id}",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "intent_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "intents",
+      "method": "GET",
+      "pathPattern": "/api/v001/group-submission-intents",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "intents_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "live_get",
+      "method": "GET",
+      "pathPattern": "/healthz/live",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "health",
+      "probe": "live_get_safe",
+      "expectedStatus": 200
+    },
+    {
+      "id": "live_head",
+      "method": "HEAD",
+      "pathPattern": "/healthz/live",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "health",
+      "probe": "live_head_safe",
+      "expectedStatus": 200
+    },
+    {
+      "id": "login_start",
+      "method": "GET",
+      "pathPattern": "/admin/login",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "login",
+      "probe": "login_start_safe",
+      "expectedStatus": 503
+    },
+    {
+      "id": "memberships",
+      "method": "GET",
+      "pathPattern": "/api/v001/photo-bindings/{binding_id}/group-memberships",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "memberships_safe",
+      "expectedStatus": 401
+    },
+    {
+      "id": "startup_get",
+      "method": "GET",
+      "pathPattern": "/healthz/startup",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "health",
+      "probe": "startup_get_safe",
+      "expectedStatus": 200
+    },
+    {
+      "id": "startup_head",
+      "method": "HEAD",
+      "pathPattern": "/healthz/startup",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "health",
+      "probe": "startup_head_safe",
+      "expectedStatus": 200
+    },
+    {
+      "id": "upload_authorizations",
+      "method": "POST",
+      "pathPattern": "/api/v001/upload-authorizations",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "authBoundary": "bearer",
+      "probe": "upload_authorizations_safe",
+      "expectedStatus": 401
+    }
+  ],
+  "guards": [
+    {
+      "path": "/api",
+      "match": "exact"
+    },
+    {
+      "path": "/api/",
+      "match": "prefix"
+    },
+    {
+      "path": "/healthz/",
+      "match": "prefix"
+    }
+  ],
+  "shellPaths": [
+    "/admin/"
+  ],
+  "assetPrefix": "/admin/assets/"
+}
