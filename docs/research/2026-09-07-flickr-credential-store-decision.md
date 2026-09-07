@@ -3,13 +3,12 @@
 Date: 2026-09-07
 
 Status: Terry approved the disposable AWS proof on 2026-09-07. Production
-adoption and unattended identity remain proposed. No service has been
-provisioned by this review, and no live credential test has run.
-
-Approval handoff: AWS credentials are unavailable until Terry returns to his
-laptop. [Local protocol preparation](../../probes/secrets/README.md) can proceed
-without them. This approval covers synthetic proof work and does not silently
-approve long-lived production keys or production credential deletion.
+adoption and unattended identity remain proposed. This decision review does
+not itself authorize production provisioning. The subsequently implemented
+[disposable proof](../../probes/secrets/README.md) uses the established local
+AWS login; its [hosted evidence](2026-09-07-secret-store-proof.md) records actual
+results and remaining gates. Synthetic testing does not approve long-lived
+production keys or production credential deletion.
 
 ## Recommendation in plain language
 

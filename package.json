@@ -13,10 +13,11 @@
     "probe:build": "wrangler deploy --dry-run --config probes/runtime-permissions/wrangler.jsonc --outdir .probe-build",
     "route-conformance": "uv run --frozen python scripts/route_conformance.py run",
     "routes:test": "node --test probes/routes/registry.test.mjs",
-    "secrets:test": "node --test probes/secrets/client.test.mjs"
+    "secrets:test": "node --test probes/secrets/*.test.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",
+    "aws4fetch": "1.0.20",
     "miniflare": "4.20260730.0",
     "typescript": "7.0.2",
     "wrangler": "4.116.0"

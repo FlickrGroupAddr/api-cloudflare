@@ -31,7 +31,7 @@ test("exact read supplies full ARN and VersionId and exposes no fixture payload"
     assert.deepEqual(body, { SecretId: reference.arn, VersionId: version });
     assert.equal(request.url, "https://secretsmanager.us-east-2.amazonaws.com/");
     assert.equal(request.method, "POST");
-    assert.equal(request.redirect, "error");
+    assert.equal(request.redirect, "manual");
     assert.equal(request.headers.get("X-Amz-Target"), "secretsmanager.GetSecretValue");
     assert.equal(request.headers.get("Content-Type"), "application/x-amz-json-1.1");
     return value();

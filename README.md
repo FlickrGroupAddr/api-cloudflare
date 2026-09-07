@@ -17,8 +17,9 @@ The [Flickr credential-store recommendation](docs/research/2026-09-07-flickr-cre
 compares native secrets with AWS Secrets Manager, including exact version reads,
 independent credential deletion and Workers authentication. It awaits owner
 decision for production; the disposable synthetic proof is approved. Its
-[local preparation](probes/secrets/README.md) tests the protocol boundary while
-AWS credentials for the hosted run are pending.
+[disposable proof](probes/secrets/README.md) now includes a signed Worker,
+checkpointed controller and lifecycle model. The [hosted evidence](docs/research/2026-09-07-secret-store-proof.md)
+records the run results and remaining acceptance gates.
 
 ## Routing proof
 

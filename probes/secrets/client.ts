@@ -1,4 +1,4 @@
-// Isolated synthetic proof client. A future hosted controller must supply a
+// Isolated synthetic proof client. The hosted controller must supply a
 // signed transport; there is deliberately no global fetch fallback.
 export interface Scope {
   account: string;
@@ -82,7 +82,7 @@ export class SyntheticSecretsClient {
   ): Promise<Record<string, unknown> | null> {
     const request = new Request(this.endpoint, {
       method: "POST",
-      redirect: "error",
+      redirect: "manual",
       headers: {
         "Content-Type": "application/x-amz-json-1.1",
         "X-Amz-Target": `secretsmanager.${action}`,
