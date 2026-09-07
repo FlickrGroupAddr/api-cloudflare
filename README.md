@@ -16,7 +16,9 @@ bindings, with reproducible local/hosted runs and scoped cleanup.
 The [Flickr credential-store recommendation](docs/research/2026-09-07-flickr-credential-store-decision.md)
 compares native secrets with AWS Secrets Manager, including exact version reads,
 independent credential deletion and Workers authentication. It awaits owner
-decision; no backing store or production identity has been adopted.
+decision for production; the disposable synthetic proof is approved. Its
+[local preparation](probes/secrets/README.md) tests the protocol boundary while
+AWS credentials for the hosted run are pending.
 
 ## Routing proof
 

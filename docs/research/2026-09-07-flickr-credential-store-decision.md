@@ -2,8 +2,14 @@
 
 Date: 2026-09-07
 
-Status: Proposed recommendation; needs Terry's decision. No service has been
-selected or provisioned by this review, and no live credential test has run.
+Status: Terry approved the disposable AWS proof on 2026-09-07. Production
+adoption and unattended identity remain proposed. No service has been
+provisioned by this review, and no live credential test has run.
+
+Approval handoff: AWS credentials are unavailable until Terry returns to his
+laptop. [Local protocol preparation](../../probes/secrets/README.md) can proceed
+without them. This approval covers synthetic proof work and does not silently
+approve long-lived production keys or production credential deletion.
 
 ## Recommendation in plain language
 
@@ -182,7 +188,7 @@ customer-managed KMS key costs in a regional estimate before rollout.
 ## Owner choice and bounded proof
 
 Recommend accepting AWS Secrets Manager as the **candidate to prove**, with one
-object per grant generation and exact ARN/version reads. Terry must also accept
+object per grant generation and exact ARN/version reads. Terry must separately accept
 or reject the long-lived scoped bootstrap-key tradeoff for unattended production
 and irreversible cleanup of inactive grant objects. No live provisioning follows
 from this document alone. If long-lived keys are unacceptable, investigate a
