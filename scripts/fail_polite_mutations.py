@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CORE = ROOT / "src/fail_polite.ts"
+FRESHNESS = ROOT / "src/dispatch_freshness.ts"
 MIGRATION = ROOT / "migrations/0004_fail_polite_attempts.sql"
 MUTATIONS = {
     "marker_order": (CORE, 'await record(db,lease,attempt,"marker");', ";"),
@@ -19,7 +20,7 @@ MUTATIONS = {
         'else {outcome="retrying";reason="unknown_code";}',
     ),
     "unresolved_retry": (CORE, "old.marked?", "false?"),
-    "inclusive_clock": (CORE, "age<1_000_000", "age<=1_000_000"),
+    "inclusive_clock": (FRESHNESS, "age<PREFLIGHT_MAX_AGE_US", "age<=PREFLIGHT_MAX_AGE_US"),
     "split_block": (CORE, "if(blocked) statements.push", "if(false && blocked) statements.push"),
     "removed_guard": (
         MIGRATION,
@@ -58,7 +59,7 @@ def invoke(name: str) -> tuple[int, dict]:
 
 
 def main() -> None:
-    original = {path: path.read_bytes() for path in {CORE, MIGRATION}}
+    original = {path: path.read_bytes() for path in {CORE, MIGRATION, FRESHNESS}}
     records = []
     destination = ROOT / "docs/evidence/fail-polite-mutations-2026-09-11.json"
     try:

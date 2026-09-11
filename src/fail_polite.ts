@@ -1,3 +1,4 @@
+import { preflightIsFresh } from "./dispatch_freshness.ts";
 // Internal candidate adapter. No production route or real Flickr transport is enabled.
 import type { SqlStore } from "./admission.ts";
 import { NOW_US_SQL } from "./installations.ts";
@@ -127,7 +128,7 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   try {reservation.consume("preflight");moderated=await deps.transport.preflight(attempt);received=deps.monotonicUs();}
   catch {await resolveAttempt(db,lease,attempt.attemptId,"retrying","safe_read_unavailable");return "deferred";}
   await fault("after_preflight");await record(db,lease,attempt,"preflight",moderated);await fault("preflight_committed");
-  const fresh=()=>{const age=deps.monotonicUs()-received;return Number.isSafeInteger(age)&&age>=0&&age<1_000_000;};
+  const fresh=()=>preflightIsFresh(received,deps.monotonicUs());
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
   await record(db,lease,attempt,"marker");await fault("marker_committed");
   // No await between this live zero-handoff check and the call into the adapter.
