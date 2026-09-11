@@ -4,6 +4,10 @@ Public, Cloudflare-hosted components for FlickrGroupAddr.
 
 ## Hosted foundation
 
+A [sanitized public architecture snapshot](https://github.com/FlickrGroupAddr/architecture-design-public)
+is available for browsing the decisions and contracts. The working architecture
+repository retains its private history; publication does not change authority.
+
 The [Cloudflare native authority mapping](docs/research/2026-09-06-cloudflare-native-authority-mapping.md)
 records the proposed Durable Objects/D1 proof boundaries, accepted-contract
 references, failure cases, and fallback criteria. Production storage selection
