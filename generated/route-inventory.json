@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "scope": "current-installation-read",
+  "routes": [
+    {
+      "id": "installation_current",
+      "method": "GET",
+      "pathPattern": "/api/v001/installations/current",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "current",
+      "auth": "installation_bearer",
+      "allowPending": true,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "installationId",
+          "installationRevision",
+          "installationState",
+          "presentedCredentialState"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "installationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "installationRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "installationState": {
+            "const": "active"
+          },
+          "presentedCredentialState": {
+            "enum": [
+              "current",
+              "pending_rotation"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "guards": [
+    "/api",
+    "/api/",
+    "/healthz/"
+  ],
+  "proofEndpointsExcluded": true
+}

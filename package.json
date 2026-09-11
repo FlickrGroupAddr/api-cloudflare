@@ -14,7 +14,10 @@
     "route-conformance": "uv run --frozen python scripts/route_conformance.py run",
     "routes:test": "node --test probes/routes/registry.test.mjs",
     "secrets:test": "node --test probes/secrets/*.test.mjs",
-    "native-secrets:test": "node --test probes/native-secrets/*.test.mjs"
+    "native-secrets:test": "node --test probes/native-secrets/*.test.mjs",
+    "api:test": "node --test tests/installations.test.mjs probes/foundation/*.test.mjs",
+    "api:generate": "uv run --frozen python scripts/generate_api.py",
+    "api:check-generated": "uv run --frozen python scripts/generate_api.py --check"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",

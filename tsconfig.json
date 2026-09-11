@@ -19,6 +19,8 @@
     "probes/runtime-permissions/cases.ts",
     "probes/routes/*.ts",
     "probes/secrets/*.ts",
-    "probes/native-secrets/*.ts"
+    "probes/native-secrets/*.ts",
+    "src/**/*.ts",
+    "probes/foundation/*.ts"
   ]
 }

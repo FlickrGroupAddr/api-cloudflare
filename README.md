@@ -11,9 +11,13 @@ and live provider conformance remain outstanding.
 
 Accepted [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) now permits guarded native writes
 with trusted deployed code for the private deployment. The runtime-permission
-finding alone no longer forces an RDS fallback. The next #0007 work is actual
-migration, guarded-write, and backup/restore evidence; see the
-[updated decision handoff](docs/research/2026-09-06-native-runtime-permission-evidence.md).
+finding alone no longer forces an RDS fallback. The new [D1 foundation and installation-read handoff](docs/research/2026-09-11-d1-foundation-and-installation-read.md)
+records the implementation, migration/guard/recovery evidence, and the remaining
+clock-precision and early-authentication-rejection decisions. See the
+[proof procedure](probes/foundation/README.md) and the generated
+[API description](generated/openapi.json). The
+[earlier runtime decision handoff](docs/research/2026-09-06-native-runtime-permission-evidence.md)
+remains historical capability evidence.
 
 The [runtime permission probe](probes/runtime-permissions/README.md) evaluates
 insert-only record protection through isolated Worker D1 and Durable Object

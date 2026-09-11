@@ -162,3 +162,6 @@ __pycache__/
 
 # Disposable native secret lifecycle evidence
 .native-secret-runs/
+
+# Disposable D1 protection and installation-read proof runs
+.foundation-runs/
