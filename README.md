@@ -20,12 +20,13 @@ insert-only record protection through isolated Worker D1 and Durable Object
 bindings, with reproducible local/hosted runs and scoped cleanup.
 
 The [Flickr credential-store recommendation](docs/research/2026-09-07-flickr-credential-store-decision.md)
-compares native secrets with AWS Secrets Manager, including exact version reads,
-independent credential deletion and Workers authentication. It awaits owner
-decision for production; the disposable synthetic proof is approved. Its
-[disposable proof](probes/secrets/README.md) now includes a signed Worker,
-checkpointed controller and lifecycle model. The [hosted evidence](docs/research/2026-09-07-secret-store-proof.md)
-records the run results and remaining acceptance gates.
+now follows accepted [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md): evaluate paused native
+replacement with generation checks before AWS. The private pause/repair
+tradeoff is approved; the hosted native proof is next on #0009. Its
+[read-only preflight](docs/evidence/native-secret-preflight-2026-09-11.json)
+succeeded without changing resources. The existing [AWS proof](probes/secrets/README.md)
+and [hosted evidence](docs/research/2026-09-07-secret-store-proof.md) remain
+fallback evidence, not a reason to adopt another service.
 
 ## Routing proof
 

@@ -9,6 +9,11 @@ conformance remain unaccepted. See the [hosted evidence](../../docs/research/202
 for actual results and incomplete gates; passing local tests does not establish
 provider behavior.
 
+Current direction, 2026-09-11: accepted [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md) prioritizes
+the paused, generation-checked native proof. The AWS implementation documented
+here is retained fallback evidence. Do not resume unattended AWS identity work
+merely because this harness exists; first meet the high fallback need threshold.
+
 The [decision review](../../docs/research/2026-09-07-flickr-credential-store-decision.md)
 links the controlling accepted ADR 0017 and OAuth lifecycle contract.
 

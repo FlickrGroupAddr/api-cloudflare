@@ -24,7 +24,9 @@ The current hosted direction is recorded in architecture ADR 0050:
   backup/restore, authentication, or least-privilege requirements.
 - Never assume one atomic transaction spans Durable Objects and D1. Assign each
   durable fact one explicit authority and prove all cross-service failure cases.
-- The native secret-version question remains open for separate owner review.
+- Accepted ADR 0052 directs the paused native credential replacement proof
+  before AWS; its availability tradeoff is approved and hosted conformance
+  remains pending.
 
 Terry approved [architecture ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) on 2026-09-11.
 For the private single-owner deployment, trust deployed native storage-owning
@@ -35,6 +37,19 @@ suppression, append-only history, hostile-client checks, atomicity, fencing,
 and backup/restore. This is a scoped runtime-isolation exception, not a waiver
 of other least-privilege requirements or a production-storage conformance pass.
 Revisit the trust model before public or multi-user operation.
+
+Terry approved [architecture ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md) on 2026-09-11.
+The bar for adding AWS services is high. First evaluate a simpler native
+implementation or owner-approved workflow; identify a concrete unmet
+private-deployment requirement and why it matters, then compare the full
+identity, network, recovery, cost, and maintenance burden. Missing a preferred
+API or having a working AWS prototype does not establish need. Do not invent
+elaborate native machinery to avoid an otherwise justified AWS fallback.
+For Flickr credentials, evaluate one native token-pair bundle with an application
+generation, durable pause during replacement, mismatch rejection, and repair
+or relink after failure. The lack of provider version history alone does not
+force AWS. This accepts the private availability tradeoff and synthetic proof
+direction, not a native production conformance pass or broader safety waiver.
 
 The first planned end-to-end slice is a read-only validation of one FGA LrC
 plug-in installation credential through the same-origin Cloudflare HTTPS edge,

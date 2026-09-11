@@ -8,6 +8,11 @@ production-database conformance remain open on implementation ticket #0009.
 This is evidence under the [credential-store recommendation](2026-09-07-flickr-credential-store-decision.md),
 not acceptance of that production design.
 
+Current direction update, 2026-09-11: [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md) accepts
+the private pause/repair tradeoff and directs native credential replacement
+proof before AWS adoption. The results below remain unchanged; remaining AWS
+production work is conditional fallback work, not the next default task.
+
 ## What was recovered and completed
 
 The resumed checkout contained uncommitted signing transport, Worker,

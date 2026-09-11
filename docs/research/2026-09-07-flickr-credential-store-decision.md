@@ -2,21 +2,22 @@
 
 Date: 2026-09-07
 
-Status: Terry approved the disposable AWS proof on 2026-09-07. Production
-adoption and unattended identity remain proposed. This decision review does
-not itself authorize production provisioning. The subsequently implemented
-[disposable proof](../../probes/secrets/README.md) uses the established local
-AWS login; its [hosted evidence](2026-09-07-secret-store-proof.md) records actual
-results and remaining gates. Synthetic testing does not approve long-lived
-production keys or production credential deletion.
+Status: Terry approved the paused native candidate and private availability
+tradeoff on 2026-09-11 in [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md). The native proof is
+next; production conformance is pending. The [AWS synthetic proof](../../probes/secrets/README.md)
+and its [hosted evidence](2026-09-07-secret-store-proof.md) are retained as
+fallback evidence. AWS production adoption and unattended identities remain
+unaccepted; a working prototype does not establish need.
 
 ## Private lifecycle reassessment, 2026-09-11
 
-Status: Review reopened at Terry's request; the alternative below is proposed,
-not an accepted amendment or a native lifecycle pass. ADR 0051's storage trust
-exception does not itself change ADR 0017. The AWS proof remains valid, but its
-successful implementation is not a reason to adopt AWS before reviewing this
-simpler lifecycle.
+Status: Candidate evaluation and pause/repair tradeoff accepted by Terry on
+2026-09-11 in [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md); no native lifecycle pass is
+claimed. The canonical ADR 0017 and OAuth lifecycle now contain the scoped
+native alternative. ADR 0051 remains the separate storage-runtime trust decision.
+Terry set a high bar for AWS: demonstrate a real unmet requirement after
+considering simpler native workflows, and compare the total operational burden.
+The existing AWS proof does not independently justify adoption.
 
 Terry questioned whether provider version selection justifies another service,
 AWS identity management, and cross-provider failure handling for his private
@@ -34,7 +35,7 @@ encounter these states even in a single-user application. Exact provider
 versions support keeping A and B independently addressable; they do not make
 a secret-store update and a database transaction atomic.
 
-Proposed simpler candidate: use one fixed native secret containing the token,
+Approved candidate for evaluation: use one fixed native secret containing the token,
 token secret, and an opaque application generation identifier together. Store
 only its active generation/metadata in D1. Durably pause new ordinary Flickr
 operations during replacement, serialize relink attempts, and account for
@@ -54,7 +55,7 @@ Secret values remain outside the database, logs, and browser responses.
 
 Cloudflare documents a fixed binding with parameterless get(), a management
 PATCH that replaces its value, and replacement affecting all consuming
-services. The application-generation check above is a proposed use of those
+services. The application-generation check above is the accepted candidate use of those
 interfaces, not a documented provider version or propagation guarantee.
 Native update/propagation/deletion, partial failures, concurrent or delayed
 writes, and the minimum management permissions for a UI-driven relink require
@@ -75,13 +76,20 @@ but adds application encryption, key management, and backup/deletion decisions.
 It was previously excluded by the managed-secret contract, not demonstrated
 inherently unusable. Adopting it would require its own review.
 
-Recommendation: evaluate the paused, generation-checked native lifecycle before
-committing to unattended AWS credentials. Preserve secure storage, owner and
-permission validation, stale-result fencing, explicit disconnect behavior, and
-all submission safety. An explicit ADR 0017/lifecycle amendment would be needed
-if Terry accepts the changed replacement/rollback promise. The original AWS
-recommendation below remains the conforming alternative under the existing
-exact-version contract.
+Approved next work: evaluate the paused, generation-checked native lifecycle
+before committing to unattended AWS credentials. Preserve secure storage,
+owner/permission validation, stale-result fencing, explicit disconnect behavior,
+and all submission safety. [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md) and the amended
+lifecycle record the accepted replacement/rollback tradeoff. The original AWS
+recommendation below remains a fallback under the provider-versioned path.
+
+A read-only preflight on 2026-09-11 successfully listed Secrets Store with the
+existing Cloudflare login (HTTP 200, no stores on the returned page). It created
+or changed no resource and proves neither write/deploy permissions nor native
+lifecycle behavior. [Sanitized preflight](../evidence/native-secret-preflight-2026-09-11.json).
+The next proof must retain generated resource identities before provisioning,
+use only synthetic token pairs, and confirm cleanup; do not upgrade this
+inventory observation into a hosted lifecycle pass.
 
 ## Original recommendation under the exact-version contract
 
@@ -96,8 +104,10 @@ This is a proposed AWS backing-service choice under accepted architecture
 not a change of compute platform or database selection. The governing
 [ADR 0017](https://github.com/FlickrGroupAddr/architecture-design/blob/705e9dacf0ae65b2e2039476bef8270c9b12ee71/docs/decisions/0017-explicit-oauth-and-account-lifecycle.md)
 and [OAuth lifecycle contract](https://github.com/FlickrGroupAddr/architecture-design/blob/705e9dacf0ae65b2e2039476bef8270c9b12ee71/docs/oauth-and-account-lifecycle.md)
-remain unchanged. This recommendation covers dynamic Flickr grants, not every
-deployment secret, browser signing key, or installation credential.
+formed the original exact-version baseline; ADR 0052 now adds the scoped
+private native alternative described above. This recommendation covers dynamic
+Flickr grants, not every deployment secret, browser signing key, or installation
+credential.
 
 An exact version is like a numbered sealed envelope. The FGA database says which
 envelope is authorized; the managed store supplies precisely its contents. If
@@ -257,10 +267,12 @@ customer-managed KMS key costs in a regional estimate before rollout.
 [AWS pricing](https://aws.amazon.com/secrets-manager/pricing/),
 [managed versus customer-managed key cost](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html).
 
-## Owner choice and bounded proof
+## Original AWS choice and conditional fallback proof
 
-Recommend accepting AWS Secrets Manager as the **candidate to prove**, with one
-object per grant generation and exact ARN/version reads. Terry must separately accept
+The original recommendation was AWS Secrets Manager as the **candidate to prove**,
+with one object per grant generation and exact ARN/version reads. Its bounded
+integration now passes; further AWS work is conditional on the high need
+threshold and native evaluation accepted in ADR 0052. Terry must separately accept
 or reject the long-lived scoped bootstrap-key tradeoff for unattended production
 and irreversible cleanup of inactive grant objects. No live provisioning follows
 from this document alone. If long-lived keys are unacceptable, investigate a
