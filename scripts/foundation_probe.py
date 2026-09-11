@@ -25,6 +25,9 @@ except ImportError:
 
 ROOT = runtime.ROOT
 RUNS = ROOT / ".foundation-runs"
+ARCHITECTURE_DECISION_COMMIT = "0cf54f37cd4c293a0b62d467b9a9394fea1a486c"
+# Same fixed provider fixture as the routing proof; keep this harness import-independent.
+PROVIDER_BAD_REQUEST_SHA2_256 = "efca0895b4d88b27a94249f8e7ac0083eff0a4ff3ac37c2841b3f6d7e11c1905"
 Run = runtime.Run
 ProbeError = runtime.ProbeError
 NUMBERS = [
@@ -319,6 +322,21 @@ def record(report: dict[str, Any], name: str, passed: bool, **details: Any) -> N
         raise ProbeError(f"Case failed: {name}")
 
 
+def accepted_provider_rejection(
+    case: str, status: int, headers: dict[str, str], body: bytes
+) -> bool:
+    """The owner-approved early parser boundary, never an arbitrary HTML allowance."""
+    headers = {key.lower(): value for key, value in headers.items()}
+    return (
+        case in {"duplicate_auth", "encoded_separator"}
+        and status == 400
+        and headers.get("content-type", "").split(";", 1)[0].strip().lower() == "text/html"
+        and not any(key.startswith("x-fga-") for key in headers)
+        and not any(key in headers for key in ("location", "set-cookie", "www-authenticate"))
+        and hashlib.sha256(body).hexdigest() == PROVIDER_BAD_REQUEST_SHA2_256
+    )
+
+
 def read_slice(run: Run, token: str, report: dict[str, Any]) -> None:
     credentials = [credential() for _ in range(7)]
     call(run, token, "seed", {"credentials": credentials})
@@ -494,8 +512,21 @@ def read_slice(run: Run, token: str, report: dict[str, Any]) -> None:
                         for c in credentials
                     ),
                 }
-                report.setdefault("unmetContractCases", []).append(observation)
-                print("Foundation boundary observation: " + json.dumps(observation), flush=True)
+                if accepted_provider_rejection(name, status, headers, body):
+                    authority = "ADR0054" if name == "duplicate_auth" else "ADR0037"
+                    observation.update(passed=True, authority=authority)
+                    observation["expected"] = "bounded early provider HTTP 400"
+                    report.setdefault("acceptedProviderRejections", []).append(observation)
+                    record(
+                        report,
+                        "http." + name,
+                        True,
+                        boundary="provider_parser",
+                        authority=authority,
+                    )
+                else:
+                    report.setdefault("unmetContractCases", []).append(observation)
+                    print("Foundation boundary observation: " + json.dumps(observation), flush=True)
                 continue
             error = data.get("error", {})
             passed = (
@@ -695,7 +726,7 @@ def guard_recovery(run: Run, token: str, report: dict[str, Any], config: Path, c
     clocks = [call(run, token, "status")["clock"] for _ in range(12)]
     record(
         report,
-        "clock.database_utc_format",
+        "clock.private_database_utc",
         all(
             re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z", x["utc"])
             and int(x["epoch_us"]) % 1000 == 0
@@ -707,6 +738,8 @@ def guard_recovery(run: Run, token: str, report: dict[str, Any], config: Path, c
         "observedMicrosecondRemainder": sorted({int(x["epoch_us"]) % 1000 for x in clocks}),
         "storageFormatFractionDigits": 6,
         "documentedClockResolution": "milliseconds",
+        "acceptedPrivateSourceResolution": "milliseconds",
+        "authority": "ADR0053",
         "microsecondResolutionProven": False,
     }
     stop_worker(run)
@@ -863,6 +896,8 @@ def run_proof(mode: str) -> int:
     report: dict[str, Any] = {
         "schemaVersion": 1,
         "scope": mode,
+        "acceptedDecisions": ["ADR0053", "ADR0054"],
+        "architectureDecisionCommit": ARCHITECTURE_DECISION_COMMIT,
         "productionConformance": False,
         "collectedAt": datetime.now(UTC).isoformat(),
         "cases": [],

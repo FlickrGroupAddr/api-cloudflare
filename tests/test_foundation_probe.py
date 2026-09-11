@@ -1,5 +1,6 @@
 """Meaningful guardrails for disposable resource scope and generated credential transport."""
 
+import hashlib
 import re
 import sqlite3
 import tempfile
@@ -77,6 +78,55 @@ class FoundationControllerTests(unittest.TestCase):
             result = proof.raw(run, "/api/v001/installations/current", [])
         self.assertEqual(result[0], 500)
         raw.assert_called_once()
+
+    def test_only_approved_early_parser_cases_accept_the_known_response(self):
+        body = b"<html>Fixed synthetic provider bad request</html>"
+        fingerprint = hashlib.sha256(body).hexdigest()
+        headers = {"Content-Type": "text/html; charset=UTF-8"}
+        with patch.object(proof, "PROVIDER_BAD_REQUEST_SHA2_256", fingerprint):
+            for case in ["duplicate_auth", "encoded_separator"]:
+                self.assertTrue(proof.accepted_provider_rejection(case, 400, headers, body))
+            for case in [
+                "missing",
+                "malformed",
+                "unknown",
+                "query",
+                "body",
+                "wrong_method",
+                "retired_route",
+                "api_no_asset",
+            ]:
+                with self.subTest(case=case):
+                    self.assertFalse(proof.accepted_provider_rejection(case, 400, headers, body))
+
+    def test_provider_exception_rejects_changed_body_status_and_application_headers(self):
+        body = b"<html>Fixed synthetic provider bad request</html>"
+        headers = {"content-type": "text/html"}
+        with patch.object(proof, "PROVIDER_BAD_REQUEST_SHA2_256", hashlib.sha256(body).hexdigest()):
+            for status in [200, 301, 401, 403, 404, 405, 429, 500, 503]:
+                with self.subTest(status=status):
+                    self.assertFalse(
+                        proof.accepted_provider_rejection("duplicate_auth", status, headers, body)
+                    )
+            for extra in [
+                {"X-FGA-Proof-Build": "fixture"},
+                {"x-fga-routing-component": "worker"},
+                {"Set-Cookie": "session=fixture"},
+                {"Location": "/admin/"},
+                {"WWW-Authenticate": 'Bearer realm="fga-api"'},
+                {"content-type": "application/json"},
+            ]:
+                with self.subTest(extra=extra):
+                    self.assertFalse(
+                        proof.accepted_provider_rejection(
+                            "duplicate_auth", 400, {**headers, **extra}, body
+                        )
+                    )
+            for changed in [b"<html>Application shell</html>", body + b"credential", b"{}", b""]:
+                with self.subTest(body=changed):
+                    self.assertFalse(
+                        proof.accepted_provider_rejection("duplicate_auth", 400, headers, changed)
+                    )
 
     def test_failed_case_stops_execution_instead_of_claiming_success(self):
         report = {"cases": []}

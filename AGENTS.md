@@ -51,6 +51,18 @@ or relink after failure. The lack of provider version history alone does not
 force AWS. This accepts the private availability tradeoff and synthetic proof
 direction, not a native production conformance pass or broader safety waiver.
 
+Terry approved architecture [ADR 0053](https://github.com/FlickrGroupAddr/architecture-design/blob/0cf54f37cd4c293a0b62d467b9a9394fea1a486c/docs/decisions/0053-accept-millisecond-private-database-clocks.md) and
+[ADR 0054](https://github.com/FlickrGroupAddr/architecture-design/blob/0cf54f37cd4c293a0b62d467b9a9394fea1a486c/docs/decisions/0054-accept-early-duplicate-authorization-rejection.md) on 2026-09-11.
+Database-generated persisted UTC times may use millisecond source resolution for
+the private deployment. Six-digit formatting is not finer resolution; explicit
+sequence/revision fields own durable ordering, and live monotonic preflight
+timing is unchanged. The provider's early HTTP 400 for duplicate Authorization
+fields may use its own non-JSON response without the application no-store or
+Bearer challenge, subject to the bounded no-data/no-shell/no-redirect rules.
+Application-generated authentication errors retain JSON/no-store and matching
+Bearer codes. These decisions resolve the #0007/#0011 owner handoffs; they do
+not require AWS or waive the remaining independent production gates.
+
 The first planned end-to-end slice is a read-only validation of one FGA LrC
 plug-in installation credential through the same-origin Cloudflare HTTPS edge,
 the FGA API backend, and the selected durable store. It makes no Flickr call and

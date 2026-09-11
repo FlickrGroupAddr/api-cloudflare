@@ -79,3 +79,13 @@ absent from the production entry point. Early provider responses are recorded by
 status, safe header-presence flags and a body fingerprint, not by raw body.
 An `unmetContractCases` entry makes the read command exit nonzero even when the
 full case collection and cleanup complete. That is an owner handoff, not a pass.
+
+Terry approved the private millisecond source-clock boundary and early
+provider duplicate-Authorization rejection on 2026-09-11 (architecture ADRs
+0053/0054, commit `0cf54f3`). The collector records that authority. The known
+provider HTML 400 is accepted only for an authorized duplicate-header or
+malformed-target case, with the expected fingerprint, no application marker,
+no cookie, no redirect and no application Bearer challenge. Other responses
+still fail. Positive and negative regression checks cover that boundary.
+Original pre-approval reports are retained; fresh reports record accepted
+provider rejections separately from application results.

@@ -67,10 +67,10 @@
             }
           },
           "400": {
-            "description": "Request rejected",
+            "description": "Application authentication-envelope errors use JSON/no-store and a matching Bearer challenge. ADR 0054 also permits an early provider HTTP 400 for duplicate Authorization fields before application execution to use the provider's non-JSON body without those headers; it cannot redirect, set an application/session cookie, serve the application shell or expose application/session data. The existing malformed-target exception remains.",
             "headers": {
               "Cache-Control": {
-                "description": "Always no-store",
+                "description": "Application-generated errors use no-store; the bounded early provider rejection may omit it.",
                 "schema": {
                   "type": "string",
                   "const": "no-store"
@@ -80,7 +80,7 @@
                 "schema": {
                   "type": "string"
                 },
-                "description": "Bearer challenge with the same machine error code; absent error for missing authentication."
+                "description": "Application-generated Bearer errors carry the matching error code. The early provider parser rejection may omit this header."
               }
             },
             "content": {
@@ -122,6 +122,11 @@
                       }
                     }
                   }
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }

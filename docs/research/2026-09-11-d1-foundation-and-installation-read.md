@@ -6,31 +6,35 @@ The FGA API backend now implements the accepted read-only installation endpoint
 against a scoped native D1 foundation schema. Disposable hosted tests exercise
 ordinary SQL guards, migration/restore behavior and the real HTTPS read route.
 This is implementation and provider evidence, not a production release approval.
-Two owner decisions remain; neither finding establishes a need for AWS.
+Terry approved both recommendations on 2026-09-11. Accepted architecture
+[ADR 0053](https://github.com/FlickrGroupAddr/architecture-design/blob/0cf54f37cd4c293a0b62d467b9a9394fea1a486c/docs/decisions/0053-accept-millisecond-private-database-clocks.md) and
+[ADR 0054](https://github.com/FlickrGroupAddr/architecture-design/blob/0cf54f37cd4c293a0b62d467b9a9394fea1a486c/docs/decisions/0054-accept-early-duplicate-authorization-rejection.md) record those approvals.
+Neither finding requires an AWS service. New conformance evidence follows the
+approved boundaries; the original reports remain unchanged.
 
-## Owner handoff
+## Accepted owner decisions
 
 ### #0007: database-clock precision
 
 The accepted [administrative audit contract](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/administrative-control-plane-contract.md)
-asks for UTC timestamps with microsecond precision. The FGA database supplies
+originally asked for UTC timestamps with microsecond precision. The FGA database supplies
 persisted times. D1/SQLite's documented clock resolution is milliseconds. Twelve
 hosted observations used six fractional digits but all had a zero remainder
 modulo 1,000 microseconds. Formatting `.123000Z` does not create microsecond
-resolution. Card #0014 remains the dependency for settling this distinction.
+resolution. ADR 0053 now resolves the #0014 decision.
 
-**Recommendation for Terry:** explicitly accept millisecond source resolution
+**Approved recommendation:** accept millisecond source resolution
 for persisted UTC timestamps in the private deployment. Keep six-digit UTC
 serialization if desired, document the lower three zeros, and use explicit
 revisions/sequences for ordering. Do not relax atomicity, lease fencing, expiry
-comparisons or the independent monotonic preflight timing requirements. Proposed
+comparisons or the independent monotonic preflight timing requirements. Accepted
 wording: “For the private single-owner deployment, database-generated persisted
 UTC timestamps may have millisecond source resolution. Formatting and integer
 microsecond units do not imply finer resolution. Durable order is supplied by
 explicit sequence/revision fields, never inferred from clock uniqueness.”
 
-This report does not accept that amendment. Adding RDS merely to gain a finer
-clock is not recommended for this hobby deployment.
+Terry accepted this amendment; it is recorded in ADR 0053 and the audit and
+persistence contracts. Adding RDS merely to gain a finer clock is unnecessary.
 
 ### #0011: early rejection of duplicate authentication headers
 
@@ -44,10 +48,10 @@ Authorization is rejected with the required JSON `invalid_request` and matching
 Bearer challenge. No credential is accepted by either rejection path.
 
 The [accepted early-rejection clarification](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/operations/http-route-conformance.md#provider-rejection-before-application-routing)
-currently covers malformed request targets and explicitly excludes authentication.
-The existing decision cannot silently be stretched to cover this result.
+originally covered malformed request targets and explicitly excluded authentication.
+ADR 0054 now explicitly extends that boundary to early duplicate-header rejection.
 
-**Recommendation for Terry:** extend that narrow clarification to duplicate
+**Approved recommendation:** extend that narrow clarification to duplicate
 Authorization header fields rejected by the provider HTTP parser before the
 Worker. Require HTTP 400, no redirect, no application shell or application/session
 data, and retain JSON/no-store plus matching Bearer error codes for every
@@ -56,8 +60,10 @@ requests, ordinary route errors, or arbitrary provider failures on valid targets
 Clients already need to handle the same early non-JSON 400 for malformed targets.
 An extra proxy solely to restyle this rejection is not recommended.
 
-This amendment is proposed, not accepted. #0011 remains a truthful conformance
-handoff even though its normal credential lookup behavior is implemented.
+Terry accepted this amendment; the canonical routing, health and plug-in error
+contracts now record it. The updated proof allows only the known early HTTP 400
+for the authorized cases and still rejects unknown HTML, redirects, cookies,
+application response markers and any other status or authentication scenario.
 
 ## Implementation
 
@@ -125,7 +131,7 @@ backup scheduling, encryption/access controls and a full deployed-service
 quiescence procedure must be configured before production; this disposable proof
 is evidence for the mechanism, not an operational backup service.
 
-## Final validation evidence
+## Initial validation before the approvals
 
 | Evidence | Result |
 | --- | --- |
