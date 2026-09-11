@@ -131,6 +131,44 @@ backup scheduling, encryption/access controls and a full deployed-service
 quiescence procedure must be configured before production; this disposable proof
 is evidence for the mechanism, not an operational backup service.
 
+## Validation after the approvals
+
+Both #0007 and #0011 are ready for review under the accepted private boundaries.
+No owner decision remains open on these two findings. Architecture commit
+`0cf54f3` records the approvals and canonical contract updates; implementation
+commit `308e46f` is the exact source fingerprinted by the fresh hosted reports.
+
+| Evidence | Result |
+| --- | --- |
+| [D1 protection, migrations, exact backup and Time Travel](../evidence/foundation-guards-approved-2026-09-11.json) | 46 checks pass, including the accepted private database-clock behavior |
+| [Current-installation HTTPS read](../evidence/foundation-read-approved-2026-09-11.json) | 26 checks pass, including the explicitly bounded early duplicate-Authorization rejection |
+| Python / Node and Worker / architecture tests | 68 / 36 / 162 pass |
+| Native TypeScript 7.0.2, Ruff, Pyright, generated OpenAPI/inventory | Pass |
+
+Both commands exit zero. Each application response was checked for its expected
+proof build; application test cases had zero retries. The provider rejection is
+recorded separately with the approved authority, exact fingerprint and absence
+of redirects, cookies, application markers and credential/digest material.
+Negative regression cases reject other statuses, other authentication cases,
+unknown bodies and application-generated HTML. Ordinary JSON authentication
+errors retain no-store and matching Bearer challenges. Runtime authentication
+code and schema did not need changing for these approvals.
+
+One [preliminary read sweep](../evidence/foundation-read-failed-attempt-approved-2026-09-11.json)
+ended with a non-JSON response before the first credential assertion and remains
+a failed report. That branch did not retain its HTTP status/body; the root cause
+is unproved. Its recorded setup retries were provider 404s, which do not establish
+the cause of the later parse failure. The collector did not retry an application
+case into success; a fresh isolated deployment completed the full passing sweep.
+This is scoped implementation evidence, not proof of uninterrupted provider
+availability or a broader production release pass.
+
+[Updated cleanup evidence](../evidence/foundation-cleanup-approved-2026-09-11.json)
+confirms removal of the four temporary databases and three Workers used for this
+resumed work, including the failed sweep. Across the full work history, all 28
+database and 20 Worker attempts have confirmed cleanup; the final D1 inventory
+contains none of those test databases. Original evidence below is retained.
+
 ## Initial validation before the approvals
 
 | Evidence | Result |

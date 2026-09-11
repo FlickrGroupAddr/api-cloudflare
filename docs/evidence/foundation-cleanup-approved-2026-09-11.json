@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "databaseRuns": 28,
+  "workerRuns": 20,
+  "allCleanupConfirmed": true,
+  "remainingProbeDatabases": 0,
+  "thisResumedWork": {
+    "databaseRuns": 4,
+    "workerRuns": 3
+  }
+}

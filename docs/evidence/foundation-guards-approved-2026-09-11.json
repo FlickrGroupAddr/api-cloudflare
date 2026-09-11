@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "scope": "guards",
+  "acceptedDecisions": [
+    "ADR0053",
+    "ADR0054"
+  ],
+  "architectureDecisionCommit": "0cf54f37cd4c293a0b62d467b9a9394fea1a486c",
+  "productionConformance": false,
+  "collectedAt": "2026-09-11T18:52:17.012013+00:00",
+  "cases": [
+    {
+      "id": "migration.fresh",
+      "passed": true
+    },
+    {
+      "id": "migration.upgrade_preserves_history",
+      "passed": true
+    },
+    {
+      "id": "guard.installation.creation",
+      "passed": true
+    },
+    {
+      "id": "guard.installation.revocation_terminal",
+      "passed": true
+    },
+    {
+      "id": "guard.version.creation",
+      "passed": true
+    },
+    {
+      "id": "guard.version.expiry",
+      "passed": true
+    },
+    {
+      "id": "guard.block.update",
+      "passed": true
+    },
+    {
+      "id": "guard.block.delete",
+      "passed": true
+    },
+    {
+      "id": "guard.block.replace",
+      "passed": true
+    },
+    {
+      "id": "guard.block.upsert",
+      "passed": true
+    },
+    {
+      "id": "guard.audit.update",
+      "passed": true
+    },
+    {
+      "id": "guard.audit.delete",
+      "passed": true
+    },
+    {
+      "id": "guard.audit.replace",
+      "passed": true
+    },
+    {
+      "id": "guard.audit.upsert",
+      "passed": true
+    },
+    {
+      "id": "guard.parent.delete_restricted",
+      "passed": true
+    },
+    {
+      "id": "guard.installation.delete",
+      "passed": true
+    },
+    {
+      "id": "guard.installation.missing_current",
+      "passed": true
+    },
+    {
+      "id": "guard.installation.identity",
+      "passed": true
+    },
+    {
+      "id": "guard.installation.revision",
+      "passed": true
+    },
+    {
+      "id": "guard.version.delete",
+      "passed": true
+    },
+    {
+      "id": "guard.version.digest",
+      "passed": true
+    },
+    {
+      "id": "guard.version.reverse_pointer",
+      "passed": true
+    },
+    {
+      "id": "guard.version.reactivation",
+      "passed": true
+    },
+    {
+      "id": "guard.batch.failure_rollback",
+      "passed": true
+    },
+    {
+      "id": "migration.failure_rolls_back",
+      "passed": true
+    },
+    {
+      "id": "integer.exact_text_projection",
+      "passed": true
+    },
+    {
+      "id": "clock.private_database_utc",
+      "passed": true
+    },
+    {
+      "id": "recovery.runtime_removed_before_backup_and_restore",
+      "passed": true
+    },
+    {
+      "id": "export.integer_fidelity",
+      "passed": true
+    },
+    {
+      "id": "export.rows_submission_blocks",
+      "passed": true
+    },
+    {
+      "id": "export.rows_audit_events",
+      "passed": true
+    },
+    {
+      "id": "export.rows_installations",
+      "passed": true
+    },
+    {
+      "id": "export.rows_installation_credential_versions",
+      "passed": true
+    },
+    {
+      "id": "export.guard_submission_blocks",
+      "passed": true
+    },
+    {
+      "id": "export.guard_audit_events",
+      "passed": true
+    },
+    {
+      "id": "export.foreign_keys",
+      "passed": true
+    },
+    {
+      "id": "export.exact_import_succeeded",
+      "passed": true
+    },
+    {
+      "id": "export.schema_guards_preserved",
+      "passed": true
+    },
+    {
+      "id": "recovery.old_copy_loses_new_history",
+      "passed": true
+    },
+    {
+      "id": "recovery.incomplete_history_keeps_runtime_removed",
+      "passed": true
+    },
+    {
+      "id": "recovery.complete_bookmark_recovers_history",
+      "passed": true
+    },
+    {
+      "id": "recovery.time_travel_integer_fidelity",
+      "passed": true
+    },
+    {
+      "id": "recovery.foreign_keys",
+      "passed": true
+    },
+    {
+      "id": "recovery.guard_submission_blocks",
+      "passed": true
+    },
+    {
+      "id": "recovery.guard_audit_events",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    }
+  ],
+  "compatibilityDate": "2026-09-11",
+  "sourceHashes": {
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "src/registry.ts": "5668245636b8edc5664346e41c465867406a1019843be5bb1561329d26b7561e",
+    "src/worker.ts": "d75c94d126414f3657fbf6ad1b5486ca3b62f0162fcdf1f76f002a545c15ef97",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "probes/foundation/worker.ts": "6932e232bfac48f1e6f95559ddbbf7cd4d99a07537c97f0d971d2b3920a4e276",
+    "scripts/foundation_probe.py": "01e58bda4b96aaec7fa9a3f8ba8cef8b1b30343732082f2e60fd7d674ea913d1",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "tsconfig.json": "ddc0fee1e28d4b4d60a4951a1d5fb2bd7695ba716bf83d949818c2e83441aa25"
+  },
+  "clock": {
+    "samples": 12,
+    "observedMicrosecondRemainder": [
+      0
+    ],
+    "storageFormatFractionDigits": 6,
+    "documentedClockResolution": "milliseconds",
+    "acceptedPrivateSourceResolution": "milliseconds",
+    "authority": "ADR0053",
+    "microsecondResolutionProven": false
+  },
+  "ordinaryExport": {
+    "integerLiteralsExact": false,
+    "observedIntegerLiterals": [
+      "9007199254740991",
+      "9007199254740992",
+      "9007199254740992",
+      "9223372036854776000",
+      "-9223372036854776000"
+    ]
+  },
+  "exportImport": {
+    "importSucceeded": true,
+    "largeIntegersExact": true
+  },
+  "recoveryScope": "quiescent disposable Worker; no schedulers, DOs or outgoing Flickr calls; runtime stays removed",
+  "completed": true,
+  "setupRetries": [
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 1
+    },
+    {
+      "surface": "status",
+      "method": "POST",
+      "status": 500,
+      "attempt": 1
+    },
+    {
+      "surface": "status",
+      "method": "POST",
+      "status": 404,
+      "attempt": 1
+    }
+  ],
+  "applicationCaseRetries": 0,
+  "cleanupConfirmed": true,
+  "sourceCommit": "308e46f0b581971ef1a7ef1c24145e9f996fd000",
+  "hashAlgorithm": "SHA2-256"
+}

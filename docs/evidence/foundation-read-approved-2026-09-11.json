@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "scope": "read",
+  "acceptedDecisions": [
+    "ADR0053",
+    "ADR0054"
+  ],
+  "architectureDecisionCommit": "0cf54f37cd4c293a0b62d467b9a9394fea1a486c",
+  "productionConformance": false,
+  "collectedAt": "2026-09-11T18:54:14.736149+00:00",
+  "cases": [
+    {
+      "id": "migration.fresh",
+      "passed": true
+    },
+    {
+      "id": "read.current",
+      "passed": true
+    },
+    {
+      "id": "read.pending",
+      "passed": true
+    },
+    {
+      "id": "read.other_current",
+      "passed": true
+    },
+    {
+      "id": "read.expired_pending",
+      "passed": true
+    },
+    {
+      "id": "read.replaced",
+      "passed": true
+    },
+    {
+      "id": "read.revoked",
+      "passed": true
+    },
+    {
+      "id": "read.expired_unactivated",
+      "passed": true
+    },
+    {
+      "id": "http.missing",
+      "passed": true
+    },
+    {
+      "id": "http.unsupported_scheme",
+      "passed": true
+    },
+    {
+      "id": "http.unknown",
+      "passed": true
+    },
+    {
+      "id": "http.malformed",
+      "passed": true
+    },
+    {
+      "id": "http.lowercase",
+      "passed": true
+    },
+    {
+      "id": "http.padding",
+      "passed": true
+    },
+    {
+      "id": "http.duplicate_auth",
+      "passed": true,
+      "boundary": "provider_parser",
+      "authority": "ADR0054"
+    },
+    {
+      "id": "http.query",
+      "passed": true
+    },
+    {
+      "id": "http.two_transports",
+      "passed": true
+    },
+    {
+      "id": "http.body",
+      "passed": true
+    },
+    {
+      "id": "http.wrong_method",
+      "passed": true
+    },
+    {
+      "id": "http.retired_route",
+      "passed": true
+    },
+    {
+      "id": "http.api_no_asset",
+      "passed": true
+    },
+    {
+      "id": "http.health_no_asset",
+      "passed": true
+    },
+    {
+      "id": "http.encoded_separator",
+      "passed": true
+    },
+    {
+      "id": "read.pending_ordinary_scope",
+      "passed": true
+    },
+    {
+      "id": "read.no_durable_mutations",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    }
+  ],
+  "compatibilityDate": "2026-09-11",
+  "sourceHashes": {
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "src/registry.ts": "5668245636b8edc5664346e41c465867406a1019843be5bb1561329d26b7561e",
+    "src/worker.ts": "d75c94d126414f3657fbf6ad1b5486ca3b62f0162fcdf1f76f002a545c15ef97",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "probes/foundation/worker.ts": "6932e232bfac48f1e6f95559ddbbf7cd4d99a07537c97f0d971d2b3920a4e276",
+    "scripts/foundation_probe.py": "01e58bda4b96aaec7fa9a3f8ba8cef8b1b30343732082f2e60fd7d674ea913d1",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "tsconfig.json": "ddc0fee1e28d4b4d60a4951a1d5fb2bd7695ba716bf83d949818c2e83441aa25"
+  },
+  "acceptedProviderRejections": [
+    {
+      "id": "http.duplicate_auth",
+      "passed": true,
+      "expected": "bounded early provider HTTP 400",
+      "status": 400,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "bodySha2_256": "efca0895b4d88b27a94249f8e7ac0083eff0a4ff3ac37c2841b3f6d7e11c1905",
+      "bodyBytes": 155,
+      "applicationBuildPresent": false,
+      "redirectPresent": false,
+      "cookiePresent": false,
+      "credentialOrDigestInBody": false,
+      "authority": "ADR0054"
+    }
+  ],
+  "outboundFlickrOrAWSCalls": 0,
+  "readPhaseProtectedWrites": 0,
+  "fixtureCredentialsRetained": false,
+  "completed": true,
+  "setupRetries": [
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 1
+    },
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 2
+    },
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 3
+    },
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 4
+    },
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 5
+    },
+    {
+      "surface": "status",
+      "method": "POST",
+      "status": 404,
+      "attempt": 1
+    },
+    {
+      "surface": "status",
+      "method": "GET",
+      "status": 404,
+      "attempt": 1
+    }
+  ],
+  "applicationCaseRetries": 0,
+  "cleanupConfirmed": true,
+  "sourceCommit": "308e46f0b581971ef1a7ef1c24145e9f996fd000",
+  "hashAlgorithm": "SHA2-256"
+}
