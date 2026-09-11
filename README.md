@@ -9,6 +9,12 @@ records the proposed Durable Objects/D1 proof boundaries, accepted-contract
 references, failure cases, and fallback criteria. Production storage selection
 and live provider conformance remain outstanding.
 
+Accepted [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) now permits guarded native writes
+with trusted deployed code for the private deployment. The runtime-permission
+finding alone no longer forces an RDS fallback. The next #0007 work is actual
+migration, guarded-write, and backup/restore evidence; see the
+[updated decision handoff](docs/research/2026-09-06-native-runtime-permission-evidence.md).
+
 The [runtime permission probe](probes/runtime-permissions/README.md) evaluates
 insert-only record protection through isolated Worker D1 and Durable Object
 bindings, with reproducible local/hosted runs and scoped cleanup.

@@ -8,8 +8,12 @@ It uses fresh synthetic tables. It does not implement the production FGA schema,
 invoke Flickr, or establish production conformance. The architecture
 [worker persistence contract](https://github.com/FlickrGroupAddr/architecture-design/blob/a02d02558fe0a384f27c6b9c5aee59f340f2fc4a/docs/worker-persistence-scheduler-contract.md)
 and [fail-polite conformance contract](https://github.com/FlickrGroupAddr/architecture-design/blob/a02d02558fe0a384f27c6b9c5aee59f340f2fc4a/docs/testing/fail-polite-worker-database-conformance.md)
-own the requirements. A successful collection of counterexamples is a failed
-protection property, not a production test pass.
+record the stronger requirements at the original test baseline. Accepted
+[ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) narrowed private runtime isolation on
+2026-09-11: broad schema/erase capability alone no longer disqualifies native
+storage. This probe retains its original results and meaning; it does not
+replace the amended production guarded-write/migration/recovery tests or claim
+a production pass.
 
 See the [findings and decision handoff](../../docs/research/2026-09-06-native-runtime-permission-evidence.md)
 and its sanitized evidence.

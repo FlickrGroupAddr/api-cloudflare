@@ -14,13 +14,13 @@ Private board coordination: implementation #0003, parent #0002.
 ## Runtime-permission follow-up
 
 The [hosted permission probe](2026-09-06-native-runtime-permission-evidence.md)
-now supplies negative evidence for the direct D1 binding and owning Durable
-Object patterns: ordinary guards held, but each runtime could remove its
-enforcement and erase protected records. The original mapping below remains
-research provenance, subject to the storage-boundary decision in #0007.
-It is not a selected production authority map. Cloudflare compute remains
-selected; the RDS fallback and any custom native privilege boundary retain
-their separate evidence/review requirements.
+found that ordinary guards held, but each owning runtime could remove its
+enforcement and erase protected records. Terry accepted the private trust model
+in [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) on 2026-09-11: that broad capability alone
+no longer disqualifies a native mapping. Continue guarded-write and
+migration/restore proofs on #0007 under the amended contract. This research
+still does not select a production authority map or supply a production pass;
+RDS remains a fallback for other unmet requirements.
 
 ## Recommendation for the proofs
 
@@ -39,8 +39,10 @@ be inside the same object.
 
 Three questions deserve early proof:
 
-1. **Runtime protection:** can application identities insert safety evidence
-   while being unable to change or erase it, including through schema changes?
+1. **Guarded runtime behavior:** do production guards reject ordinary
+   modification/removal of safety evidence, do actual application paths avoid
+   destructive schema/storage operations, and do migrations preserve that
+   evidence under ADR 0051's private runtime trust model?
 2. **Transaction composition:** can bounded D1 statements express every guard
    and dependent write with whole-operation rollback?
 3. **Hosted time:** can the actual Cloudflare runtime enforce the required
@@ -170,35 +172,32 @@ passes through the same database claim/attempt implementation.
 
 ## Runtime identity and retention protection
 
-The [worker contract][worker] requires an application role that can select and
-insert permanent blocks but cannot update/delete them or change their schema.
-[Fail-polite case `FP-BLOCK-009`][fail-polite] exercises direct database authority,
-including rollback-era application roles. Hiding a delete button is insufficient.
+The current [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) enforcement boundary requires
+SQL guards against ordinary modification/removal of protected facts and tests
+of actual application paths. It trusts the private deployed native runtime
+not to remove guards or erase storage. It does not require a custom privilege
+service solely because the D1 binding or owning Durable Object holds those
+broader capabilities.
 
-The current documented D1 binding permits SQL execution; the reviewed sources
-do not expose the required table-specific privilege separation. Triggers may
-prevent erroneous ordinary statements, but a runtime identity able to remove
-the trigger or table still has erasure authority. Include direct update/delete,
-replacement inserts, parent cascades, schema/trigger changes and disabling check
-enforcement in the isolated probe. Verify actual binding behavior, rather than
-inferring all permissions from the HTTP management API.
+The original [worker contract][worker] and [FP-BLOCK-009 baseline][fail-polite]
+linked by this dated research required strict table/role privilege isolation.
+Their amended current versions retain permanent suppression and test ordinary
+UPDATE/DELETE, replacement/upsert/cascade behavior, migration preservation,
+and absence of destructive runtime paths. Hiding a delete button is still
+insufficient. Use parameterized fixed operations and the narrowest component
+bindings and management credentials consistent with the accepted native model.
 
-A private storage Worker with narrow service-bound methods could remove raw SQL
-capabilities from the public FGA API backend and task workers. The concern is
-that this introduces custom security enforcement, another trusted runtime with
-broader rights, binding administration, migration compatibility, and a maintained
-method surface. Conventional PostgreSQL runtime grants are the simpler reference
-for this particular requirement. Do not adopt the custom service merely to keep
-the database native: its security equivalence and maintenance cost need the
-architecture working agreement's explicit decision checkpoint. It cannot declare
-itself a migration-only principal while continuing to run in production.
+The hosted capability counterexamples remain valid. Removing guards
+intentionally is diagnostic evidence of accepted containment limits; an
+ordinary runtime path or migration erasing protected history remains a defect.
+Production adapter, transaction, and recovery evidence is still required.
 
-For either native candidate, separately identify public API, group worker,
-refresh worker, authentication helper, scheduler, migration, and backup/restore
-capabilities. Deployment credentials never enter request handlers. A scheduler
-needs wake/claim invocation authority, not permanent-block deletion or secret
-administration. Positive role tests and denied direct operations must run with
-the actual deployed bindings/credentials. #0007 owns this evidence.
+Continue to inventory public API, group worker, refresh worker, authentication,
+scheduler, migration, and backup/restore capabilities separately. Deployment
+credentials never enter request handlers. Give a component a storage binding
+only when its responsibilities require one; the trusted-runtime exception does
+not grant every component provider management or secret administration. Verify
+those boundaries with the actual deployed identities and bindings.
 
 ## Clocks, consistency, and bounded work
 
@@ -324,7 +323,7 @@ Their investigation and any owner decisions remain outstanding.
 
 | Work | Reviewable next evidence | Objective stop/fallback criterion |
 | --- | --- | --- |
-| #0007 protection, first small probe | Exact runtime capability inventory; permitted insert and denied destructive operations; aggregate-DO comparison where relevant | An ordinary runtime can alter/remove a protected fact or its enforcement. Do not approve the direct native mapping; compare conventional RDS grants and any explicitly reviewed native alternative. |
+| #0007 guarded writes, migration and recovery | Production guards reject ordinary destructive SQL; actual runtime paths preserve facts and avoid destructive schema/storage calls under ADR 0051 | Guarded writes, actual application paths or migrations erase protected facts. Broad native schema/erase capability alone is not a private acceptance failure; evaluate RDS only against remaining unmet requirements. |
 | #0004 D1 admission | Whole-batch SQL, rollback at each statement, zero-row guards, overlapping requests, exact ordinal transport, one-hint cases | Any accepted handoff is partial, a stale authorization commits, an ordinal changes on rollback, or implementation requires a distributed commit/custom transaction engine. Evaluate aggregate-local transactions or RDS. |
 | #0005 scheduling and time | Real alarms, minutely sweep, lost hints, overdue recovery, concurrent claims and fencing; deployed timer observations | Work depends on an undelivered hint, stale owner can mutate/dispatch, or the required clock/deadline semantics cannot be established. A timer failure needs a Cloudflare execution decision; storage fallback alone is insufficient. |
 | #0006 fail-polite crashes | Production-shaped adapter and controlled HTTPS peer; crash, result, timing and mutation cases | Any second POST, missing atomic block, stale-worker dispatch, or false freshness acceptance prohibits group-write deployment. |

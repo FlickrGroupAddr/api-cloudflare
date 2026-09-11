@@ -26,6 +26,16 @@ The current hosted direction is recorded in architecture ADR 0050:
   durable fact one explicit authority and prove all cross-service failure cases.
 - The native secret-version question remains open for separate owner review.
 
+Terry approved [architecture ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) on 2026-09-11.
+For the private single-owner deployment, trust deployed native storage-owning
+code not to dismantle its SQL guards. Broad D1/owning Durable Object schema or
+erasure capability alone does not require RDS or a custom privilege service.
+Keep guarded ordinary writes, parameterized fixed operations, permanent
+suppression, append-only history, hostile-client checks, atomicity, fencing,
+and backup/restore. This is a scoped runtime-isolation exception, not a waiver
+of other least-privilege requirements or a production-storage conformance pass.
+Revisit the trust model before public or multi-user operation.
+
 The first planned end-to-end slice is a read-only validation of one FGA LrC
 plug-in installation credential through the same-origin Cloudflare HTTPS edge,
 the FGA API backend, and the selected durable store. It makes no Flickr call and

@@ -2,15 +2,18 @@
 
 Date: 2026-09-06
 
-Status: Runtime capability investigation complete; storage-boundary decision
-required from Terry. Production storage adoption and full ticket #0007
-migration/backup/restore conformance remain outstanding.
+Status: Runtime capability investigation complete. Terry accepted the narrower
+private-deployment trust model on 2026-09-11 in [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md).
+The permission-based owner decision is resolved; #0007 resumes guarded-write,
+migration, and backup/restore work. Production storage conformance is pending.
 
 ## Finding
 
 The tested direct D1 binding and SQLite-backed Durable Object ownership patterns
-fail the accepted requirement that ordinary application runtimes cannot alter
-or erase permanent suppression and audit records. Their SQL guards rejected
+failed the original requirement that runtime credentials could not alter or
+erase protected records even after dismantling their enforcement. ADR 0051
+accepts that broad native capability for the private deployment while retaining
+ordinary-write guards and permanent suppression. Their SQL guards rejected
 ordinary edits, but the runtimes could remove the guards, change records, and
 drop tables. The owning Durable Object could also erase its entire storage.
 
@@ -41,8 +44,9 @@ Clarification: 2026-09-11. This evidence does not claim administrator-proof or
 physically undeletable storage. Permanent submission blocks retain the exact
 photo/group do-not-resubmit decision without expiry; append-only audit/evidence
 records preserve their history against alteration by application runtimes.
-The privilege requirement is that ordinary FGA API backend and worker
-credentials cannot erase or rewrite those protected records. A separately
+The original privilege requirement prevented ordinary FGA API backend and
+worker credentials from erasing or rewriting those records even after guard
+removal; the accepted private amendment instead trusts deployed owning code. A separately
 controlled maintenance/table-owner identity necessarily has broader authority.
 Backups, restoration, and maintenance remain separate obligations.
 
@@ -62,8 +66,9 @@ This is PostgreSQL role separation, not an automatic RDS immutability feature.
 [PostgreSQL privileges](https://www.postgresql.org/docs/18/ddl-priv.html).
 
 The RDS role/schema arrangement has not yet been implemented or proved on the
-existing instance. This explanation changes no accepted requirement, selects
-no new storage design, and records no owner approval of the fallback.
+existing instance. The private deployment no longer requires that extra
+containment boundary solely to pass native storage evaluation. RDS remains a
+fallback for other unmet requirements and has not been selected by this update.
 
 ## What was tested
 
@@ -92,12 +97,17 @@ The hosted deployment identity was unchanged before and after collection.
 
 ## Controlling requirement and scope
 
-The accepted [worker persistence contract][worker] requires application roles
-that can select/insert permanent blocks but cannot update/delete them or change
-their table definition. [Fail-polite conformance][fail-polite] includes direct
-runtime database writes in `FP-BLOCK-009`; client-route checks alone do not meet
-that boundary. [ADR 0050][adr50] preserves these semantics while authorizing
-native evaluation.
+The [worker persistence contract at the tested baseline][worker] required
+application roles that could select/insert permanent blocks but could not
+update/delete them or change their table definition. The corresponding
+[fail-polite conformance baseline][fail-polite] included direct runtime database
+writes in `FP-BLOCK-009`. [ADR 0050][adr50] initially retained that boundary.
+
+Accepted [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md) amends the current contracts. Private
+acceptance now requires guarded ordinary destructive SQL, safe actual runtime
+paths, and preservation through migrations/recovery. Client-route checks alone
+are still insufficient, and the original raw reports remain historical evidence
+of the broader capability. Their counts and conformance flags are unchanged.
 
 The probe isolates that requirement. It does not instantiate the complete
 production schema, all application identities, a fail-polite worker, batch
@@ -107,20 +117,20 @@ counterexamples for the direct capabilities tested.
 A different native architecture could remove raw SQL bindings from some FGA
 components. That is a separate security boundary to evaluate. A private
 method-limited storage Worker or Durable Object still has an owning runtime
-with broader capabilities; it must not silently be reclassified as an exempt
-migration principal. Whether such a service satisfies the intended contract
-needs explicit architecture review.
+with broader capabilities. ADR 0051 does not require introducing that service
+solely to address the native runtime's broad authority. Any proposed custom
+service still needs its own justified boundary and architecture review.
 
-## Private-deployment threat-model review
+## Accepted private-deployment threat model
 
-Review opened: 2026-09-11. Terry considers the risk of deployed Worker code
+Accepted by Terry on 2026-09-11 after the recorded review. Terry considers the risk of deployed Worker code
 removing its own guards disproportionate to this single-owner hobby deployment.
 The probe results remain valid, but their importance depends on whether the
 project requires protection from arbitrary SQL executed with the runtime's
 full storage capability. The earlier RDS recommendation assumed that stronger
 requirement was fixed.
 
-Recommendation for owner review: retain the permanent exact-pair suppression
+Approved scope: retain the permanent exact-pair suppression
 and append-only application behavior, but remove database-enforced runtime
 privilege separation as an unconditional private-deployment acceptance gate.
 Keep SQL guards against accidental updates/deletes, parameterized queries,
@@ -134,21 +144,21 @@ single-owner deployment.
 This trades away a defense-in-depth boundary: code capable of arbitrary SQL,
 including through an injection defect, could dismantle native SQL guards.
 Triggers and tests are not equivalent to PostgreSQL privilege separation.
-The proposed tradeoff is to trust the deployed storage-owning runtime while
+The accepted tradeoff is to trust the deployed storage-owning runtime while
 checking its intended behavior, rather than introduce RDS networking/identity
 work or a custom privileged storage service solely to satisfy this one gate.
 It does not establish that D1 meets the other persistence requirements.
 
-Status: Proposed, not an accepted requirement amendment or a production-store
-selection. The canonical worker persistence contract's Safety and history
-relations clause and fail-polite conformance FP-BLOCK-009 would need an explicit,
-consistent amendment. No canonical contract, board lane, or production code was
-changed by this review note. The historical recommendation below remains the
-conclusion under the stronger currently accepted requirement.
+Status: Accepted requirement amendment in [ADR 0051](https://github.com/FlickrGroupAddr/architecture-design/blob/b6676de7e9af78d352344d720ca81b96e6d2e8c1/docs/decisions/0051-trust-private-storage-runtime-with-guarded-writes.md),
+not a production-store selection. Canonical persistence and FP-BLOCK-009
+requirements have been updated in architecture commit `b6676de`. The owner
+decision is resolved and #0007 returns to Ready for Work for remaining proofs.
+The recommendation below records the conclusion under the superseded stronger
+private runtime-isolation requirement.
 
-## Decision for Terry
+## Original fallback recommendation
 
-Recommend preserving the accepted runtime protection boundary and proceeding
+Before the approved amendment, Codex recommended preserving the accepted runtime protection boundary and proceeding
 with the existing RDS fallback's scoped evaluation. Keep Cloudflare compute
 selected. A custom native privilege service would put new application code at
 the exact boundary that must preserve permanent moderator-protection memory.
@@ -169,12 +179,11 @@ identities, backups/restore, latency and incremental cost evidence. Unrestricted
 PostgreSQL ingress is prohibited. Implementation #0010 owns the complete
 fallback evidence record before adoption.
 
-The choice is therefore whether to retain the strict boundary and advance the
-already-authorized RDS fallback evaluation, or ask for a separately reviewed
-native storage-service boundary. This report accepts neither a security
-exception nor a production deployment. The full #0007 ticket belongs in
-**Needs Terry** at this decision point, rather than being marked complete after
-only its runtime-permission inquiry.
+That original choice caused the Needs Terry handoff. Terry subsequently
+approved trusting the private native runtime with guarded ordinary writes,
+recorded above and in ADR 0051. Do not repeat the old permission-based stop or
+mark the full ticket complete: guarded production migrations, restore, and the
+remaining native invariants still need evidence.
 
 ## Remaining gates
 
