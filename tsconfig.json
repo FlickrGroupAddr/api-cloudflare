@@ -21,6 +21,7 @@
     "probes/secrets/*.ts",
     "probes/native-secrets/*.ts",
     "src/**/*.ts",
-    "probes/foundation/*.ts"
+    "probes/foundation/*.ts",
+    "probes/coordination/*.ts"
   ]
 }

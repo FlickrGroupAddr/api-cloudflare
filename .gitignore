@@ -165,3 +165,6 @@ __pycache__/
 
 # Disposable D1 protection and installation-read proof runs
 .foundation-runs/
+
+# Disposable atomic admission / scheduling proof resources
+.coordination-runs/
