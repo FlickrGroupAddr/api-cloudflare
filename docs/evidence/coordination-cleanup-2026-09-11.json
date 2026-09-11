@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "databaseRuns": 3,
+  "workerRuns": 2,
+  "durableObjectNamespaces": 1,
+  "allCleanupConfirmed": true,
+  "remainingProbeDatabases": 0,
+  "remainingProbeNamespaces": 0
+}

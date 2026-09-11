@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "kind": "scheduling",
+  "environment": "cloudflare",
+  "productionConformance": false,
+  "collectedAt": "2026-09-11T21:24:17.958914+00:00",
+  "sourceHashes": {
+    "src/admission.ts": "9c0c550d6a5b6102e93fba9a618945ab3eede514f5f21a90bf67ce76d92184dc",
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "src/registry.ts": "5668245636b8edc5664346e41c465867406a1019843be5bb1561329d26b7561e",
+    "src/scheduling.ts": "3ebe6c108ee8d7ca62e2671316a3d5d0ead0a4da921827dda38a833414ca3716",
+    "src/worker.ts": "d75c94d126414f3657fbf6ad1b5486ca3b62f0162fcdf1f76f002a545c15ef97",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+    "probes/coordination/worker.ts": "1edd3145636d9479ded141bf8115d397e6abcb502ba803e73ae3e493352c1001",
+    "probes/coordination/schema.sql": "7989319094a0d6a84cef71dd7e1888b96185c02c959a9f6c75fbe4d3fe3f7ae1",
+    "probes/coordination/local.mjs": "c13c1727dd188d9838546870d32a5e75d719f409ecc87943ea9987b67d95de08",
+    "scripts/coordination_probe.py": "b3e57ad875fc117b8a43d08ae802df456cd65ba96870880386bdcd9f0a65aa30",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/coordination_backup.py": "20e173295197a5f656d2a23da42ab2b5b55cf4448460ec5f60b40e7a6e2ba4b0",
+    "scripts/foundation_probe.py": "01e58bda4b96aaec7fa9a3f8ba8cef8b1b30343732082f2e60fd7d674ea913d1",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "tsconfig.json": "47d4cffb775b6946eba477ff86b5b396c887d25e482ab0ebb5fa42818fb87c54"
+  },
+  "cases": [
+    {
+      "id": "scheduling.one_concurrent_lease_winner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.duplicate_and_stale_hint_no_claim",
+      "passed": true
+    },
+    {
+      "id": "scheduling.renew_current_owner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.wrong_lease_id_cannot_mutate",
+      "passed": true
+    },
+    {
+      "id": "scheduling.release_current_owner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.stale_generation_fences_all_mutations",
+      "passed": true
+    },
+    {
+      "id": "scheduling.defer_commits_exact_due_and_releases",
+      "passed": true
+    },
+    {
+      "id": "scheduling.no_early_claim_and_exact_due",
+      "passed": true
+    },
+    {
+      "id": "scheduling.later_intent_cannot_advance_head_due",
+      "passed": true
+    },
+    {
+      "id": "scheduling.paused_deployment_no_claim_churn",
+      "passed": true
+    },
+    {
+      "id": "scheduling.paused_user_no_claim_churn",
+      "passed": true
+    },
+    {
+      "id": "scheduling.exact_64bit_fence",
+      "passed": true
+    },
+    {
+      "id": "scheduling.reject_number_fence",
+      "passed": true
+    },
+    {
+      "id": "scheduling.lost_claim_response_retains_lease",
+      "passed": true
+    },
+    {
+      "id": "scheduling.database_expiry_allows_successor",
+      "passed": true
+    },
+    {
+      "id": "scheduling.expired_owner_cannot_overwrite_successor",
+      "passed": true
+    },
+    {
+      "id": "scheduling.do_duplicate_delivery_one_owner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.real_object_reset_keeps_d1_authority",
+      "passed": true
+    },
+    {
+      "id": "scheduling.restart_cannot_duplicate_claim",
+      "passed": true
+    },
+    {
+      "id": "scheduling.stale_do_hint_is_noop",
+      "passed": true
+    },
+    {
+      "id": "scheduling.future_alarm_is_advisory_only",
+      "passed": true
+    },
+    {
+      "id": "scheduling.alarm_survives_real_object_reset",
+      "passed": true
+    },
+    {
+      "id": "scheduling.actual_alarm_rechecks_database_due",
+      "passed": true
+    },
+    {
+      "id": "scheduling.lost_alarm_recovers_through_same_sweep_claim",
+      "passed": true
+    },
+    {
+      "id": "scheduling.actual_provider_minutely_schedule",
+      "passed": true
+    },
+    {
+      "id": "scheduling.actual_cron_recovers_lost_hint",
+      "passed": true,
+      "observedLagMs": 59494
+    },
+    {
+      "id": "scheduling.invocation_deadline_stops_renewal",
+      "passed": true
+    },
+    {
+      "id": "scheduling.generation_exhaustion_is_not_wrapped",
+      "passed": true
+    },
+    {
+      "id": "scheduling.lease_history_is_append_only",
+      "passed": true
+    },
+    {
+      "id": "scheduling.no_retained_transaction_guards",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    }
+  ],
+  "completed": true,
+  "cleanupConfirmed": true,
+  "controlRetries": [],
+  "sourceCommit": "f0341af1d97096b4e18ec53f68a661bbbe210db9",
+  "hashAlgorithm": "SHA2-256",
+  "compatibilityDate": "2026-09-11",
+  "durableObjectNamespaceDeleted": true
+}

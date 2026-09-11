@@ -32,6 +32,12 @@ pause, generation matching, retirement and recovery boundaries. Production
 UI/API integration remains separate. The existing [AWS proof](probes/secrets/README.md)
 is retained fallback evidence.
 
+The [atomic admission and scheduling proofs](docs/research/2026-09-11-admission-and-scheduling-proof.md)
+now pass 65 hosted checks: complete D1 batches, exact FIFO/fencing, archive
+restoration, real Durable Object resets/alarms and minutely Cron recovery.
+[Reproduction and cleanup](probes/coordination/README.md) describe the isolated
+fixtures. Public batch-route integration and Flickr dispatch remain separate.
+
 ## Routing proof
 
 The [Worker routing proof](probes/routes/README.md) derives a route inventory and
