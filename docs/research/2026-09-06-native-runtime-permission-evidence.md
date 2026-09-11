@@ -111,6 +111,41 @@ with broader capabilities; it must not silently be reclassified as an exempt
 migration principal. Whether such a service satisfies the intended contract
 needs explicit architecture review.
 
+## Private-deployment threat-model review
+
+Review opened: 2026-09-11. Terry considers the risk of deployed Worker code
+removing its own guards disproportionate to this single-owner hobby deployment.
+The probe results remain valid, but their importance depends on whether the
+project requires protection from arbitrary SQL executed with the runtime's
+full storage capability. The earlier RDS recommendation assumed that stronger
+requirement was fixed.
+
+Recommendation for owner review: retain the permanent exact-pair suppression
+and append-only application behavior, but remove database-enforced runtime
+privilege separation as an unconditional private-deployment acceptance gate.
+Keep SQL guards against accidental updates/deletes, parameterized queries,
+fixed authorized operations, and tests for replace/upsert/cascade bypasses.
+No normal API, administrator, retry, retention, migration, or recovery workflow
+may clear suppression records to permit another submission. Preserve the
+existing atomicity, dispatch, fencing, hostile-client, and backup/restore
+requirements. Revisit the trust model before expanding beyond the private
+single-owner deployment.
+
+This trades away a defense-in-depth boundary: code capable of arbitrary SQL,
+including through an injection defect, could dismantle native SQL guards.
+Triggers and tests are not equivalent to PostgreSQL privilege separation.
+The proposed tradeoff is to trust the deployed storage-owning runtime while
+checking its intended behavior, rather than introduce RDS networking/identity
+work or a custom privileged storage service solely to satisfy this one gate.
+It does not establish that D1 meets the other persistence requirements.
+
+Status: Proposed, not an accepted requirement amendment or a production-store
+selection. The canonical worker persistence contract's Safety and history
+relations clause and fail-polite conformance FP-BLOCK-009 would need an explicit,
+consistent amendment. No canonical contract, board lane, or production code was
+changed by this review note. The historical recommendation below remains the
+conclusion under the stronger currently accepted requirement.
+
 ## Decision for Terry
 
 Recommend preserving the accepted runtime protection boundary and proceeding
