@@ -1,0 +1,12 @@
+{
+  "sourceSnapshotCommit": "04941748d90eb5a930348ee03818e765db9ea38a",
+  "workerDeleted": true,
+  "durableObjectNamespaceDeleted": true,
+  "databasesDeleted": 2,
+  "archiveRowsAndSchemaExact": true,
+  "cleanupConfirmed": true,
+  "realFlickrCalls": 0,
+  "productionResourcesChanged": false,
+  "deletionMethod": "normal Worker deletion and declarative Durable Object class retirement; no forced deletion",
+  "archiveSha2_256": "9a5b367bf31ad65f27e98144fc92c57cd443344863847b8755735807091a504c"
+}

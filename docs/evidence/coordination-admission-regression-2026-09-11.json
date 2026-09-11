@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "recordType": "public_check_summary",
+  "kind": "admission",
+  "environment": "local",
+  "sourceSnapshotCommit": "04941748d90eb5a930348ee03818e765db9ea38a",
+  "runtimeCompatibilityDate": "2026-07-30",
+  "sourceHashes": {
+    "src/admission.ts": "9c0c550d6a5b6102e93fba9a618945ab3eede514f5f21a90bf67ce76d92184dc",
+    "src/fail_polite.ts": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "src/registry.ts": "5668245636b8edc5664346e41c465867406a1019843be5bb1561329d26b7561e",
+    "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+    "src/worker.ts": "d75c94d126414f3657fbf6ad1b5486ca3b62f0162fcdf1f76f002a545c15ef97",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "migrations/0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+    "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+    "probes/coordination/fail_polite.ts": "653783d9736b1abe4aa842bea3191cfd855f4340b1ab36828f30d275fe6631a9",
+    "probes/coordination/worker.ts": "15afcafbfd950b21297260c5d887e0684d2c3c1acc82354f8491209bc3a27d72",
+    "probes/coordination/schema.sql": "b411c3943ce9e4071fd0a8d228f566bc6ac164a762bc394dc93346d0db8d1ffb",
+    "probes/coordination/local.mjs": "c4c4c1ecb71b97d3e87fdb5e0fc80fe6c9045bf0335b22033b92b9a7269e531d",
+    "scripts/coordination_probe.py": "a38413f363f226410f42c9447cdfe0f46ef050ffcd007230381de589ea4a7973",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/coordination_backup.py": "508fa40c9904a36862c10274153f6770221ff21771f9e470ec2e4b6014e3c63a",
+    "scripts/fail_polite_cases.py": "7ad1bf84c4ac139c25e0baa439ff70141ec48226714de3fc1d7017951580c871",
+    "scripts/fail_polite_mutations.py": "7191a06d793fc0ff6fb1f19cbb6375096212dd77cbec178ba33975866ed21004",
+    "scripts/foundation_probe.py": "01e58bda4b96aaec7fa9a3f8ba8cef8b1b30343732082f2e60fd7d674ea913d1",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "tsconfig.json": "47d4cffb775b6946eba477ff86b5b396c887d25e482ab0ebb5fa42818fb87c54"
+  },
+  "cases": [
+    {
+      "id": "admission.complete_ordered_batch",
+      "passed": true
+    },
+    {
+      "id": "admission.one_canonical_post_commit_hint",
+      "passed": true
+    },
+    {
+      "id": "admission.identical_retry_no_change",
+      "passed": true
+    },
+    {
+      "id": "admission.mixed_existing_missing",
+      "passed": true
+    },
+    {
+      "id": "admission.single_group_behind_head",
+      "passed": true
+    },
+    {
+      "id": "admission.sixty_groups_one_transaction",
+      "passed": true
+    },
+    {
+      "id": "admission.complete_validation_before_writes",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_0",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_1",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_2",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_3",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_4",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_5",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_6",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_stage_7",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_inside_multirow_insert",
+      "passed": true
+    },
+    {
+      "id": "admission.rollback_does_not_consume_ordinals",
+      "passed": true
+    },
+    {
+      "id": "admission.concurrent_identical_natural_keys",
+      "passed": true
+    },
+    {
+      "id": "admission.concurrent_distinct_committed_fifo",
+      "passed": true
+    },
+    {
+      "id": "admission.happens_before_fifo",
+      "passed": true
+    },
+    {
+      "id": "admission.binding_revision_race_rolls_back",
+      "passed": true
+    },
+    {
+      "id": "admission.expired_proof_only_all_existing_retry",
+      "passed": true
+    },
+    {
+      "id": "admission.permanent_block_reused_without_revival",
+      "passed": true
+    },
+    {
+      "id": "admission.retained_identity_and_events",
+      "passed": true
+    },
+    {
+      "id": "admission.exact_integers_above_javascript_limit",
+      "passed": true
+    },
+    {
+      "id": "admission.counter_exhaustion_fails_whole_batch",
+      "passed": true
+    },
+    {
+      "id": "admission.write_pause_does_not_block_handoff",
+      "passed": true
+    },
+    {
+      "id": "admission.lost_hint_keeps_durable_due_work",
+      "passed": true
+    },
+    {
+      "id": "admission.no_retained_transaction_guards",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    },
+    {
+      "id": "network.no_external_calls",
+      "passed": true
+    }
+  ],
+  "checkCount": 31,
+  "completed": true,
+  "cleanupConfirmed": true,
+  "productionConformance": false,
+  "detailedWitnessesPublished": false,
+  "detailedReportSha2_256": "97496ab8e87b67a20d3230b4d430004d8f8b48766780cd7942c23e3269d5866b",
+  "sourceNewlineNormalization": [
+    "src/fail_polite.ts"
+  ]
+}

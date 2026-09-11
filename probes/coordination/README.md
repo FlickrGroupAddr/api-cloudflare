@@ -124,3 +124,42 @@ real official-client no-slicing tests remain integration work. These internal
 adapter results must not be published as the final HTTP response shape.
 The full CBA and fail-polite release suites, production backups, real LrC/TLS,
 Flickr rate reservations and monotonic dispatch timing remain separate gates.
+
+## Bounded fail-polite crash proof
+
+`uv run --frozen python scripts/coordination_probe.py local fail-polite` runs the
+candidate attempt/marker/result adapter against local workerd/D1 and a loopback
+HTTP fixture. `uv run --frozen python scripts/coordination_probe.py hosted fail-polite`
+uses disposable Cloudflare D1, a SQLite Durable Object, and a controlled HTTPS
+peer. The hosted run additionally exercises real Cron, stops the source Worker,
+and restores all selected domain tables into a second unexposed D1 database.
+Both commands return nonzero on an assertion or cleanup failure. The existing
+`cleanup --run <private-run-directory>` command handles interrupted hosted runs.
+
+The harness records ten crash boundaries through both hint and sweep entry
+paths, durable before/after witnesses, observed POST counts, result-code
+classification, immutable history guards, and injected monotonic boundaries.
+Actual Durable Object abort/recreation replaces the actor; this does not claim
+an independently terminated operating-system process. Test leases are one second
+locally and ten seconds hosted; persisted lease time comes from D1. The hosted
+peer sees real HTTPS requests and records whether the marker was already durable.
+Only synthetic identifiers and the disposable proof bearer are used. The public
+API imports neither this fixture nor its Flickr transport.
+
+`uv run --frozen python scripts/fail_polite_mutations.py` checks six isolated local
+source/migration mutations with passing unmutated controls. It temporarily changes
+one source file at a time and restores the original bytes in `finally`; do not
+run it alongside builds or proofs. It writes sanitized evidence under
+`docs/evidence/`. These checks cover missing dispatch markers, retryable unknown
+results, replayable abandoned dispatches, inclusive freshness, separated blocks,
+and a removed ordinary-write guard. They are not the complete production
+mutation inventory. `--mutation-check` selects one diagnostic assertion and is
+never a replacement for the full crash profile.
+
+This is a bounded native-storage proof, not production fail-polite conformance.
+The fixture provides its own transport, deterministic reservation allocator and
+manual clock. Ticket #0013 still owns deployed Workers freshness enforcement.
+The production OAuth transport/rate allocator, complete protocol and retry
+coverage, public admission/status/admin integration, independent process-stop
+coverage, and the complete accepted case/mutation inventory remain release gates.
+No release capable of a real `flickr.groups.pools.add` is enabled by these results.

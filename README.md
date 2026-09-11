@@ -38,6 +38,12 @@ restoration, real Durable Object resets/alarms and minutely Cron recovery.
 [Reproduction and cleanup](probes/coordination/README.md) describe the isolated
 fixtures. Public batch-route integration and Flickr dispatch remain separate.
 
+The [native fail-polite crash proof](docs/research/2026-09-11-fail-polite-crash-proof.md)
+adds retained attempts, dispatch markers, atomic terminal/block results and
+recovery through the shared D1 claim path. The controlled peer observes actual
+POSTs independently of database outcomes. Production clock enforcement and the
+complete release conformance gate remain separate; real Flickr writes are disabled.
+
 ## Routing proof
 
 The [Worker routing proof](probes/routes/README.md) derives a route inventory and

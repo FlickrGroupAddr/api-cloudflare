@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "recordType": "public_check_summary",
+  "kind": "scheduling",
+  "environment": "local",
+  "sourceSnapshotCommit": "04941748d90eb5a930348ee03818e765db9ea38a",
+  "runtimeCompatibilityDate": "2026-07-30",
+  "sourceHashes": {
+    "src/admission.ts": "9c0c550d6a5b6102e93fba9a618945ab3eede514f5f21a90bf67ce76d92184dc",
+    "src/fail_polite.ts": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "src/registry.ts": "5668245636b8edc5664346e41c465867406a1019843be5bb1561329d26b7561e",
+    "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+    "src/worker.ts": "d75c94d126414f3657fbf6ad1b5486ca3b62f0162fcdf1f76f002a545c15ef97",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "migrations/0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+    "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+    "probes/coordination/fail_polite.ts": "653783d9736b1abe4aa842bea3191cfd855f4340b1ab36828f30d275fe6631a9",
+    "probes/coordination/worker.ts": "15afcafbfd950b21297260c5d887e0684d2c3c1acc82354f8491209bc3a27d72",
+    "probes/coordination/schema.sql": "b411c3943ce9e4071fd0a8d228f566bc6ac164a762bc394dc93346d0db8d1ffb",
+    "probes/coordination/local.mjs": "c4c4c1ecb71b97d3e87fdb5e0fc80fe6c9045bf0335b22033b92b9a7269e531d",
+    "scripts/coordination_probe.py": "a38413f363f226410f42c9447cdfe0f46ef050ffcd007230381de589ea4a7973",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/coordination_backup.py": "508fa40c9904a36862c10274153f6770221ff21771f9e470ec2e4b6014e3c63a",
+    "scripts/fail_polite_cases.py": "7ad1bf84c4ac139c25e0baa439ff70141ec48226714de3fc1d7017951580c871",
+    "scripts/fail_polite_mutations.py": "7191a06d793fc0ff6fb1f19cbb6375096212dd77cbec178ba33975866ed21004",
+    "scripts/foundation_probe.py": "01e58bda4b96aaec7fa9a3f8ba8cef8b1b30343732082f2e60fd7d674ea913d1",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "tsconfig.json": "47d4cffb775b6946eba477ff86b5b396c887d25e482ab0ebb5fa42818fb87c54"
+  },
+  "cases": [
+    {
+      "id": "scheduling.one_concurrent_lease_winner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.duplicate_and_stale_hint_no_claim",
+      "passed": true
+    },
+    {
+      "id": "scheduling.renew_current_owner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.wrong_lease_id_cannot_mutate",
+      "passed": true
+    },
+    {
+      "id": "scheduling.release_current_owner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.stale_generation_fences_all_mutations",
+      "passed": true
+    },
+    {
+      "id": "scheduling.defer_commits_exact_due_and_releases",
+      "passed": true
+    },
+    {
+      "id": "scheduling.no_early_claim_and_exact_due",
+      "passed": true
+    },
+    {
+      "id": "scheduling.later_intent_cannot_advance_head_due",
+      "passed": true
+    },
+    {
+      "id": "scheduling.paused_deployment_no_claim_churn",
+      "passed": true
+    },
+    {
+      "id": "scheduling.paused_user_no_claim_churn",
+      "passed": true
+    },
+    {
+      "id": "scheduling.exact_64bit_fence",
+      "passed": true
+    },
+    {
+      "id": "scheduling.reject_number_fence",
+      "passed": true
+    },
+    {
+      "id": "scheduling.lost_claim_response_retains_lease",
+      "passed": true
+    },
+    {
+      "id": "scheduling.database_expiry_allows_successor",
+      "passed": true
+    },
+    {
+      "id": "scheduling.expired_owner_cannot_overwrite_successor",
+      "passed": true
+    },
+    {
+      "id": "scheduling.do_duplicate_delivery_one_owner",
+      "passed": true
+    },
+    {
+      "id": "scheduling.real_object_reset_keeps_d1_authority",
+      "passed": true
+    },
+    {
+      "id": "scheduling.restart_cannot_duplicate_claim",
+      "passed": true
+    },
+    {
+      "id": "scheduling.stale_do_hint_is_noop",
+      "passed": true
+    },
+    {
+      "id": "scheduling.future_alarm_is_advisory_only",
+      "passed": true
+    },
+    {
+      "id": "scheduling.alarm_survives_real_object_reset",
+      "passed": true
+    },
+    {
+      "id": "scheduling.actual_alarm_rechecks_database_due",
+      "passed": true
+    },
+    {
+      "id": "scheduling.lost_alarm_recovers_through_same_sweep_claim",
+      "passed": true
+    },
+    {
+      "id": "scheduling.invocation_deadline_stops_renewal",
+      "passed": true
+    },
+    {
+      "id": "scheduling.generation_exhaustion_is_not_wrapped",
+      "passed": true
+    },
+    {
+      "id": "scheduling.lease_history_is_append_only",
+      "passed": true
+    },
+    {
+      "id": "scheduling.no_retained_transaction_guards",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    },
+    {
+      "id": "network.no_external_calls",
+      "passed": true
+    }
+  ],
+  "checkCount": 30,
+  "completed": true,
+  "cleanupConfirmed": true,
+  "productionConformance": false,
+  "detailedWitnessesPublished": false,
+  "detailedReportSha2_256": "1bdb578030baf906de5a55b67fe59e2dd7f4487103837e1a61b33f9c5eef6be5",
+  "sourceNewlineNormalization": [
+    "src/fail_polite.ts"
+  ]
+}
