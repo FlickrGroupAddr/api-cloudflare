@@ -3,8 +3,8 @@
 Date: 2026-09-07
 
 Status: Terry approved the paused native candidate and private availability
-tradeoff on 2026-09-11 in [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md). The native proof is
-next; production conformance is pending. The [AWS synthetic proof](../../probes/secrets/README.md)
+tradeoff on 2026-09-11 in [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md). The bounded native proof now passes 29 hosted cases; production UI/API
+integration and full conformance remain pending. The [AWS synthetic proof](../../probes/secrets/README.md)
 and its [hosted evidence](2026-09-07-secret-store-proof.md) are retained as
 fallback evidence. AWS production adoption and unattended identities remain
 unaccepted; a working prototype does not establish need.
@@ -90,6 +90,23 @@ lifecycle behavior. [Sanitized preflight](../evidence/native-secret-preflight-20
 The next proof must retain generated resource identities before provisioning,
 use only synthetic token pairs, and confirm cleanup; do not upgrade this
 inventory observation into a hosted lifecycle pass.
+
+## Completed native proof, 2026-09-11
+
+The [native lifecycle evidence](2026-09-11-native-secret-lifecycle-proof.md)
+records 29 passing hosted cases with all fixture cleanup confirmed. D1 retained
+pending and retiring generation metadata; the native binding rejected stale or
+malformed selection. Activation and audit rolled back together on injected
+failure. A generation-specific noncredential marker allowed confirmed retirement
+and later relink through the same binding. Physical secret-object deletion was
+verified separately during teardown after removing the Worker.
+
+No unmet requirement in this bounded proof justifies AWS. Continue with the
+native candidate under ADR 0052 and integrate it into the actual authenticated
+API and UI before any production claim. The operator credential used in this
+proof does not establish the scope or renewal of a future unattended writer.
+Existing AWS results remain fallback evidence, and the earlier preflight above
+remains correctly scoped to the read-only inventory it performed.
 
 ## Original recommendation under the exact-version contract
 

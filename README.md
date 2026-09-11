@@ -21,12 +21,12 @@ bindings, with reproducible local/hosted runs and scoped cleanup.
 
 The [Flickr credential-store recommendation](docs/research/2026-09-07-flickr-credential-store-decision.md)
 now follows accepted [ADR 0052](https://github.com/FlickrGroupAddr/architecture-design/blob/abcb2d192063783400634aa50c736c1d0a6a523a/docs/decisions/0052-evaluate-paused-native-credential-replacement.md): evaluate paused native
-replacement with generation checks before AWS. The private pause/repair
-tradeoff is approved; the hosted native proof is next on #0009. Its
-[read-only preflight](docs/evidence/native-secret-preflight-2026-09-11.json)
-succeeded without changing resources. The existing [AWS proof](probes/secrets/README.md)
-and [hosted evidence](docs/research/2026-09-07-secret-store-proof.md) remain
-fallback evidence, not a reason to adopt another service.
+replacement with generation checks before AWS. The [native lifecycle proof](docs/research/2026-09-11-native-secret-lifecycle-proof.md)
+now passes all 29 hosted cases with confirmed cleanup. Its
+[reproduction procedure](probes/native-secrets/README.md) explains the tested
+pause, generation matching, retirement and recovery boundaries. Production
+UI/API integration remains separate. The existing [AWS proof](probes/secrets/README.md)
+is retained fallback evidence.
 
 ## Routing proof
 

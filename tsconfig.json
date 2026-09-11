@@ -18,6 +18,7 @@
     "probes/runtime-permissions/worker.ts",
     "probes/runtime-permissions/cases.ts",
     "probes/routes/*.ts",
-    "probes/secrets/*.ts"
+    "probes/secrets/*.ts",
+    "probes/native-secrets/*.ts"
   ]
 }

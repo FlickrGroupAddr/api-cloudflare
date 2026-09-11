@@ -13,7 +13,8 @@
     "probe:build": "wrangler deploy --dry-run --config probes/runtime-permissions/wrangler.jsonc --outdir .probe-build",
     "route-conformance": "uv run --frozen python scripts/route_conformance.py run",
     "routes:test": "node --test probes/routes/registry.test.mjs",
-    "secrets:test": "node --test probes/secrets/*.test.mjs"
+    "secrets:test": "node --test probes/secrets/*.test.mjs",
+    "native-secrets:test": "node --test probes/native-secrets/*.test.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",
