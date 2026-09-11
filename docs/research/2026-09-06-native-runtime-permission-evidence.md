@@ -35,6 +35,36 @@ the reports preserve that limitation instead of inventing an engine version.
 A successful evidence-collection command does not mean the protection property
 passed. The reports explicitly set `productionConformance: false`.
 
+## Meaning of permanent and the PostgreSQL comparison
+
+Clarification: 2026-09-11. This evidence does not claim administrator-proof or
+physically undeletable storage. Permanent submission blocks retain the exact
+photo/group do-not-resubmit decision without expiry; append-only audit/evidence
+records preserve their history against alteration by application runtimes.
+The privilege requirement is that ordinary FGA API backend and worker
+credentials cannot erase or rewrite those protected records. A separately
+controlled maintenance/table-owner identity necessarily has broader authority.
+Backups, restoration, and maintenance remain separate obligations.
+
+The native experiment tested whether SQLite guards could enforce this runtime
+boundary. Triggers successfully refused ordinary update/delete statements,
+but the same D1 binding could remove the triggers or drop the table. That
+capability, rather than SQL syntax or a failure to retain data durably, is the
+negative result.
+
+PostgreSQL distinguishes SELECT, INSERT, UPDATE, DELETE, and TRUNCATE privileges
+and reserves object alteration/destruction to ownership. A non-owner runtime
+role can receive SELECT/INSERT on the protected table while a separate
+migration identity owns it. The runtime role must have no ownership membership,
+privilege escalation, destructive cascade, or privileged-function bypass. Giving
+a Worker the table-owner or administrative credentials defeats the distinction.
+This is PostgreSQL role separation, not an automatic RDS immutability feature.
+[PostgreSQL privileges](https://www.postgresql.org/docs/18/ddl-priv.html).
+
+The RDS role/schema arrangement has not yet been implemented or proved on the
+existing instance. This explanation changes no accepted requirement, selects
+no new storage design, and records no owner approval of the fallback.
+
 ## What was tested
 
 The [probe and operating procedure][probe] create a fresh synthetic D1 database,
