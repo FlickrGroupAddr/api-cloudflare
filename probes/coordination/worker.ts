@@ -1,3 +1,4 @@
+import * as failPolite from "./fail_polite.ts";
 // Disposable provider fixture. No proof route or actor is registered in the public API.
 import { admit, type AdmissionAuth, type SqlStore, type WakeHint } from "../../src/admission.ts";
 import { claimPartition,deferHead,duePartitions,releaseLease,renewLease,scheduleView,type Lease,type LeasePolicy } from "../../src/scheduling.ts";
@@ -38,7 +39,7 @@ const STATE_SQL:Record<string,string>={
 };
 async function state(env:Env):Promise<Record<string,unknown>> {
  const result:Record<string,unknown>={};
- for(const [key,sql] of Object.entries(STATE_SQL)) result[key]=(await env.DB.prepare(sql).all()).results;
+ for(const [key,sql] of Object.entries(env.PROOF_MODE==="fail-polite"?{...STATE_SQL,...failPolite.ATTEMPT_STATE}:STATE_SQL)) result[key]=(await env.DB.prepare(sql).all()).results;
  return result;
 }
 async function wake(env:Env,hint:WakeHint,source:string):Promise<unknown> {
@@ -70,6 +71,7 @@ export class ProbePartitionWake {
  private async consume(partitionId:string,revision:string|null,source:string):Promise<unknown> {
   const before=await scheduleView(this.env.DB,partitionId);
   if(!before || (revision!==null && before.wakeRevision!==revision)) return {instance:this.instance,lease:null,stale:true};
+  if(this.env.PROOF_MODE==="fail-polite") return {instance:this.instance,outcome:await failPolite.consume(this.env,this.ctx,partitionId,revision,source)};
   const lease=await claimPartition(this.env.DB,partitionId,source+"-"+crypto.randomUUID(),revision);
   await event(this.env,"wake_"+source,partitionId,this.instance,lease?"claimed":"no_claim");
   await this.arm(partitionId);
@@ -100,6 +102,7 @@ export default {
   if(Date.now()>Number(env.PROOF_EXPIRES) || request.headers.get("Authorization")!==`Bearer ${env.PROOF_TOKEN}`) return new Response(null,{status:401});
   const path=new URL(request.url).pathname;
   if(path==="/status") return reply(env,{ready:true});
+  if(path==="/fake" && env.PROOF_MODE==="fail-polite") return failPolite.peer(request,env);
   if(path!=="/proof" || request.method!=="POST") return new Response(null,{status:404});
   try {
    const input=await request.json() as {action:string; request?:unknown; auth?:AdmissionAuth;operation?:string;
@@ -107,6 +110,7 @@ export default {
     bindingId?:string;value?:string|number;scope?:string;kind?:string;hint?:WakeHint;failure?:boolean};
    let result:unknown;
    switch(input.action) {
+    case "fail-config": await failPolite.configure(env,input as unknown as Record<string,unknown>,new URL(request.url).origin);result={configured:true};break;
     case "seed": await seed(env);result={seeded:true};break;
     case "state": result=await state(env);break;
     case "snapshot": result={digest:await credentialDigest(JSON.stringify(await state(env)))};break;
@@ -145,6 +149,13 @@ export default {
       env.DB.prepare(`UPDATE group_partitions SET next_work_not_before_us=(SELECT created_at_us FROM submission_intents WHERE partition_id=? AND active_fifo_member=1 ORDER BY enqueue_ordinal LIMIT 1),wake_revision=wake_revision+1 WHERE partition_id=?`).bind(id,id),
      ]);result={set:true};break;
     }
+    case "attempt-guard": {
+     const tables=["submission_attempts","attempt_membership","attempt_preflights","attempt_dispatches","attempt_resolutions"];
+     const table=input.kind!;if(!tables.includes(table)) throw new Error("unknown_guard");
+     const operation=input.operation;
+     const sql=operation==="delete"?`DELETE FROM ${table}`:operation==="update"?`UPDATE ${table} SET attempt_id=attempt_id`:operation==="replace"?`INSERT OR REPLACE INTO ${table} SELECT * FROM ${table}`:null;
+     if(!sql)throw new Error("unknown_operation");await env.DB.prepare(sql).run();result={changed:true};break;
+    }
     case "guard-write": {
      const checks:Record<string,string>={intent:"DELETE FROM submission_intents",ordinal:"UPDATE submission_intents SET enqueue_ordinal=enqueue_ordinal+1",event:"DELETE FROM submission_intent_events",lease:"DELETE FROM partition_lease_events",block:"DELETE FROM submission_blocks"};
      const sql=checks[input.kind??""];if(!sql) throw new Error("unknown_guard");await env.DB.prepare(sql).run();result={changed:true};break;
@@ -170,7 +181,7 @@ export default {
   } catch { return reply(env,{error:"operation_not_confirmed"},409); }
  },
  async scheduled(_controller:ScheduledController,env:Env):Promise<void> {
-  if(env.PROOF_MODE!=="scheduling" || Date.now()>Number(env.PROOF_EXPIRES)) return;
+  if(!["scheduling","fail-polite"].includes(env.PROOF_MODE) || Date.now()>Number(env.PROOF_EXPIRES)) return;
   const enabled=await env.DB.prepare("SELECT cron_enabled FROM probe_control WHERE id=1").first<{cron_enabled:number}>();
   await event(env,"cron_tick",null,null,String(_controller.scheduledTime));
   if(enabled?.cron_enabled===1) await sweep(env,"cron");

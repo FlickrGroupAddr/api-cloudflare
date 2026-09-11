@@ -28,6 +28,11 @@ TABLES = {
     "submission_intent_events": "event_id",
     "partition_lease_events": "event_id",
     "transaction_guards": "transaction_id",
+    "submission_attempts": "intent_id,ordinal",
+    "attempt_membership": "attempt_id",
+    "attempt_preflights": "attempt_id",
+    "attempt_dispatches": "attempt_id",
+    "attempt_resolutions": "attempt_id",
 }
 
 

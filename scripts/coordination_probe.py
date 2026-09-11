@@ -37,7 +37,12 @@ RUNS = ROOT / ".coordination-runs"
 PROBE = ROOT / "probes/coordination"
 Run = runtime.Run
 ProbeError = runtime.ProbeError
-MIGRATIONS = ["0001_foundation.sql", "0002_audit_component.sql", "0003_submission_coordination.sql"]
+MIGRATIONS = [
+    "0001_foundation.sql",
+    "0002_audit_component.sql",
+    "0003_submission_coordination.sql",
+    "0004_fail_polite_attempts.sql",
+]
 
 
 def hashes() -> dict[str, str]:
@@ -50,6 +55,8 @@ def hashes() -> dict[str, str]:
         Path(__file__),
         ROOT / "scripts/runtime_permissions_probe.py",
         ROOT / "scripts/coordination_backup.py",
+        ROOT / "scripts/fail_polite_cases.py",
+        ROOT / "scripts/fail_polite_mutations.py",
         ROOT / "scripts/foundation_probe.py",
         ROOT / "scripts/native_secret_probe.py",
         ROOT / "package-lock.json",
@@ -127,7 +134,7 @@ def config(run: Run) -> Path:
                 "migrations_dir": str(ROOT / "migrations"),
             }
         ]
-    if run.state["kind"] == "scheduling":
+    if run.state["kind"] in {"scheduling", "fail-polite"}:
         data["durable_objects"] = {
             "bindings": [{"name": "COORD", "class_name": "ProbePartitionWake"}]
         }
@@ -214,7 +221,7 @@ def provision(run: Run, token: str) -> None:
         raise ProbeError("Ambiguous proof URL.")
     run.state["url"] = urls[0]
     run.save()
-    if run.state["kind"] == "scheduling":
+    if run.state["kind"] in {"scheduling", "fail-polite"}:
         owned = namespaces(run)
         if len(owned) != 1 or owned[0].get("class") != "ProbePartitionWake":
             raise ProbeError("Created namespace could not be identified.")
@@ -333,7 +340,12 @@ class Client:
                     raise ProbeError(f"Non-JSON {action} response (HTTP {status}).") from None
                 if status != expected or payload.get("build") != self.run.run_id:
                     raise ProbeError(
-                        f"Unexpected {action} result (HTTP {status}, expected {expected})."
+                        f"Unexpected {action} result (HTTP {status}, expected {expected}). "
+                        + (
+                            str(payload.get("result", {}).get("outcome", ""))
+                            if action == "wake"
+                            else ""
+                        )
                     )
                 return payload["result"]
             finally:
@@ -952,21 +964,9 @@ def namespaces(run: Run) -> list[dict[str, Any]]:
     raise ProbeError("Namespace inventory pagination exceeded its bound.")
 
 
-def cleanup(run: Run) -> None:
+def retire_namespace(run: Run) -> None:
     validate(run)
-    if run.state.get("restoreRunId"):
-        child_id = run.state["restoreRunId"]
-        if child_id == run.run_id or not re.fullmatch(r"rp-[a-f0-9]{24}", child_id):
-            raise ProbeError("Invalid archive cleanup reference.")
-        child_path = RUNS / child_id
-        child = Run(
-            child_path, json.loads((child_path / "manifest.json").read_text(encoding="utf-8"))
-        )
-        if child.state.get("kind") != "archive" or child.state.get("workerAttempted"):
-            raise ProbeError("Unexpected archive cleanup target.")
-        cleanup(child)
-
-    if run.state["kind"] == "scheduling" and run.state.get("workerAttempted"):
+    if run.state["kind"] in {"scheduling", "fail-polite"} and run.state.get("workerAttempted"):
         rows = namespaces(run)
         if rows:
             if len(rows) != 1 or rows[0].get("class") != "ProbePartitionWake":
@@ -996,14 +996,44 @@ def cleanup(run: Run) -> None:
                 raise ProbeError("Namespace retirement unconfirmed.")
         run.state["namespaceDeleted"] = True
         run.save()
+
+
+def cleanup(run: Run) -> None:
+    validate(run)
+    if run.state.get("restoreRunId"):
+        child_id = run.state["restoreRunId"]
+        if child_id == run.run_id or not re.fullmatch(r"rp-[a-f0-9]{24}", child_id):
+            raise ProbeError("Invalid archive cleanup reference.")
+        child_path = RUNS / child_id
+        child = Run(
+            child_path, json.loads((child_path / "manifest.json").read_text(encoding="utf-8"))
+        )
+        if child.state.get("kind") != "archive" or child.state.get("workerAttempted"):
+            raise ProbeError("Unexpected archive cleanup target.")
+        cleanup(child)
+
+    retire_namespace(run)
     runtime.cleanup(run)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("environment", choices=["local", "hosted", "cleanup"])
-    parser.add_argument("kind", choices=["admission", "scheduling"], nargs="?", default="admission")
+    parser.add_argument(
+        "kind", choices=["admission", "scheduling", "fail-polite"], nargs="?", default="admission"
+    )
     parser.add_argument("--run")
+    parser.add_argument(
+        "--mutation-check",
+        choices=[
+            "marker_order",
+            "unknown_retry",
+            "unresolved_retry",
+            "inclusive_clock",
+            "split_block",
+            "removed_guard",
+        ],
+    )
     args = parser.parse_args()
     if args.environment == "cleanup":
         directory = Path(args.run or "").resolve()
@@ -1027,9 +1057,18 @@ def main() -> int:
         client.ready()
         if args.kind == "admission":
             admission_cases(client, report)
-        else:
+        elif args.kind == "scheduling":
             scheduling_cases(client, report)
-        if args.environment == "hosted" and args.kind == "admission":
+        else:
+            from fail_polite_cases import cases, mutation_check
+
+            if args.mutation_check:
+                report.data["mutationOnly"] = args.mutation_check
+                mutation_check(client, report, args.mutation_check)
+            else:
+                cases(client, report)
+        if args.environment == "hosted" and args.kind in {"admission", "fail-polite"}:
+            retire_namespace(run)
             runtime.delete_worker_without_force(run)
             absent = runtime.wrangler(
                 run,
@@ -1049,7 +1088,7 @@ def main() -> int:
             run.save()
             create_database(target)
             for name, passed in coordination_backup.restore_probe(run, target).items():
-                report.check("admission.archive_" + name, passed)
+                report.check(args.kind + ".archive_" + name, passed)
         report.check("evidence.source_unchanged", hashes() == run.state["sourceHashes"])
         report.data["completed"] = True
     except (ProbeError, OSError, ValueError, KeyError, http.client.HTTPException) as error:

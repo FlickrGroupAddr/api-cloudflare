@@ -1,0 +1,121 @@
+{
+  "scope": "six bounded native crash-proof mutations; not complete production mutation gate",
+  "environment": "local workerd/D1",
+  "records": [
+    {
+      "name": "marker_order",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+      "mutatedSha2_256": "200dbe4e390aedab7c639ca706b1496d600f42981c491ae0623183874028336b",
+      "cases": [
+        {
+          "id": "mutation.marker_order",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "unknown_retry",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+      "mutatedSha2_256": "727272723ab5f4dc022b5049b307a78d10bace9ece3a1922ba352965ca612b95",
+      "cases": [
+        {
+          "id": "mutation.unknown_retry",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "unresolved_retry",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+      "mutatedSha2_256": "3fdf07f00c16bb85f1ccf86b751efedfacb603e14016611e54aa659cea845682",
+      "cases": [
+        {
+          "id": "mutation.unresolved_retry",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "inclusive_clock",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+      "mutatedSha2_256": "a629ae37aee9a6ed72e6022a8ad2ec3c221b6597859c8b216b0bcfe87cc318f9",
+      "cases": [
+        {
+          "id": "mutation.inclusive_clock",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "split_block",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "fd4aa9cfe2f542e573adb0c0401bd4609f1d6a1eae7bc33d3fbbadd2dc2b2988",
+      "mutatedSha2_256": "31ec5adff658eeac7cb6896ad4253a536666f205eabe035a1eb6ff79405639d1",
+      "cases": [
+        {
+          "id": "mutation.split_block",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "removed_guard",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "migrations/0004_fail_polite_attempts.sql",
+      "originalSha2_256": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+      "mutatedSha2_256": "8ec2aab85131a124f40a314bdee302f831fd9380387dcd3f04179bfde9d78880",
+      "cases": [
+        {
+          "id": "mutation.removed_guard",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    }
+  ],
+  "sourcesRestored": true
+}

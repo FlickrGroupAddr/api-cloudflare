@@ -9,10 +9,10 @@ const GATES = `EXISTS(SELECT 1 FROM flickr_write_gates WHERE scope='deployment' 
  AND EXISTS(SELECT 1 FROM flickr_write_gates WHERE scope='user' AND scope_id=group_partitions.user_id AND enabled=1)
  AND EXISTS(SELECT 1 FROM flickr_links WHERE user_id=group_partitions.user_id AND state='linked')`;
 const ELIGIBLE = `lease_generation<9223372036854775807 AND next_work_not_before_us IS NOT NULL AND next_work_not_before_us<=${NOW_US_SQL}
- AND (lease_id IS NULL OR lease_expires_at_us<=${NOW_US_SQL}) AND ${GATES}
+ AND (lease_id IS NULL OR lease_expires_at_us<=${NOW_US_SQL})
  AND EXISTS(SELECT 1 FROM submission_intents h WHERE h.intent_id=${HEAD}
-  AND (h.state='queued' OR (h.state='retrying' AND h.next_attempt_not_before_us<=${NOW_US_SQL})
-   OR (h.state='throttled' AND group_partitions.next_probe_not_before_us<=${NOW_US_SQL}))
+  AND (h.state='attempting' OR (${GATES} AND (h.state='queued' OR (h.state='retrying' AND h.next_attempt_not_before_us<=${NOW_US_SQL})
+   OR (h.state='throttled' AND group_partitions.next_probe_not_before_us<=${NOW_US_SQL}))))
   AND NOT EXISTS(SELECT 1 FROM submission_blocks b WHERE b.photo_id=h.photo_id AND b.group_id=h.group_id))`;
 function policy(value:LeasePolicy): void {
  if(!Number.isSafeInteger(value.leaseMs) || value.leaseMs<1 || value.leaseMs>60_000 ||
