@@ -10,7 +10,80 @@ AWS login; its [hosted evidence](2026-09-07-secret-store-proof.md) records actua
 results and remaining gates. Synthetic testing does not approve long-lived
 production keys or production credential deletion.
 
-## Recommendation in plain language
+## Private lifecycle reassessment, 2026-09-11
+
+Status: Review reopened at Terry's request; the alternative below is proposed,
+not an accepted amendment or a native lifecycle pass. ADR 0051's storage trust
+exception does not itself change ADR 0017. The AWS proof remains valid, but its
+successful implementation is not a reason to adopt AWS before reviewing this
+simpler lifecycle.
+
+Terry questioned whether provider version selection justifies another service,
+AWS identity management, and cross-provider failure handling for his private
+hobby deployment. The earlier recommendation treated the exact-version
+contract as fixed. Missing native VersionId selection is a mismatch with that
+contract, not proof that a private Cloudflare-only credential lifecycle cannot
+work. No probability estimate for the race has been measured.
+
+The concrete failure involves more than a narrow simultaneous-read window:
+with one mutable secret, replacing A with B before the database activation
+commits can leave the database naming A while the store contains B. A failed
+activation can also leave A unavailable for rollback. Independent updates of
+the token and token secret can create an invalid pair. Background jobs can
+encounter these states even in a single-user application. Exact provider
+versions support keeping A and B independently addressable; they do not make
+a secret-store update and a database transaction atomic.
+
+Proposed simpler candidate: use one fixed native secret containing the token,
+token secret, and an opaque application generation identifier together. Store
+only its active generation/metadata in D1. Durably pause new ordinary Flickr
+operations during replacement, serialize relink attempts, and account for
+already-dispatched work. After verifying the expected Flickr owner and required
+permission, replace the bundle and explicitly activate the matching generation.
+Every consumer must reject a secret-generation/database mismatch and recheck
+current authority at the existing dispatch boundary. A stale or delayed store
+value therefore prevents work rather than silently selecting another grant.
+Keep the existing explicit write-gate resume ceremony.
+
+This is a different availability promise: an interrupted replacement may remain
+paused and require repair or a fresh relink; it does not promise restoration of
+A. A pause is durable application state, not a timer or a process-local mutex.
+It cannot recall an in-flight request and must never authorize replay of an
+ambiguous Flickr write. Stale responses still cannot disable a newer link.
+Secret values remain outside the database, logs, and browser responses.
+
+Cloudflare documents a fixed binding with parameterless get(), a management
+PATCH that replaces its value, and replacement affecting all consuming
+services. The application-generation check above is a proposed use of those
+interfaces, not a documented provider version or propagation guarantee.
+Native update/propagation/deletion, partial failures, concurrent or delayed
+writes, and the minimum management permissions for a UI-driven relink require
+bounded tests. Automated native updates still need an appropriately scoped
+Cloudflare management credential; the runtime read binding alone cannot write
+its secret. No Worker deployment coordinator is selected by this proposal.
+[Runtime binding](https://developers.cloudflare.com/secrets-store/integrations/workers/),
+[Native update API and behavior](https://developers.cloudflare.com/secrets-store/manage-secrets/how-to/).
+
+The architecture review at
+`docs/research/2026-09-05-cloudflare-secret-versioning-gate.md` describes legacy
+backend commit `64a900faecb3cde303c8b0441164e91982a2691f` as storing AES-GCM-encrypted
+credentials in D1 with a separate Worker-held key; its keyring rotation was
+reported unimplemented. This is secondary archived evidence, not a fresh
+inspection of that implementation or identification of the unnamed other
+agent's reasoning. That design avoids this particular native-secret selector
+but adds application encryption, key management, and backup/deletion decisions.
+It was previously excluded by the managed-secret contract, not demonstrated
+inherently unusable. Adopting it would require its own review.
+
+Recommendation: evaluate the paused, generation-checked native lifecycle before
+committing to unattended AWS credentials. Preserve secure storage, owner and
+permission validation, stale-result fencing, explicit disconnect behavior, and
+all submission safety. An explicit ADR 0017/lifecycle amendment would be needed
+if Terry accepts the changed replacement/rollback promise. The original AWS
+recommendation below remains the conforming alternative under the existing
+exact-version contract.
+
+## Original recommendation under the exact-version contract
 
 Keep the FGA API backend and workers on Cloudflare. Evaluate AWS Secrets Manager
 for the dynamic Flickr token/token-secret pair, using a **separate secret object
