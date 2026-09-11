@@ -588,7 +588,8 @@ def sql_literal(column: str) -> str:
     if not re.fullmatch(r"[a-z_]+", column):
         raise ProbeError("Unsafe export column.")
     return (
-        f"CASE WHEN typeof({column})='text' AND instr({column},char(0))>0 THEN 'CAST(X''' || hex({column}) || ''' AS TEXT)' "
+        f"CASE WHEN typeof({column})='text' AND instr({column},char(0))>0 "
+        f"THEN 'CAST(X''' || hex({column}) || ''' AS TEXT)' "
         f"ELSE quote({column}) END"
     )
 

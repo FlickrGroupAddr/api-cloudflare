@@ -125,6 +125,33 @@ backup scheduling, encryption/access controls and a full deployed-service
 quiescence procedure must be configured before production; this disposable proof
 is evidence for the mechanism, not an operational backup service.
 
+## Final validation evidence
+
+| Evidence | Result |
+| --- | --- |
+| [Hosted D1 guards, migrations, exact export/import and Time Travel](../evidence/foundation-guards-2026-09-11.json) | 46 checks pass; clock source-resolution decision remains open |
+| [Hosted installation-read sweep](../evidence/foundation-read-2026-09-11.json) | 25 checks pass; one unmet duplicate-Authorization response contract; command exits nonzero |
+| Python tests | 66 pass |
+| Node/Worker integration and existing route/credential regressions | 36 pass |
+| Pinned native TypeScript, Ruff, Pyright and generated artifact checks | Pass |
+
+Both hosted reports fingerprint implementation commit `706a51c`. The only later
+controller change wraps one long Python string expression; an AST comparison
+confirms identical executable code. The application, migrations and deployed
+proof wrapper are unchanged. Application cases have zero retries. Each final
+run records one bounded setup/status retry separately. Every application result
+must carry the expected proof-build marker, which the production entry point
+does not emit.
+
+[Cleanup evidence](../evidence/foundation-cleanup-2026-09-11.json) covers all 24
+created disposable databases and 17 deployed Workers across the completed and
+failed attempts, including the focused import diagnostic. Every attempted
+resource has confirmed cleanup. Earlier failed runs are not reclassified as
+passes. They include harness corrections, provider readiness errors, and an
+intermittent provider 404 on the encoded-separator case. Its root cause remains
+unproved; the final strict sweep did not reproduce it. This report grants no
+exception for such responses and makes no claim that readiness checks fixed them.
+
 ## Scope and reproduction
 
 See [the proof procedure](../../probes/foundation/README.md). The production entry
