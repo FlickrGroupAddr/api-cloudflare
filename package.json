@@ -17,7 +17,8 @@
     "native-secrets:test": "node --test probes/native-secrets/*.test.mjs",
     "api:test": "node --test tests/installations.test.mjs probes/foundation/*.test.mjs",
     "api:generate": "uv run --frozen python scripts/generate_api.py",
-    "api:check-generated": "uv run --frozen python scripts/generate_api.py --check"
+    "api:check-generated": "uv run --frozen python scripts/generate_api.py --check",
+    "intake:test": "node --test tests/intake.test.mjs tests/flickr_reads.test.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",
@@ -29,5 +30,8 @@
   "allowScripts": {
     "esbuild@0.28.1": true,
     "workerd@1.20260730.1": true
+  },
+  "dependencies": {
+    "oauth-1.0a": "2.2.6"
   }
 }

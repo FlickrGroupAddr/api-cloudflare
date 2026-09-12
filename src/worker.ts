@@ -1,6 +1,8 @@
-import { authenticate, d1Lookup, errorResponse, jsonCurrent } from "./installations.ts";
+import { authenticate, credentialDigest, d1Lookup, errorResponse, jsonCurrent } from "./installations.ts";
 import { ROUTES } from "./registry.ts";
-export interface Env { DB: D1Database; ASSETS?: Fetcher; FGA_READ_ENABLED?: string; }
+import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
+import {duePartitions} from "./scheduling.ts";
+export interface Env extends IntakeEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -9,7 +11,8 @@ export function safePath(raw: string): string | null {
   try { decodeURIComponent(path); } catch { return null; }
   return path;
 }
-export default {
+import type {FlickrFetch} from "./flickr_reads.ts";
+export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {return {
   async fetch(request: Request, env: Env): Promise<Response> {
     const path = safePath(request.url);
     if (path === null) return errorResponse(400,"invalid_request","Invalid request target.");
@@ -18,9 +21,13 @@ export default {
       if (request.method !== route.method) {
         const reply=errorResponse(405,"method_not_allowed","Method not allowed."); reply.headers.set("Allow",route.method); return reply;
       }
-      if (env.FGA_READ_ENABLED !== "1") return errorResponse(503,"service_unavailable","Service unavailable.");
-      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending);
-      return result instanceof Response ? result : jsonCurrent(result);
+      if (route.handler==="current" ? env.FGA_READ_ENABLED !== "1" : !configured(env)) return errorResponse(503,"service_unavailable","Service unavailable.");
+      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,route.handler==="current"?"empty":"json");
+      if(result instanceof Response)return result;
+      if(route.handler==="current")return jsonCurrent(result);
+      const value=await jsonBody(request);if(value instanceof Response)return value;
+      const auth={installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))};
+      return route.handler==="batch"?batchRequest(env,auth,value,hint=>publishNativeHint(env,hint)):bindingRequest(env,auth,value,flickrFetch);
     }
     if (path === "/admin/" && ["GET","HEAD"].includes(request.method) && env.ASSETS) {
       const url=new URL(request.url); url.pathname="/admin/index.html"; url.search="";
@@ -35,4 +42,9 @@ export default {
     // No API, health, unknown path, or method falls back to an asset shell.
     return errorResponse(404,"not_found","Resource not found.");
   },
-} satisfies ExportedHandler<Env>;
+  async scheduled(_event:ScheduledController,env:Env):Promise<void> {
+    if(!configured(env)||!env.COORD)return;
+    for(const hint of await duePartitions(env.DB)){try{await publishNativeHint(env,hint);}catch{/* Durable due work remains authoritative. */}}
+  },
+} satisfies ExportedHandler<Env>;}
+export default createWorker();

@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Proposed native Flickr connection representation",
+  "description": "Proposed under ADR 0057; not registered in the production API. No secret bytes, generations or provider resource IDs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "revision",
+    "state",
+    "flickrOwnerNsid",
+    "verifiedPermission",
+    "verifiedAt",
+    "localCredentialState",
+    "fgaOperationState",
+    "flickrPermissionState",
+    "userWriteGate",
+    "deploymentWriteGate"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "state": {
+      "enum": [
+        "unlinked",
+        "linked",
+        "replacing",
+        "repair_required",
+        "relink_required",
+        "disconnecting",
+        "disconnected"
+      ]
+    },
+    "flickrOwnerNsid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "verifiedPermission": {
+      "enum": [
+        "write",
+        "delete",
+        null
+      ]
+    },
+    "verifiedAt": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "localCredentialState": {
+      "enum": [
+        "absent",
+        "available",
+        "replacement_pending",
+        "retirement_pending",
+        "retired",
+        "unknown"
+      ]
+    },
+    "fgaOperationState": {
+      "enum": [
+        "enabled",
+        "read_only",
+        "stopped"
+      ]
+    },
+    "flickrPermissionState": {
+      "enum": [
+        "not_requested",
+        "owner_action_required"
+      ]
+    },
+    "userWriteGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "revision"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "enabled",
+            "paused"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "deploymentWriteGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "revision"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "enabled",
+            "paused"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    }
+  }
+}

@@ -23,6 +23,7 @@
     "src/**/*.ts",
     "probes/foundation/*.ts",
     "probes/coordination/*.ts",
-    "probes/clocks/*.ts"
+    "probes/clocks/*.ts",
+    "probes/intake/*.ts"
   ]
 }

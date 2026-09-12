@@ -8,7 +8,11 @@ authors = [{ name = "Terry Ott" }]
 dependencies = []
 
 [dependency-groups]
-dev = ["pyright==1.1.411", "ruff==0.16.3"]
+dev = [
+    "lupa==2.8",
+    "pyright==1.1.411",
+    "ruff==0.16.3",
+]
 
 [tool.uv]
 required-version = "==0.12.5"

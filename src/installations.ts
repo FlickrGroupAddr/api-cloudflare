@@ -57,12 +57,13 @@ export function representation(row: CredentialRow, allowPending: boolean,
     presentedCredentialState: row.version_state as "current" | "pending_rotation" };
 }
 export async function authenticate(request: Request, lookup: Lookup, allowPending: boolean,
-  alert: () => void = () => console.warn("fga_installation_integrity_failure")): Promise<CurrentInstallation | Response> {
+  alert: () => void = () => console.warn("fga_installation_integrity_failure"),
+  envelope: "empty" | "json" = "empty"): Promise<CurrentInstallation | Response> {
   const url = new URL(request.url);
   const auth = request.headers.get("Authorization");
-  if (url.search || request.body !== null ||
+  if (url.search || (envelope === "empty" && (request.body !== null ||
       (request.headers.has("Content-Length") && request.headers.get("Content-Length") !== "0") ||
-      request.headers.has("Transfer-Encoding") || auth?.includes(",")) {
+      request.headers.has("Transfer-Encoding"))) || auth?.includes(",")) {
     return errorResponse(400,"invalid_request","Invalid authentication request.",true);
   }
   if (auth === null || !/^Bearer(?: |$)/i.test(auth)) return missingAuthentication();

@@ -11,7 +11,7 @@ export interface AdmissionAuth { installationId: string; credentialDigest: strin
 export interface WakeHint { partitionId: string; wakeRevision: string; }
 export interface AdmissionItem {
  intentId: string; groupId: string; state: string; created: boolean;
- ordinal: string; blockReason: string|null;
+ ordinal: string; blockReason: string|null; blockCreatedAt: string|null;
 }
 export interface AdmissionResult { bindingId: string; photoId: string; items: AdmissionItem[]; hint: WakeHint|null; }
 export class AdmissionError extends Error {}
@@ -44,11 +44,12 @@ const VALID = `EXISTS(SELECT 1 FROM binding b WHERE b.verified_at_us<=${NOW_US_S
  AND (b.source_kind='upload' OR ${NOW_US_SQL}-b.verified_at_us<=${EXISTING_PROOF_MAX_AGE_US}
  OR NOT EXISTS(SELECT 1 FROM requested r WHERE NOT EXISTS(SELECT 1 FROM submission_intents i WHERE i.photo_id=b.photo_id AND i.group_id=r.group_id)))
  AND NOT EXISTS(SELECT 1 FROM requested r JOIN submission_blocks k ON k.photo_id=b.photo_id AND k.group_id=r.group_id
- LEFT JOIN submission_intents i ON i.photo_id=k.photo_id AND i.group_id=k.group_id WHERE i.intent_id IS NULL OR i.active_fifo_member=1)
+ LEFT JOIN submission_intents i ON i.photo_id=k.photo_id AND i.group_id=k.group_id WHERE i.intent_id IS NULL OR i.active_fifo_member=1 OR i.state NOT IN ('delivery_uncertain','moderation_submitted')
+ OR length(k.created_at_utc)<>27 OR k.created_at_utc NOT GLOB '????-??-??T??:??:??.??????Z' OR julianday(k.created_at_utc) IS NULL)
  AND NOT EXISTS(SELECT 1 FROM requested r JOIN submission_intents i ON i.photo_id=b.photo_id AND i.group_id=r.group_id
  LEFT JOIN submission_blocks k ON k.photo_id=i.photo_id AND k.group_id=i.group_id
- WHERE i.binding_id<>b.binding_id OR i.user_id<>b.user_id OR (i.state='delivery_uncertain' AND k.photo_id IS NULL)))`;
-interface ResultRow { intent_id:string;group_id:string;state:string;ordinal:string;created:number;block_reason:string|null;photo_id:string; }
+ WHERE i.binding_id<>b.binding_id OR i.user_id<>b.user_id OR (i.state IN ('delivery_uncertain','moderation_submitted') AND k.photo_id IS NULL)))`;
+interface ResultRow { intent_id:string;group_id:string;state:string;ordinal:string;created:number;block_reason:string|null;block_created_at:string|null;photo_id:string; }
 export async function admit(db: SqlStore, auth: AdmissionAuth, value: unknown,
  publishHint: (hint:WakeHint)=>Promise<void> = async()=>{}): Promise<AdmissionResult> {
  validateAdmission(value);
@@ -73,7 +74,7 @@ export async function admit(db: SqlStore, auth: AdmissionAuth, value: unknown,
   statement(`UPDATE photo_bindings SET last_admission_at_us=(SELECT now_us FROM transaction_guards WHERE transaction_id=?1)
    WHERE binding_id=?4 AND EXISTS(SELECT 1 FROM submission_intents WHERE created_request_id=?1)`),
   statement(`SELECT i.intent_id,i.group_id,i.state,CAST(i.enqueue_ordinal AS TEXT) AS ordinal,
-   i.created_request_id=?1 AS created,k.first_reason AS block_reason,i.photo_id
+   i.created_request_id=?1 AS created,k.first_reason AS block_reason,k.created_at_utc AS block_created_at,i.photo_id
    FROM requested r CROSS JOIN binding b JOIN submission_intents i ON i.photo_id=b.photo_id AND i.group_id=r.group_id
    LEFT JOIN submission_blocks k ON k.photo_id=i.photo_id AND k.group_id=i.group_id ORDER BY r.position`),
   statement(`SELECT p.partition_id AS partitionId,CAST(p.wake_revision AS TEXT) AS wakeRevision
@@ -89,5 +90,5 @@ export async function admit(db: SqlStore, auth: AdmissionAuth, value: unknown,
  const hint=(results[5].results[0] as unknown as WakeHint|undefined)??null;
  if(hint) { try { await publishHint(hint); } catch { /* D1 due rows recover a lost best-effort hint. */ } }
  return {bindingId:value.photoBinding.fgaPhotoBindingId,photoId:rows[0].photo_id,
-  items:rows.map(r=>({intentId:r.intent_id,groupId:r.group_id,state:r.state,created:r.created===1,ordinal:r.ordinal,blockReason:r.block_reason})),hint};
+  items:rows.map(r=>({intentId:r.intent_id,groupId:r.group_id,state:r.state,created:r.created===1,ordinal:r.ordinal,blockReason:r.block_reason,blockCreatedAt:r.block_created_at})),hint};
 }

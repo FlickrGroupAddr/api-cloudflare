@@ -7,7 +7,7 @@
   "preview_urls": false,
   "observability": { "enabled": false },
   // Explicit opt-in after provisioning/recovery verification; absent also fails closed.
-  "vars": { "FGA_READ_ENABLED": "0" },
+  "vars": { "FGA_READ_ENABLED": "0", "FGA_INTAKE_ENABLED": "0", "FGA_MAX_GROUP_IDS_PER_BATCH": "60" },
   "d1_databases": [{
     "binding": "DB",
     "database_name": "REPLACE_WITH_PRIVATE_DEPLOYMENT_DATABASE",
