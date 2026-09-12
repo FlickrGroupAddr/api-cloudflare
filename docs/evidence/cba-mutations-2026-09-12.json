@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "scope": "local isolated production-source CBA mutations",
+  "outcomes": [
+    {
+      "name": "baseline",
+      "passed": true,
+      "exitCode": 0
+    },
+    {
+      "name": "alias_shell_fallback",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "client_per_group_loop",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "partial_validation",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "hint_before_commit",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "hint_per_group_fanout",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "client_chosen_hint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "idempotent_retry_hint",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "drop_unhinted_due",
+      "passed": true,
+      "exitCode": 1
+    },
+    {
+      "name": "bound_drift",
+      "passed": true,
+      "exitCode": 1
+    }
+  ],
+  "workingSourcesUnchanged": true,
+  "allPassed": true,
+  "sourceHashes": {
+    "src/worker.ts": "393808638046405bea2c091aa08bbe701621bbeed1670974c24dd3afea9b816e",
+    "src/admission.ts": "dda9480c0482426e8010181cd713b90b8afe00a228804b4d1f52a3d2e4001191",
+    "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+    "clients/lightroom/GroupSubmissionClient.lua": "1df4891ffb42a018af0f5b49ebe425bbcefe80cb017798c3c039d43387e3c21e",
+    "tests/intake.test.mjs": "ef7586d57c5c95ac1848cd50b44b8dca029c95b553cb708ba9dd46b8dec3627b",
+    "tests/test_batch_client.py": "046c3460a188733a23c0df0c2319c39e70de0c96a0d5c74ea885e2d932cfc693",
+    "scripts/cba_mutations.py": "6aff59cd760fcd7e625ab1e1c01656a6a7272c9558ac04aab8a45c0e46fa2e6c"
+  }
+}

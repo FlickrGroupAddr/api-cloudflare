@@ -49,18 +49,7 @@ export default {
    if(url.pathname==="/probe/peer")return peer(request,env);
    return new Response(null,{status:404});
   }
-  const control=await env.DB.prepare("SELECT * FROM intake_probe_control WHERE id=1").first<{fault_stage:number;future_class:number;configured_limit:string}>();
-  const prepared=new WeakMap<D1PreparedStatement,string>();
-  const db={prepare:(sql:string)=>{
-   if(control?.future_class&&sql.includes("SELECT i.installation_id,i.credential_class"))sql=sql.replace("i.credential_class","'future_class' AS credential_class");
-   const statement=env.DB.prepare(sql);prepared.set(statement,sql);const bind=statement.bind.bind(statement);
-   statement.bind=(...values)=>{const bound=bind(...values);prepared.set(bound,sql);return bound;};return statement;
-  },batch:async(statements:D1PreparedStatement[])=>{
-   if(control&&control.fault_stage>=0&&statements.some(s=>prepared.get(s)?.includes("INSERT INTO submission_intents"))) {
-    const at=control.fault_stage;return env.DB.batch([...statements.slice(0,at),env.DB.prepare("INSERT INTO transaction_guards(transaction_id,approved) VALUES('injected',0)"),...statements.slice(at)]);
-   }return env.DB.batch(statements);
-  }} as D1Database;
-  return api(env,url.origin).fetch(request,{...env,DB:db,FGA_MAX_GROUP_IDS_PER_BATCH:control?.configured_limit??"60"});
+  return api(env,url.origin).fetch(request,await controlledEnv(env));
  },
  async scheduled(event:ScheduledController,env:Env,ctx:ExecutionContext){await api(env,"").scheduled?.(event,env);}
 } satisfies ExportedHandler<Env>;
@@ -94,4 +83,20 @@ async function validSignature(header:string,input:{method:string;photoId:string}
   const signature=Uint8Array.from(atob(auth.oauth_signature),c=>c.charCodeAt(0));
   return crypto.subtle.verify("HMAC",key,signature,new TextEncoder().encode(base));
  }catch{return false;}
+}
+
+export async function controlledEnv(env:Env):Promise<Env>{
+  const control=await env.DB.prepare("SELECT * FROM intake_probe_control WHERE id=1").first<{fault_stage:number;future_class:number;configured_limit:string}>();
+  const prepared=new WeakMap<D1PreparedStatement,string>();
+  const db={prepare:(sql:string)=>{
+   if(control?.future_class&&sql.includes("SELECT i.installation_id,i.credential_class"))sql=sql.replace("i.credential_class","'future_class' AS credential_class");
+   const statement=env.DB.prepare(sql);prepared.set(statement,sql);const bind=statement.bind.bind(statement);
+   statement.bind=(...values)=>{const bound=bind(...values);prepared.set(bound,sql);return bound;};return statement;
+  },batch:async(statements:D1PreparedStatement[])=>{
+   if(control&&control.fault_stage>=0&&statements.some(s=>prepared.get(s)?.includes("INSERT INTO submission_intents"))) {
+    const at=control.fault_stage;return env.DB.batch([...statements.slice(0,at),env.DB.prepare("INSERT INTO transaction_guards(transaction_id,approved) VALUES('injected',0)"),...statements.slice(at)]);
+   }return env.DB.batch(statements);
+  }} as D1Database;
+
+ return {...env,DB:db,FGA_MAX_GROUP_IDS_PER_BATCH:control?.configured_limit??"60"};
 }

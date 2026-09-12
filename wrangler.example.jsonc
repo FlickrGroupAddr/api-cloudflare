@@ -1,17 +1,40 @@
 {
-  // Build template only: assign the private deployment database before deploying.
-  "name": "fga-api-read-slice",
+  // Deployment template. Use the fga-sixbucks project profile and actual resource IDs.
+  // The flickrgroupaddr.com zone must be active in that same account first.
+  "name": "fga-api",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-11",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
   "observability": { "enabled": false },
-  // Explicit opt-in after provisioning/recovery verification; absent also fails closed.
-  "vars": { "FGA_READ_ENABLED": "0", "FGA_INTAKE_ENABLED": "0", "FGA_MAX_GROUP_IDS_PER_BATCH": "60" },
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "REPLACE_WITH_PRIVATE_DEPLOYMENT_DATABASE",
-    "database_id": "00000000-0000-0000-0000-000000000000",
-    "migrations_dir": "migrations"
-  }]
+  "routes": [{ "pattern": "flickrgroupaddr.com", "custom_domain": true }],
+  "assets": { "directory": "./assets", "binding": "ASSETS", "run_worker_first": true },
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": {
+    // Keep disabled until provisioning, restoration checks and release gates are complete.
+    "FGA_READ_ENABLED": "0", "FGA_INTAKE_ENABLED": "0", "FGA_ADMIN_ENABLED": "0",
+    "FGA_MAX_GROUP_IDS_PER_BATCH": "60",
+    "GOOGLE_CLIENT_ID": "REPLACE_WITH_FGA_GOOGLE_CLIENT_ID",
+    "GOOGLE_OWNER_SUB": "REPLACE_WITH_VERIFIED_OWNER_SUB",
+    "FGA_FLICKR_OWNER_NSID": "REPLACE_WITH_VERIFIED_FLICKR_OWNER",
+    "CF_ACCOUNT_ID": "00000000000000000000000000000000",
+    "CF_SECRET_STORE_ID": "00000000000000000000000000000000",
+    "CF_GRANT_SLOT_ID": "00000000000000000000000000000000",
+    "CF_OAUTH_SLOT_IDS": "[\"00000000000000000000000000000001\",\"00000000000000000000000000000002\",\"00000000000000000000000000000003\",\"00000000000000000000000000000004\",\"00000000000000000000000000000005\"]"
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "REPLACE_WITH_PRIVATE_DATABASE", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
+  // Add the actual COORD namespace from the partition-worker deployment before enabling intake.
+  // No fixture Durable Object class belongs in a production deployment.
+  "secrets_store_secrets": [
+    { "binding": "FLICKR_APPLICATION", "store_id": "00000000000000000000000000000000", "secret_name": "fga-flickr-application" },
+    { "binding": "FLICKR_GRANT", "store_id": "00000000000000000000000000000000", "secret_name": "fga-flickr-grant" },
+    { "binding": "AUTH_LIMITER_KEY", "store_id": "00000000000000000000000000000000", "secret_name": "fga-auth-limiter" },
+    { "binding": "NATIVE_WRITER_TOKEN", "store_id": "00000000000000000000000000000000", "secret_name": "fga-native-writer" },
+    { "binding": "FLICKR_TEMP_0", "store_id": "00000000000000000000000000000000", "secret_name": "fga-oauth-0" },
+    { "binding": "FLICKR_TEMP_1", "store_id": "00000000000000000000000000000000", "secret_name": "fga-oauth-1" },
+    { "binding": "FLICKR_TEMP_2", "store_id": "00000000000000000000000000000000", "secret_name": "fga-oauth-2" },
+    { "binding": "FLICKR_TEMP_3", "store_id": "00000000000000000000000000000000", "secret_name": "fga-oauth-3" },
+    { "binding": "FLICKR_TEMP_4", "store_id": "00000000000000000000000000000000", "secret_name": "fga-oauth-4" }
+  ]
 }

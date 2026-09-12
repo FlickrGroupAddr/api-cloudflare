@@ -64,6 +64,7 @@ export async function readJson(request:Request,fetcher:FlickrFetch):Promise<Reco
 }
 export async function verifyPhoto(db:SqlStore,auth:AdmissionAuth,secrets:SecretReads,snapshot:GrantSnapshot,photoId:string,fetcher:FlickrFetch):Promise<void> {
  const result=await withGrant(db,auth,secrets,snapshot,(pair,app)=>readJson(signedRead("flickr.photos.getInfo",photoId,pair,app),fetcher));
+ if(result.stat==="fail"&&(result.code===98||result.code===99)){await rejectCurrentGrant(db,auth,snapshot);throw new FlickrReadError("flickr_link_changed");}
  if(result.stat==="fail"&&result.code===1)throw new FlickrReadError("invalid_existing_photo");
  if(result.stat!=="ok"||!result.photo||typeof result.photo!=="object"||Array.isArray(result.photo))throw new FlickrReadError("upstream_unavailable");
  const photo=result.photo as {id?:unknown;owner?:{nsid?:unknown};visibility?:{ispublic?:unknown};media?:unknown};
@@ -98,4 +99,31 @@ export async function verifyCandidateCredential(grantRaw:string,appRaw:string,ge
  const value=response.oauth as {token?:{_content?:unknown};perms?:{_content?:unknown};user?:{nsid?:unknown}}|undefined;
  if(response.stat!=="ok"||!value||value.token?._content!==grant.token||value.user?.nsid!==ownerNsid||!['write','delete'].includes(value.perms?._content as string))throw new FlickrReadError("grant_verification_failed");
  return {ownerNsid,permission:value.perms!._content as "write"|"delete"};
+}
+
+export function signedOAuthEndpoint(kind:"request_token"|"access_token",app:Application,pair:Pair|null,parameter:string):Request {
+ const url="https://www.flickr.com/services/oauth/"+kind;
+ const data:Record<string,string>=kind==="request_token"?{oauth_callback:parameter}:{oauth_verifier:parameter};
+ const oauth=new OAuth({consumer:{key:app.consumerKey,secret:app.consumerSecret},signature_method:"HMAC-SHA1",hash_function:hmac});
+ oauth.getNonce=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,"0")).join("");
+ return new Request(url,{method:"POST",redirect:"manual",headers:{...oauth.toHeader(oauth.authorize({url,method:"POST",data},pair?{key:pair.token,secret:pair.tokenSecret}:undefined)),"Content-Type":"application/x-www-form-urlencoded"},body:""});
+}
+export function applicationEnvelope(raw:string):Application {const app=object(raw,["schemaVersion","consumerKey","consumerSecret"]);if(app.schemaVersion!==1||!opaque(app.consumerKey)||!opaque(app.consumerSecret))throw new FlickrReadError("credential_unavailable");return {consumerKey:app.consumerKey,consumerSecret:app.consumerSecret};}
+export async function oauthResponse(request:Request,fetcher:FlickrFetch):Promise<{token:string;tokenSecret:string}> {
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+ try{const response=await fetcher(new Request(request,{signal:controller.signal}));if(!response.ok||!response.body)throw new Error();const reader=response.body.getReader();let size=0,text="";const decoder=new TextDecoder("utf-8",{fatal:true,ignoreBOM:false});for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>8192){await reader.cancel();throw new Error();}text+=decoder.decode(value,{stream:true});}text+=decoder.decode();const data=new URLSearchParams(text);if(data.getAll("oauth_token").length!==1||data.getAll("oauth_token_secret").length!==1||!opaque(data.get("oauth_token"))||!opaque(data.get("oauth_token_secret"))||request.url.endsWith("request_token")&&data.get("oauth_callback_confirmed")!=="true")throw new Error();return {token:data.get("oauth_token")!,tokenSecret:data.get("oauth_token_secret")!};}catch{throw new FlickrReadError("oauth_exchange_unconfirmed");}finally{clearTimeout(timer);}
+}
+
+async function rejectCurrentGrant(db:SqlStore,auth:AdmissionAuth,snapshot:GrantSnapshot):Promise<void>{
+ const id=crypto.randomUUID(),tx=crypto.randomUUID(),generation=crypto.randomUUID();
+ try{await db.batch([
+ db.prepare("INSERT INTO transaction_guards(transaction_id,approved) SELECT ?,EXISTS(SELECT 1 FROM installations i JOIN installation_credential_versions v ON v.version_id=i.current_version_id JOIN flickr_links l ON l.user_id=i.user_id JOIN flickr_native_credentials n ON n.user_id=l.user_id JOIN flickr_connection_state c ON c.user_id=l.user_id WHERE i.installation_id=? AND i.state='active' AND v.state='current' AND v.credential_digest=? AND l.user_id=? AND l.state='linked' AND l.link_revision=? AND n.active_generation=? AND n.operation_id IS NULL AND c.operation_id IS NULL)").bind(tx,auth.installationId,auth.credentialDigest,snapshot.userId,Number(snapshot.revision),snapshot.generation),
+ db.prepare("INSERT INTO flickr_lifecycle_operations(operation_id,user_id,kind,phase,generation,retiring_generation,preserve_relink,expected_revision) VALUES(?,?,'retire','prepared',?,?,1,?)").bind(id,snapshot.userId,generation,snapshot.generation,Number(snapshot.revision)),
+ db.prepare("UPDATE flickr_links SET state='paused',link_revision=link_revision+1 WHERE user_id=?").bind(snapshot.userId),
+ db.prepare("UPDATE flickr_connection_state SET state='relink_required',local_state='retirement_pending',operation_id=?,external_removal=0 WHERE user_id=?").bind(id,snapshot.userId),
+ db.prepare("UPDATE flickr_native_credentials SET operation_id=? WHERE user_id=?").bind(id,snapshot.userId),
+ db.prepare("UPDATE flickr_write_gates SET enabled=0,revision=revision+1 WHERE scope='user' AND scope_id=? AND enabled=1").bind(snapshot.userId),
+ db.prepare("INSERT INTO audit_events(event_id,user_id,action,request_correlation_id,outcome,reason,target_id) VALUES(?,?,'flickr.grant_rejected',?,'succeeded','definitive_flickr_rejection',?)").bind(crypto.randomUUID(),snapshot.userId,id,id),
+ db.prepare("DELETE FROM transaction_guards WHERE transaction_id=?").bind(tx)
+ ]);}catch{/* A stale result or unconfirmed commit cannot disable a newer generation. */}
 }

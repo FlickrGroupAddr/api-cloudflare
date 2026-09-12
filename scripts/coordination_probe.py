@@ -966,7 +966,7 @@ def namespaces(run: Run) -> list[dict[str, Any]]:
 
 def retire_namespace(run: Run) -> None:
     validate(run)
-    if run.state["kind"] in {"scheduling", "fail-polite", "clocks"} and run.state.get(
+    if run.state["kind"] in {"scheduling", "fail-polite", "clocks", "intake"} and run.state.get(
         "workerAttempted"
     ):
         rows = namespaces(run)

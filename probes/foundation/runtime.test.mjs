@@ -10,12 +10,12 @@ const credentials=Array.from({length:7},(_,i)=>Array(12).fill("0000").concat(`00
 test("local workerd/D1 schema guards and read-only current-installation slice",async()=>{
  const directory=await mkdtemp(path.join(os.tmpdir(),"fga-foundation-"));
  const config=path.join(directory,"wrangler.json");
- await writeFile(config,JSON.stringify({name:"fga-foundation-local",main:path.resolve("probes/foundation/worker.ts"),compatibility_date:"2026-09-11",workers_dev:false}));
+ await writeFile(config,JSON.stringify({name:"fga-foundation-local",main:path.resolve("probes/foundation/worker.ts"),compatibility_date:"2026-09-11",compatibility_flags:["nodejs_compat"],workers_dev:false}));
  execFileSync(process.execPath,["node_modules/typescript/bin/tsc","--noEmit"]);
  execFileSync(process.execPath,["node_modules/wrangler/bin/wrangler.js","deploy","--dry-run","--config",config,"--outdir",path.join(directory,"bundle")],{env:{...process.env,CI:"true",WRANGLER_WRITE_LOGS:"false",WRANGLER_SEND_METRICS:"false"},stdio:"pipe"});
  const script=await readFile(path.join(directory,"bundle/worker.js"),"utf8");let outbound=0;
  for(const mode of ["guards","read"]) {
-  const mf=new Miniflare({modules:true,script,compatibilityDate:"2026-07-30",host:"127.0.0.1",port:0,cf:false,logRequests:false,telemetry:{enabled:false},d1Databases:["DB"],
+  const mf=new Miniflare({modules:true,script,compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat"],host:"127.0.0.1",port:0,cf:false,logRequests:false,telemetry:{enabled:false},d1Databases:["DB"],
    bindings:{FGA_READ_ENABLED:"1",PROOF_TOKEN:"fixture-proof",PROOF_MODE:mode,PROOF_BUILD:"local",PROOF_EXPIRES:String(Date.now()+120000)},
    outboundService(){outbound++;throw new Error("No external network allowed");}});
   const call=async(action,body)=>mf.dispatchFetch("http://fixture.invalid/__proof/"+action,{method:body?"POST":"GET",headers:{Authorization:"Bearer fixture-proof"},...(body?{body:JSON.stringify(body)}:{})});

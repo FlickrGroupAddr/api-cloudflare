@@ -1,0 +1,27 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {execFileSync} from "node:child_process";
+import {mkdtemp,readFile,writeFile} from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import {Miniflare} from "miniflare";
+import {generateKeyPair,exportJWK,SignJWT} from "jose";
+test("compiled Worker authenticates signed GIS login and protects real administration routes",async()=>{
+ const directory=await mkdtemp(path.join(os.tmpdir(),"fga-admin-")),config=path.join(directory,"wrangler.json");await writeFile(config,JSON.stringify({name:"admin-local",main:path.resolve("probes/intake/admin_worker.ts"),compatibility_date:"2026-09-11",compatibility_flags:["nodejs_compat"],workers_dev:false}));execFileSync(process.execPath,["node_modules/typescript/bin/tsc","--noEmit"]);execFileSync(process.execPath,["node_modules/wrangler/bin/wrangler.js","deploy","--dry-run","--config",config,"--outdir",path.join(directory,"bundle")],{env:{...process.env,WRANGLER_WRITE_LOGS:"false",WRANGLER_SEND_METRICS:"false",CI:"true"},stdio:"pipe"});
+ const migrations=JSON.parse(execFileSync("uv",["run","--frozen","python","-c","import json;from pathlib import Path;from scripts.coordination_probe import statements;print(json.dumps([statements(p.read_text(encoding='utf-8')) for p in sorted(Path('migrations').glob('*.sql'))]))"],{encoding:"utf8"}));
+ const pair=await generateKeyPair("RS256"),jwk={...await exportJWK(pair.publicKey),kid:"local-key",alg:"RS256",use:"sig"};let upstream=0;
+ const mf=new Miniflare({modules:true,script:await readFile(path.join(directory,"bundle/admin_worker.js"),"utf8"),compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat"],cf:false,telemetry:{enabled:false},d1Databases:["DB"],bindings:{FGA_ADMIN_ENABLED:"1",GOOGLE_CLIENT_ID:"synthetic-client",GOOGLE_OWNER_SUB:"synthetic-sub"},secretsStoreSecrets:{AUTH_LIMITER_KEY:{store_id:"local",secret_name:"limiter"}},serviceBindings:{PEER:async request=>{upstream++;assert.equal(request.url,"https://www.googleapis.com/oauth2/v3/certs");return Response.json({keys:[jwk]},{headers:{"Cache-Control":"public, max-age=3600"}});}},outboundService(){throw new Error("No real provider access");}});
+ try{const db=await mf.getD1Database("DB");for(const statements of migrations)await db.batch(statements.map(sql=>db.prepare(sql)));await(await mf.getSecretsStoreSecretAPI("AUTH_LIMITER_KEY"))().create("synthetic-limiter-key-32-bytes-minimum");
+  const origin="https://flickrgroupaddr.com";
+  const missing=await mf.dispatchFetch(origin+"/api/v001/admin/session");assert.equal(missing.status,401);assert(!missing.headers.has("Set-Cookie"));
+  const start=await mf.dispatchFetch(origin+"/admin/login",{headers:{"CF-Connecting-IP":"192.0.2.1"}});assert.equal(start.status,200);const page=await start.text(),nonce=/data-nonce="([^"]+)"/.exec(page)[1],state=/data-state="([^"]+)"/.exec(page)[1];assert.equal(upstream,0);
+  const now=Math.floor(Date.now()/1000),credential=await new SignJWT({iss:"https://accounts.google.com",aud:"synthetic-client",sub:"synthetic-sub",nonce,iat:now,exp:now+3600}).setProtectedHeader({alg:"RS256",kid:"local-key"}).sign(pair.privateKey);
+  const post=await mf.dispatchFetch(origin+"/admin/google-login",{method:"POST",redirect:"manual",headers:{"CF-Connecting-IP":"192.0.2.1","Content-Type":"application/x-www-form-urlencoded",Cookie:"g_csrf_token=synthetic-csrf"},body:new URLSearchParams({credential,state,g_csrf_token:"synthetic-csrf"}).toString()});assert.equal(post.status,303,await post.clone().text());assert.equal(post.headers.get("Location"),"/admin/");assert.equal(upstream,1);
+  const cookie=post.headers.get("Set-Cookie").split(";")[0];assert.match(cookie,/^__Host-fga_admin=[A-Za-z0-9_-]{43}$/);
+  const current=await mf.dispatchFetch(origin+"/api/v001/admin/session",{headers:{Cookie:cookie}});assert.equal(current.status,200);const session=await current.json();assert.equal(session.schemaVersion,1);assert.match(session.csrfToken,/^[A-Za-z0-9_-]{43}$/);
+  const user=await db.prepare("SELECT user_id FROM admin_principals").first();await db.batch([db.prepare("INSERT INTO flickr_links VALUES(?,'synthetic-owner',1,'paused')").bind(user.user_id),db.prepare("INSERT INTO flickr_connection_state(user_id,state,local_state) VALUES(?,'unlinked','absent')").bind(user.user_id),db.prepare("INSERT INTO flickr_write_gates VALUES('user',?,0,1),('deployment','*',0,1)").bind(user.user_id)]);
+  const view=await mf.dispatchFetch(origin+"/api/v001/admin/flickr-connection",{headers:{Cookie:cookie}});assert.equal(view.status,200);assert.equal((await view.json()).state,"unlinked");
+  const rejected=await mf.dispatchFetch(origin+"/api/v001/admin/flickr-connection/disconnection",{method:"POST",headers:{Cookie:cookie,Origin:"https://evil.example","X-CSRF-Token":session.csrfToken,"Content-Type":"application/json"},body:JSON.stringify({schemaVersion:1,expectedRevision:1,expectedFlickrOwnerNsid:"synthetic-owner"})});assert.equal(rejected.status,403);assert.equal((await db.prepare("SELECT COUNT(*) n FROM flickr_lifecycle_operations").first()).n,0);
+  const logout=await mf.dispatchFetch(origin+"/api/v001/admin/session/logout",{method:"POST",headers:{Cookie:cookie,Origin:origin,"X-CSRF-Token":session.csrfToken}});assert.equal(logout.status,204);assert(logout.headers.get("Set-Cookie").includes("Max-Age=0"));assert.equal((await mf.dispatchFetch(origin+"/api/v001/admin/session",{headers:{Cookie:cookie}})).status,401);
+ }finally{await mf.dispose();}
+});

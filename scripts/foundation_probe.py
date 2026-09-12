@@ -116,6 +116,7 @@ def configure(run: Run, *, full: bool) -> Path:
         "name": run.state["workerName"],
         "main": str(ROOT / "probes/foundation/worker.ts"),
         "compatibility_date": "2026-09-11",
+        "compatibility_flags": ["nodejs_compat"],
         "account_id": run.state["accountId"],
         "workers_dev": True,
         "preview_urls": False,

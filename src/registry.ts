@@ -1,3 +1,4 @@
+import { ADMIN_ROUTES } from "./admin_registry.ts";
 import { MAX_GROUP_IDS } from "./admission.ts";
 export const PRESENTED_STATES = ["current", "pending_rotation"] as const;
 export interface CurrentInstallation {
@@ -26,6 +27,7 @@ export const BATCH_RESPONSE_SCHEMA={type:"object",additionalProperties:false,req
 export const BINDING_REQUEST_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","flickrPhotoId","expectedLinkedFlickrRevision"],properties:{schemaVersion:{const:1},flickrPhotoId:ID_SCHEMA,expectedLinkedFlickrRevision:REV_SCHEMA}} as const;
 export const BINDING_RESPONSE_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","fgaPhotoBindingId","sourceKind","flickrPhotoId","linkedFlickrRevision","verificationRevision","verifiedAt"],properties:{schemaVersion:{const:1},fgaPhotoBindingId:ID_SCHEMA,sourceKind:{enum:["fga_direct_upload","existing_public_flickr_photo","photographer_reconciled_ambiguous_upload"]},flickrPhotoId:ID_SCHEMA,linkedFlickrRevision:REV_SCHEMA,verificationRevision:REV_SCHEMA,verifiedAt:TIMESTAMP_SCHEMA}} as const;
 export const ROUTES = [
+ ...ADMIN_ROUTES,
  {id:"installation_current",method:"GET",pathPattern:"/api/v001/installations/current",owner:"fga_api_backend",routingClass:"worker_first",probe:"missing_authentication",expectedStatus:401,expectedChallenge:'Bearer realm="fga-api"',handler:"current",auth:"installation_bearer",allowPending:true,response:CURRENT_SCHEMA,successStatuses:[200],request:null},
  {id:"existing_public_binding",method:"POST",pathPattern:"/api/v001/existing-public-photo-bindings",owner:"fga_api_backend",routingClass:"worker_first",probe:"missing_authentication",expectedStatus:401,expectedChallenge:'Bearer realm="fga-api"',handler:"binding",auth:"installation_bearer",allowPending:false,response:BINDING_RESPONSE_SCHEMA,successStatuses:[201,200],request:BINDING_REQUEST_SCHEMA},
  {id:"group_submission_batch",method:"POST",pathPattern:"/api/v001/group-submission-batches",owner:"fga_api_backend",routingClass:"worker_first",probe:"missing_authentication",expectedStatus:401,expectedChallenge:'Bearer realm="fga-api"',handler:"batch",auth:"installation_bearer",allowPending:false,response:BATCH_RESPONSE_SCHEMA,successStatuses:[202],request:BATCH_REQUEST_SCHEMA},

@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "scope": "Hosted administrative and batch integration; synthetic Flickr/Google peers, real Cloudflare native secret writes",
+  "productionReleaseConformance": false,
+  "collectedAt": "2026-09-12T22:02:44.524399+00:00",
+  "checks": [
+    {
+      "id": "hosted_native_binding_readiness",
+      "passed": true
+    },
+    {
+      "id": "batch_missing_authentication",
+      "passed": true
+    },
+    {
+      "id": "CBA-CLIENT-001",
+      "passed": true
+    },
+    {
+      "id": "CBA-ROUTE-001",
+      "passed": true
+    },
+    {
+      "id": "CBA-ROUTE-002",
+      "passed": true
+    },
+    {
+      "id": "CBA-ROUTE-003",
+      "passed": true
+    },
+    {
+      "id": "CBA-ROUTE-004",
+      "passed": true
+    },
+    {
+      "id": "CBA-VALID-001",
+      "passed": true
+    },
+    {
+      "id": "CBA-VALID-002",
+      "passed": true
+    },
+    {
+      "id": "CBA-TXN-001",
+      "passed": true
+    },
+    {
+      "id": "CBA-TXN-002",
+      "passed": true
+    },
+    {
+      "id": "CBA-TXN-003",
+      "passed": true
+    },
+    {
+      "id": "CBA-TXN-004",
+      "passed": true
+    },
+    {
+      "id": "CBA-TXN-005",
+      "passed": true
+    },
+    {
+      "id": "CBA-HINT-001",
+      "passed": true
+    },
+    {
+      "id": "CBA-HINT-002",
+      "passed": true
+    },
+    {
+      "id": "CBA-HINT-003",
+      "passed": true
+    },
+    {
+      "id": "CBA-HINT-004",
+      "passed": true
+    },
+    {
+      "id": "CBA-HINT-005",
+      "passed": true
+    },
+    {
+      "id": "CBA-HINT-006",
+      "passed": true
+    },
+    {
+      "id": "admin_login_page",
+      "passed": true
+    },
+    {
+      "id": "admin_signed_login",
+      "passed": true
+    },
+    {
+      "id": "admin_session_cookie",
+      "passed": true
+    },
+    {
+      "id": "admin_origin_denied",
+      "passed": true
+    },
+    {
+      "id": "native_oauth_start",
+      "passed": true
+    },
+    {
+      "id": "native_oauth_callback",
+      "passed": true
+    },
+    {
+      "id": "native_reconciliation_handler",
+      "passed": true
+    },
+    {
+      "id": "native_activation_keeps_writes_paused",
+      "passed": true
+    },
+    {
+      "id": "native_disconnect_stops_authority",
+      "passed": true
+    },
+    {
+      "id": "native_retirement_confirmed",
+      "passed": true
+    },
+    {
+      "id": "admin_logout",
+      "passed": true
+    }
+  ],
+  "bundleSha256": "68dc261b369ef8d58a25e7d9b0ac4f7f7cad1a0b4a21b334220f4fc670c67e46",
+  "sourceHashes": {
+    "src/admin_api.ts": "7d46add2cf25f2427599e445d43b027e98ebbaec0f6472c8f597a91daa755b97",
+    "src/admin_registry.ts": "08f70ce7555c124b5345435c33d8c69e777b466cbbf0d1e47455c65aa8ed5513",
+    "src/admission.ts": "dda9480c0482426e8010181cd713b90b8afe00a228804b4d1f52a3d2e4001191",
+    "src/auth_admission.ts": "860d233d562680ff06b03a05903b6f6401b76cdbdc69b8e01da998c7cfd1d31c",
+    "src/browser_sessions.ts": "b7343082f3d038bb053b36ad28fdf4330d423fc2b8cc9d8b7f5c2c553d2b4597",
+    "src/dispatch_freshness.ts": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+    "src/fail_polite.ts": "5eee95695ab4cafcfcad2829c21a3565051443002c86b61884ae2ef4d1e3fca8",
+    "src/flickr_oauth.ts": "a37ea25b6cb92fc08f8e5e0e383220009b9cb06792c26abda411934ae148be42",
+    "src/flickr_reads.ts": "3f1a617260fd6592eaa3000e0bfd15c4879c81edd6b1596943760bce164d96ae",
+    "src/google_identity.ts": "be706eb7facc60ff68719cb11ec68d233523279b1f836024f4690165b15dd6e4",
+    "src/installations.ts": "ffaf34c32fd46467c8aada154261d30bda4e758deb1021fddf46e9b6e11c888d",
+    "src/intake_api.ts": "3b13b2e7d12d13d96fdef7094d3529588956b979dce029b53177db662ec333b2",
+    "src/native_lifecycle.ts": "015325877057efb22cdea10e517423c5e7334d0900ae78dc7e6d18bd0518a4cc",
+    "src/native_writer.ts": "8447ce435599f4bacc41eed8d5984c840316b2ee3890dd5905ee70897efd9cfa",
+    "src/registry.ts": "0267fd55f55cea7193db88fe97383c3892f7d26c9fd619ddc3b0613b5afc826c",
+    "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+    "src/session_inventory.ts": "ef8af97adefe2ca4fe7ff3e8e17199908ec2197d2aec18171e092ebd3b5720bd",
+    "src/worker.ts": "393808638046405bea2c091aa08bbe701621bbeed1670974c24dd3afea9b816e",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "migrations/0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+    "migrations/0005_native_credential_reference.sql": "301386c253b3d75d70ff3563cb9667ec9fcfc4fa2301bd7abb6ee80b2c902e49",
+    "migrations/0006_native_lifecycle.sql": "a65aa87b4bda490d5736e10f86666821797faf5e0dd5fc62975b6fdb57bb4fd4",
+    "migrations/0007_browser_auth.sql": "cc542e09934b6f3ea2dda1571d06b8f584ba840d4e97d66e9b6a6b5f56f25768",
+    "migrations/0008_flickr_oauth.sql": "1cb19cbef66e0abcb1a14530fb900147a771b8f0ff0845aef88955cd8c51519f",
+    "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+    "probes/coordination/fail_polite.ts": "653783d9736b1abe4aa842bea3191cfd855f4340b1ab36828f30d275fe6631a9",
+    "probes/coordination/worker.ts": "15afcafbfd950b21297260c5d887e0684d2c3c1acc82354f8491209bc3a27d72",
+    "probes/coordination/schema.sql": "b411c3943ce9e4071fd0a8d228f566bc6ac164a762bc394dc93346d0db8d1ffb",
+    "probes/coordination/local.mjs": "c4c4c1ecb71b97d3e87fdb5e0fc80fe6c9045bf0335b22033b92b9a7269e531d",
+    "scripts/coordination_probe.py": "849d2adb44837da79ab4cd0527224020e5748edf99626c499d3e3aef0b95141e",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/coordination_backup.py": "508fa40c9904a36862c10274153f6770221ff21771f9e470ec2e4b6014e3c63a",
+    "scripts/fail_polite_cases.py": "7ad1bf84c4ac139c25e0baa439ff70141ec48226714de3fc1d7017951580c871",
+    "scripts/fail_polite_mutations.py": "4c47a990c9dc4e896cb4d303e13e7ae9e6a9994f100580a1bd9b98cb1926328f",
+    "scripts/foundation_probe.py": "586adfe9cefa7e2241149957d1e07811fd532c02bbb8969464dfffab7605a835",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "c32c2906418013cd34b0a9a18e85f34756ed04c02e31d7df36a8fbc81694b930",
+    "tsconfig.json": "d6dd44f33ed662bf221137c3a172135d9da891f1ddf89cd8ce6e726ae62d668e",
+    "probes/intake/admin_worker.ts": "304aa12f80843299c93561d94b872774e880db3055d34a860548b2449aa1fca7",
+    "probes/intake/hosted_worker.ts": "84d4b8e291f8a53d94747d00ab7b64981be7e094e5788bfa1c5e9534c066b077",
+    "probes/intake/schema.sql": "809e1f296bb881bb85dfba3cd398a1ca989d8921d909f26f14c26d17e2e44208",
+    "probes/intake/worker.ts": "67363410b9a2049f2cf05730adcade484060426bf38c2402a95e08e52c96da49",
+    "assets/admin/app.mjs": "03c2eee7634d6f05916a79e74a39ee5ffb035f6054214dc9b96dd0dd430d8041",
+    "assets/admin/index.html": "04cfdac4c2677fafcc694f0da7797809c2887c54ab95bc9e87cbfd080c6a9a69",
+    "assets/admin/model.mjs": "4e87510269df51fbbdba50aa99aa71897ba1fa1733203d36711208819259bde7",
+    "assets/admin/styles.css": "65ce869ce4f9fb230858b189fea8cde56f954ca7f7169da5acb8b7a18c6839b9",
+    "scripts/intake_hosted.py": "60e83da4331ed4cd69a7ac83c64a671511f4426a4cf5116dab9d43370be94f3e",
+    "scripts/proof_google_identity.mjs": "80de4e02c2138ca61eb0d541105c8cfeddf86374a592b3c89ab2e094a2c2becc"
+  },
+  "attempts": [
+    {
+      "note": "Default Python user agent was rejected before Worker execution.",
+      "passedChecks": 0,
+      "failedChecks": [],
+      "workerAndDatabaseRemoved": true,
+      "nativeSecretsRemoved": true
+    },
+    {
+      "note": "All hosted CBA cases passed; the proof sweep used the wrong synthetic key-refresh peer.",
+      "passedChecks": 21,
+      "failedChecks": [
+        "admin_signed_login"
+      ],
+      "workerAndDatabaseRemoved": true,
+      "nativeSecretsRemoved": true
+    },
+    {
+      "note": "Native staging was checked before propagation.",
+      "passedChecks": 6,
+      "failedChecks": [
+        "native_oauth_start"
+      ],
+      "workerAndDatabaseRemoved": true,
+      "nativeSecretsRemoved": true
+    },
+    {
+      "note": "Diagnostics confirmed successful PATCH before matching binding observation.",
+      "passedChecks": 6,
+      "failedChecks": [
+        "native_oauth_start"
+      ],
+      "workerAndDatabaseRemoved": true,
+      "nativeSecretsRemoved": true
+    },
+    {
+      "note": "Focused administration/lifecycle pass with exact bounded read observation.",
+      "passedChecks": 13,
+      "failedChecks": [],
+      "workerAndDatabaseRemoved": true,
+      "nativeSecretsRemoved": true
+    },
+    {
+      "note": "Complete combined hosted pass.",
+      "passedChecks": 31,
+      "failedChecks": [],
+      "workerAndDatabaseRemoved": true,
+      "nativeSecretsRemoved": true
+    }
+  ],
+  "allDisposableResourcesRemoved": true
+}

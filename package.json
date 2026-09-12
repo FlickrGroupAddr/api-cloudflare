@@ -18,10 +18,13 @@
     "api:test": "node --test tests/installations.test.mjs probes/foundation/*.test.mjs",
     "api:generate": "uv run --frozen python scripts/generate_api.py",
     "api:check-generated": "uv run --frozen python scripts/generate_api.py --check",
-    "intake:test": "node --test tests/intake.test.mjs tests/flickr_reads.test.mjs"
+    "intake:test": "node --test tests/intake.test.mjs tests/flickr_reads.test.mjs",
+    "admin:test": "node --test tests/admin_core.test.mjs tests/admin_runtime.test.mjs tests/flickr_oauth.test.mjs tests/google_identity.test.mjs tests/session_inventory.test.mjs",
+    "cba:mutations": "uv run --frozen python scripts/cba_mutations.py"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",
+    "@types/node": "24.13.4",
     "aws4fetch": "1.0.20",
     "miniflare": "4.20260730.0",
     "typescript": "7.0.2",
@@ -32,6 +35,13 @@
     "workerd@1.20260730.1": true
   },
   "dependencies": {
-    "oauth-1.0a": "2.2.6"
+    "cookie-es": "3.1.1",
+    "csrf-sync": "4.2.1",
+    "google-auth-library": "11.0.2",
+    "hono": "4.13.7",
+    "ipaddr.js": "2.2.0",
+    "jose": "6.2.12",
+    "oauth-1.0a": "2.2.6",
+    "react-router": "8.3.1"
   }
 }
