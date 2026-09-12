@@ -4,9 +4,12 @@ import { NOW_US_SQL } from "../../src/installations.ts";
 interface Env { DB:D1Database; COORD:DurableObjectNamespace; PROOF_TOKEN:string; PROOF_BUILD:string; PROOF_EXPIRES:string; }
 interface Trial { id:string;target:"worker"|"object";beforeMarkerIterations?:number;afterMarkerIterations?:number;afterRefreshIterations?:number;markerDelayMs?:number;afterMarkerWaitMs?:number;refreshBeforeDispatch?:boolean;clockShiftMs?:number;wallOnlyShiftMs?:number;origin?:string; }
 interface Clocks { wallMs:number;perfMs:number;hrNs:string|null; }
+class ProbeFailure extends Error { constructor(readonly stage:string,readonly category:string){super("controlled_probe_failure");} }
+function category(error:unknown):string {const message=error instanceof Error?error.message:"";for(const [match,label] of [["I/O","io_context"],["hrtime","hrtime"],["D1_","d1"],["fetch","fetch"],["Not implemented","not_implemented"]])if(message.includes(match))return label;return /^peer_http_[0-9]+$/.test(message)?message:"unknown";}
 function clocks():Clocks {
  const process=(globalThis as unknown as {process?:{hrtime?:{bigint?:()=>bigint}}}).process;
- return {wallMs:Date.now(),perfMs:performance.now(),hrNs:process?.hrtime?.bigint?.().toString()??null};
+ let hrNs:string|null=null;try {hrNs=process?.hrtime?.bigint?.().toString()??null;}catch { /* An unavailable alternate clock cannot establish freshness. */ }
+ return {wallMs:Date.now(),perfMs:performance.now(),hrNs};
 }
 function burn(iterations=0):number {
  if(!Number.isSafeInteger(iterations)||iterations<0||iterations>800_000_000) throw new Error("invalid_cpu_bound");
@@ -18,19 +21,20 @@ function boundedMs(value=0):number {if(!Number.isInteger(value)||value<0||value>
 function hrDelta(a:Clocks,b:Clocks):number|null {return a.hrNs===null||b.hrNs===null?null:Number(BigInt(b.hrNs)-BigInt(a.hrNs))/1e6;}
 async function peerFetch(env:Env,origin:string,path:string,input:unknown):Promise<Record<string,number>> {
  const response=await fetch(origin+path,{method:"POST",headers:{Authorization:"Bearer "+env.PROOF_TOKEN,"Content-Type":"application/json"},body:JSON.stringify(input),redirect:"manual"});
- if(!response.ok)throw new Error("peer_unavailable");return response.json();
+ if(!response.ok)throw new Error("peer_http_"+response.status);return response.json();
 }
 async function trial(env:Env,input:Trial):Promise<unknown> {
+ let stage="validation";try {
  if(!/^[a-z0-9-]{1,64}$/.test(input.id))throw new Error("invalid_trial");
  const origin=input.origin!;
  if(Number(await env.DB.prepare("SELECT count(*) n FROM clock_trials").first("n"))>=100)throw new Error("trial_budget_exhausted");
- await peerFetch(env,origin,"/peer/preflight",{id:input.id});
- const received=clocks();
- await env.DB.prepare("INSERT INTO clock_trials(id,target,receipt_wall_ms,receipt_perf_ms) VALUES(?,?,?,?)").bind(input.id,input.target,received.wallMs,received.perfMs).run();
+ stage="preflight_peer";await peerFetch(env,origin,"/peer/preflight",{id:input.id});
+ stage="clocks";const received=clocks();
+ stage="record_receipt";await env.DB.prepare("INSERT INTO clock_trials(id,target,receipt_wall_ms,receipt_perf_ms) VALUES(?,?,?,?)").bind(input.id,input.target,received.wallMs,received.perfMs).run();
  const beforeCpu=clocks();const beforeDigest=burn(input.beforeMarkerIterations);const afterBeforeCpu=clocks();
  if(input.markerDelayMs)await peerFetch(env,origin,"/peer/delay",{delayMs:boundedMs(input.markerDelayMs)});
- await env.DB.batch([env.DB.prepare(`UPDATE clock_trials SET marker_us=${NOW_US_SQL} WHERE id=?`).bind(input.id)]);
- const markerCommitted=clocks();
+ stage="marker";await env.DB.batch([env.DB.prepare(`UPDATE clock_trials SET marker_us=${NOW_US_SQL} WHERE id=?`).bind(input.id)]);
+ stage="post_marker";const markerCommitted=clocks();
  const afterDigest=burn(input.afterMarkerIterations);const afterCpu=clocks();
  if(input.afterMarkerWaitMs)await scheduler.wait(boundedMs(input.afterMarkerWaitMs));
  if(input.refreshBeforeDispatch)await env.DB.prepare("SELECT 1").first();
@@ -40,8 +44,8 @@ async function trial(env:Env,input:Trial):Promise<unknown> {
  if(!Number.isFinite(shift)||Math.abs(shift)>10_000||!Number.isFinite(wallShift)||Math.abs(wallShift)>600_000)throw new Error("invalid_clock_injection");
  const eligible=preflightIsFresh(Math.trunc(received.perfMs*1000),Math.trunc((handoff.perfMs+shift)*1000));
  // Deliberately no await or clock-refreshing operation between the check and fetch.
- const response=eligible?await peerFetch(env,origin,"/peer/post",{id:input.id}):null;
- const row=await env.DB.prepare("SELECT CAST(marker_us AS TEXT) markerUs,peer_post_count postCount,peer_post_wall_ms peerPostWallMs FROM clock_trials WHERE id=?").bind(input.id).first<{markerUs:string;postCount:number;peerPostWallMs:number|null}>();
+ stage="post_peer";const response=eligible?await peerFetch(env,origin,"/peer/post",{id:input.id}):null;
+ stage="read_result";const row=await env.DB.prepare("SELECT CAST(marker_us AS TEXT) markerUs,peer_post_count postCount,peer_post_wall_ms peerPostWallMs FROM clock_trials WHERE id=?").bind(input.id).first<{markerUs:string;postCount:number;peerPostWallMs:number|null}>();
  return {id:input.id,target:input.target,eligible,postCount:row?.postCount,markerCommitted:row?.markerUs!==null,
   cpuBeforeMarkerPerfMs:afterBeforeCpu.perfMs-beforeCpu.perfMs,cpuBeforeMarkerHrMs:hrDelta(beforeCpu,afterBeforeCpu),
   cpuAfterMarkerPerfMs:afterCpu.perfMs-markerCommitted.perfMs,cpuAfterMarkerHrMs:hrDelta(markerCommitted,afterCpu),
@@ -51,6 +55,7 @@ async function trial(env:Env,input:Trial):Promise<unknown> {
   peerMarkerVisible:response?.markerVisible??null,performanceEqualsDate:handoff.perfMs===handoff.wallMs,
   injectedWallAgeMs:handoff.wallMs+wallShift-received.wallMs,hrtimeAvailable:received.hrNs!==null,
   fingerprints:[beforeDigest,afterDigest,residualDigest]};
+ }catch(error){throw new ProbeFailure(stage,category(error));}
 }
 export class ProbePartitionWake {
  private env:Env;
@@ -65,7 +70,7 @@ export default {
   const path=new URL(request.url).pathname;
   if(Date.now()>Number(env.PROOF_EXPIRES)||request.headers.get("Authorization")!=="Bearer "+env.PROOF_TOKEN)return new Response(null,{status:401});
   const reply=(result:unknown)=>Response.json({build:env.PROOF_BUILD,result},{headers:{"Cache-Control":"no-store"}});
-  if(path==="/status"){await env.DB.prepare("SELECT 1").first();return reply({ready:true});}
+  if(path==="/status"){await env.DB.prepare("SELECT 1").first();await peerFetch(env,new URL(request.url).origin,"/peer/preflight",{id:"readiness"});return reply({ready:true});}
   if(request.method!=="POST")return new Response(null,{status:405});
   try {
    if(path==="/peer/preflight")return Response.json({wallMs:Date.now(),moderated:0});
@@ -82,6 +87,6 @@ export default {
     if(!response.ok)throw new Error("actor_unavailable");return reply(await response.json());
    }
    if(input.target!=="worker")throw new Error("invalid_target");return reply(await trial(env,input));
-  }catch{return new Response(null,{status:409,headers:{"Cache-Control":"no-store"}});}
+  }catch(error){return Response.json({build:env.PROOF_BUILD,error:"operation_failed",stage:error instanceof ProbeFailure?error.stage:"outer",category:error instanceof ProbeFailure?error.category:category(error)},{status:409,headers:{"Cache-Control":"no-store"}});}
  }
 } satisfies ExportedHandler<Env>;

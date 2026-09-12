@@ -1,0 +1,8 @@
+{
+  "scope": "shared freshness-policy boundary mutation",
+  "changedFile": "src/dispatch_freshness.ts",
+  "originalSha2_256": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+  "unmutatedControlPassed": true,
+  "inclusiveComparisonDetected": true,
+  "sourceRestored": true
+}

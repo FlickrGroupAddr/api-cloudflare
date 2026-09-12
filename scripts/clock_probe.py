@@ -57,7 +57,7 @@ def configuration(run: runtime.Run) -> Path:
         "name": run.state["workerName"],
         "main": str(PROBE / "worker.ts"),
         "compatibility_date": "2026-09-11",
-        "compatibility_flags": ["nodejs_compat"],
+        "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
         "workers_dev": True,
         "preview_urls": False,
         "observability": {"enabled": False},
@@ -212,7 +212,22 @@ class Client:
             response = conn.getresponse()
             raw = response.read(65537)
             if response.status != 200 or len(raw) > 65536:
-                raise runtime.ProbeError("Clock request failed HTTP " + str(response.status))
+                diagnostic = {}
+                try:
+                    body = json.loads(raw)
+                    diagnostic = {k: body.get(k) for k in ("stage", "category")}
+                except ValueError:
+                    normalized = raw.decode("utf-8", "replace").replace(self.token, "[redacted]")
+                    match = re.search(r"error code:\s*(\d{3,5})", normalized, re.I)
+                    diagnostic = {
+                        "edgeCode": match[1] if match else None,
+                        "bodySha2_256": hashlib.sha256(raw).hexdigest(),
+                    }
+                self.run.state["lastFailure"] = {"status": response.status, **diagnostic}
+                self.run.save()
+                raise runtime.ProbeError(
+                    "Clock request failed HTTP " + str(response.status) + " " + str(diagnostic)
+                )
             result = json.loads(raw)
             if result["build"] != self.run.run_id:
                 raise runtime.ProbeError("Clock build mismatch.")
@@ -222,13 +237,18 @@ class Client:
             conn.close()
 
     def ready(self) -> None:
-        deadline = time.monotonic() + 120
+        started = time.monotonic()
+        deadline = started + 120
+        consecutive = 0
         while time.monotonic() < deadline:
             try:
                 self.call()
-                return
+                consecutive += 1
+                if consecutive >= 5 and time.monotonic() - started >= 30:
+                    return
             except runtime.ProbeError, OSError, ValueError, http.client.HTTPException:
-                time.sleep(1)
+                consecutive = 0
+            time.sleep(2)
         raise runtime.ProbeError("Clock readiness did not converge.")
 
 
@@ -255,6 +275,10 @@ def cases(client: Client, report: coordination.Report) -> None:
             1,
         )
         iterations = min(800_000_000, max(100_000_000, math.ceil(1600 / sample_ms * 100_000_000)))
+        if client.run.state["environment"] == "cloudflare":
+            iterations = (
+                800_000_000  # Fixed bounded stress; HTTP calibration includes network time.
+            )
         cpu = invoke("cpu-after-marker", afterMarkerIterations=iterations)
         report.check(
             target + ".cpu_interval_exercised",
