@@ -2,11 +2,11 @@
 
 Date: 2026-09-11
 
-Status: Investigation complete; the accepted monotonic freshness requirement is
-not proved by native Workers clocks. Proposed ADR 0056 needs Terry's decision.
-Real Flickr group-add capability remains disabled.
+Status: Investigation complete; Terry accepted the scoped private clock profile
+in ADR 0056 on 2026-09-12. A hard monotonic guarantee is still not claimed.
+Real Flickr group-add capability remains disabled pending production integration.
 
-Recommend accepting a narrowly documented private approximation: prepare the
+Terry accepted the narrowly documented private approximation: prepare the
 entire signed request before the final D1 marker transaction, then make only an
 immediate check of the I/O-refreshed clock and the transport handoff. Keep the
 strict observed-age threshold and every marker, lease, gate, ambiguity and
@@ -95,12 +95,13 @@ removed and absence verified. Detailed records stay in ignored local run
 artifacts; public evidence contains allowlisted check results and safe numeric
 observations without credentials or provider identifiers.
 
-## Owner handoff
+## Approved owner handoff
 
-[Proposed architecture ADR 0056](https://github.com/FlickrGroupAddr/architecture-design/blob/746d59cc1761d11f371c4b7976e0c97d3711eeb0/docs/decisions/0056-accept-private-workers-observed-preflight-time.md) describes the exact private exception, the
+[Accepted architecture ADR 0056](https://github.com/FlickrGroupAddr/architecture-design/blob/78240c077d21f9546f3e728a02d234497c63c053/docs/decisions/0056-accept-private-workers-observed-preflight-time.md) describes the exact private exception, the
 required prepared-request boundary, the remaining timing risk and the authority
-that would change if accepted. It is not accepted yet. The current repository
-agreement, ADR 0007 and accepted contracts still require the monotonic clock.
+that changed with approval on 2026-09-12. ADR 0007 and the scoped contracts
+now explicitly qualify their preflight-clock wording for the private profile.
+Other profiles retain the monotonic-clock requirement.
 The broader production conformance gate remains implementation #0018.
 
 No timer service, container, AWS service or new production resource was added.
@@ -120,3 +121,12 @@ identify the compatibility timer's limitation. The
 and [compatibility flag reference](https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public)
 control the fixture's public peer routing. These references corroborate the
 observations; they do not turn local tests into a deployed clock guarantee.
+
+## Approval and implementation boundary
+
+Approval resolves #0013 through its scoped owner-decision path. Historical
+diagnostic records remain unchanged and are not relabeled as conformance.
+Before production use, #0018 must prove the actual prepared-request transport,
+with no deferred preparation after marker I/O, and every remaining release
+requirement. The bounded candidate and its deliberate fault hooks are not
+promoted to production by this documentation change.

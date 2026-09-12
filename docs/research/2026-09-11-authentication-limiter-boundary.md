@@ -2,33 +2,33 @@
 
 Date: 2026-09-11
 
-Status: Review complete; proposed ADR 0055 needs Terry's approval. No production
-limiter or authentication route was implemented under an inferred exception.
+Status: ADR 0055 accepted by Terry on 2026-09-12; admission-order clarification
+and bounded proof plan complete. Production limiter integration remains pending.
 
-Recommendation: use the existing D1 database as the sole owner of atomic
+Accepted decision: use the existing D1 database as the sole owner of atomic
 source/global quota bookkeeping and canonical OAuth transaction rows. Clarify
 that admission precedes creation of application authentication records; the
 limiter's own short-lived SQL bookkeeping is permitted during admission. This
 avoids a second store and a reservation/compensation protocol across services.
 
-## Authority and unresolved wording
+## Authority and approved clarification
 
 The canonical administrative contract requires admission before JWT parsing,
 signature validation, FGA database insertion or a request-triggered JWKS refresh.
 The accepted browser-session contract creates login-start state only after
-admission. Neither explicitly exempts limiter bookkeeping from "insertion."
-[Proposed ADR 0055](https://github.com/FlickrGroupAddr/architecture-design/blob/746d59cc1761d11f371c4b7976e0c97d3711eeb0/docs/decisions/0055-keep-authentication-admission-bookkeeping-in-d1.md) proposes that narrow exemption rather than changing accepted prose
-without owner approval. The private runtime trust exception in ADR 0051 does
+admission. The prior wording did not explicitly exempt limiter bookkeeping from "insertion."
+[Accepted ADR 0055](https://github.com/FlickrGroupAddr/architecture-design/blob/78240c077d21f9546f3e728a02d234497c63c053/docs/decisions/0055-keep-authentication-admission-bookkeeping-in-d1.md) records that narrow exemption under Terry's explicit approval. The canonical
+administrative and browser-session contracts now reference it. The private runtime trust exception in ADR 0051 does
 not independently amend admission ordering.
 
-The proposal retains the current limits without copying a new canonical table:
+The accepted decision retains the current limits without copying a new canonical table:
 see `docs/administrative-control-plane-contract.md`, "Unauthenticated admission
 and cost boundary," in the private architecture source. The fixed OAuth live
 cap is checked against its canonical initiating/pending/in-flight rows, not a
 second count stored in a Durable Object. Callback completion uses its existing
 slot. No transaction stays open during Google or Flickr I/O.
 
-## Bounded proof plan after approval
+## Remaining implementation proof plan
 
 Use fresh isolated local workerd/D1 and hosted D1 fixtures, maintained
 Google-authentication interfaces with a controlled JWKS peer, a controlled
@@ -94,13 +94,21 @@ would add a cross-service failure boundary for the OAuth cap without removing
 an identified requirement that one D1 transaction cannot satisfy.
 
 [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/)
-retains historical states beyond 24 hours. The proposal treats expiry as
+retains historical states beyond 24 hours. The accepted decision treats expiry as
 loss of authority plus live-table cleanup, not physical all-version erasure.
 Manual exports should omit source-key bookkeeping; restoration must retain a
-closed authentication gate until quota recovery is safe. This limitation must
-be accepted explicitly rather than described as 24-hour physical deletion.
+closed authentication gate until quota recovery is safe. Terry explicitly accepted this limitation on 2026-09-12; it must not be
+described as 24-hour physical deletion.
 
 No new production service, dependency, billing resource or AWS fallback was
 created for #0015. The deliverable is the scoped architecture clarification
 and executable acceptance plan requested by the ticket, not a hosted limiter
 conformance claim.
+
+## Approval handoff, 2026-09-12
+
+The owner decision is resolved. The scoped #0015 deliverable is the accepted
+clarification and proof plan above. It did not request implementation of a new
+authentication subsystem. The production integrations and their full tests
+remain with the existing downstream work; no new service or reservation
+protocol was added by this approval.

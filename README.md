@@ -49,11 +49,11 @@ POSTs independently of database outcomes. Production clock enforcement and the
 complete release conformance gate remain separate; real Flickr writes are disabled.
 
 The [hosted clock investigation](docs/research/2026-09-11-workers-preflight-clock.md)
-records the native timer blind interval and a proposed private timing decision.
+records the native timer blind interval and the private timing profile accepted
+by Terry on 2026-09-12 (ADR 0056).
 The [authentication limiter review](docs/research/2026-09-11-authentication-limiter-boundary.md)
-proposes keeping quota bookkeeping in D1 with a precise admission-order
-clarification. Both proposals require owner approval; current production gates
-remain in force.
+records the accepted D1 quota-bookkeeping and admission-order clarification
+(ADR 0055). Production integration and the remaining release gates stay pending.
 
 ## Routing proof
 
