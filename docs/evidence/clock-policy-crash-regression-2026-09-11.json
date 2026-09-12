@@ -1,0 +1,372 @@
+{
+  "recordType": "public_check_summary",
+  "checkCount": 84,
+  "completed": true,
+  "cleanupConfirmed": true,
+  "checks": [
+    {
+      "id": "FP-CRASH-001.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.hint.001",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.001",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-002.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.hint.002",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.002",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-003.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.hint.003",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.003",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-004.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.004",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-005.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.005",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-006.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.006",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-007.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.007",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-008.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.008",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-009.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.hint.009",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.009",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-010.hint",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.hint.010",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.010",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-001.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.001",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.001",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-002.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.002",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.002",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-003.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.003",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.003",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-004.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.004",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-005.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.005",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-006.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.006",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-007.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.007",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-008.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.008",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-009.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.009",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.009",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-010.sweep",
+      "passed": true
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.010",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.010",
+      "passed": true
+    },
+    {
+      "id": "result.code_6",
+      "passed": true
+    },
+    {
+      "id": "result.code_7",
+      "passed": true
+    },
+    {
+      "id": "result.code_9001",
+      "passed": true
+    },
+    {
+      "id": "result.code_105",
+      "passed": true
+    },
+    {
+      "id": "result.fresh_retry_105",
+      "passed": true
+    },
+    {
+      "id": "result.code_106",
+      "passed": true
+    },
+    {
+      "id": "result.fresh_retry_106",
+      "passed": true
+    },
+    {
+      "id": "result.code_3",
+      "passed": true
+    },
+    {
+      "id": "result.code_0",
+      "passed": true
+    },
+    {
+      "id": "result.code_-1",
+      "passed": true
+    },
+    {
+      "id": "manual_clock.just_inside",
+      "passed": true
+    },
+    {
+      "id": "manual_clock.before_expiry",
+      "passed": true
+    },
+    {
+      "id": "manual_clock.after_expiry",
+      "passed": true
+    },
+    {
+      "id": "membership.already_present",
+      "passed": true
+    },
+    {
+      "id": "fence.gate_revision",
+      "passed": true
+    },
+    {
+      "id": "recovery.closed_gate_no_dispatch",
+      "passed": true
+    },
+    {
+      "id": "recovery.transaction_crash",
+      "passed": true
+    },
+    {
+      "id": "guards.submission_attempts.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.submission_attempts.update",
+      "passed": true
+    },
+    {
+      "id": "guards.submission_attempts.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_membership.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_membership.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_membership.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_preflights.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_preflights.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_preflights.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_dispatches.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_dispatches.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_dispatches.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_resolutions.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_resolutions.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_resolutions.replace",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    },
+    {
+      "id": "network.no_external_calls",
+      "passed": true
+    }
+  ],
+  "sourceHashes": {
+    "src/admission.ts": "9c0c550d6a5b6102e93fba9a618945ab3eede514f5f21a90bf67ce76d92184dc",
+    "src/dispatch_freshness.ts": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+    "src/fail_polite.ts": "5eee95695ab4cafcfcad2829c21a3565051443002c86b61884ae2ef4d1e3fca8",
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "src/registry.ts": "5668245636b8edc5664346e41c465867406a1019843be5bb1561329d26b7561e",
+    "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+    "src/worker.ts": "d75c94d126414f3657fbf6ad1b5486ca3b62f0162fcdf1f76f002a545c15ef97",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "migrations/0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+    "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+    "probes/coordination/fail_polite.ts": "653783d9736b1abe4aa842bea3191cfd855f4340b1ab36828f30d275fe6631a9",
+    "probes/coordination/worker.ts": "15afcafbfd950b21297260c5d887e0684d2c3c1acc82354f8491209bc3a27d72",
+    "probes/coordination/schema.sql": "b411c3943ce9e4071fd0a8d228f566bc6ac164a762bc394dc93346d0db8d1ffb",
+    "probes/coordination/local.mjs": "c4c4c1ecb71b97d3e87fdb5e0fc80fe6c9045bf0335b22033b92b9a7269e531d",
+    "scripts/coordination_probe.py": "b3828676afb281dd220117d5a89c177cbccd529861c8ce76a9f35c2c35dd3217",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/coordination_backup.py": "508fa40c9904a36862c10274153f6770221ff21771f9e470ec2e4b6014e3c63a",
+    "scripts/fail_polite_cases.py": "7ad1bf84c4ac139c25e0baa439ff70141ec48226714de3fc1d7017951580c871",
+    "scripts/fail_polite_mutations.py": "4c47a990c9dc4e896cb4d303e13e7ae9e6a9994f100580a1bd9b98cb1926328f",
+    "scripts/foundation_probe.py": "01e58bda4b96aaec7fa9a3f8ba8cef8b1b30343732082f2e60fd7d674ea913d1",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "tsconfig.json": "6e1967b592520cf5aade0bc8efea370cd1c30468913f6d31f60ad854694963a1"
+  },
+  "productionConformance": false
+}

@@ -48,6 +48,13 @@ recovery through the shared D1 claim path. The controlled peer observes actual
 POSTs independently of database outcomes. Production clock enforcement and the
 complete release conformance gate remain separate; real Flickr writes are disabled.
 
+The [hosted clock investigation](docs/research/2026-09-11-workers-preflight-clock.md)
+records the native timer blind interval and a proposed private timing decision.
+The [authentication limiter review](docs/research/2026-09-11-authentication-limiter-boundary.md)
+proposes keeping quota bookkeeping in D1 with a precise admission-order
+clarification. Both proposals require owner approval; current production gates
+remain in force.
+
 ## Routing proof
 
 The [Worker routing proof](probes/routes/README.md) derives a route inventory and

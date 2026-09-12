@@ -1,0 +1,11 @@
+{
+  "hostedRuns": 5,
+  "failedSetupOrExploratoryRuns": 4,
+  "completedInvestigationRuns": 1,
+  "workersDeleted": 5,
+  "durableObjectNamespacesDeleted": 5,
+  "databasesDeleted": 5,
+  "cleanupConfirmed": true,
+  "realFlickrCalls": 0,
+  "productionResourcesChanged": false
+}

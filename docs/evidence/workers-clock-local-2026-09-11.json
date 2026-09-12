@@ -1,0 +1,567 @@
+{
+  "schemaVersion": 1,
+  "recordType": "public_diagnostic_summary",
+  "investigationCompleted": true,
+  "nativeMonotonicRequirementProved": false,
+  "productionConformance": false,
+  "environment": "local",
+  "sourceSnapshotCommit": "9da37299c74478e6bef36fae5f495e23b64eccf5",
+  "bundleSha2_256": "5d3fd39c2019750eb9ee4bc59694036f2e5b47703477f6cdd13db1afd86ca4cd",
+  "sourceHashes": {
+    "probes/clocks/worker.ts": "dbeabefcdc6f3dfa199f9157840c84790606ebe30263b06dc8db6d0f39ae1514",
+    "probes/clocks/local.mjs": "e3c623d5c91772b59de2f71beb84dfdf976ce0c0409c11dbdc033ce7d97a3e12",
+    "probes/clocks/schema.sql": "c653a7408e2cd472caf4447b59aae435053b1810bfd92d49b1ef1c329358ee21",
+    "src/dispatch_freshness.ts": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+    "src/installations.ts": "39e13ea68136bc3afb037259c040aa8f63726db54c0a704e2b3838b3e1c9a57e",
+    "scripts/clock_probe.py": "bb2e516b28cd95506c5d53ec76d5b0a13684899860da0c7946158f47635a85d4",
+    "scripts/coordination_probe.py": "b3828676afb281dd220117d5a89c177cbccd529861c8ce76a9f35c2c35dd3217",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "7718b49384ba47ffc2a83a85f4f616f5d152cb3726e751c8f331d70d03693158",
+    "package.json": "405cf6f2f26d074d9ab55cfc989bbcb23da92471b12fcbded4ae7545f2681dc8",
+    "tsconfig.json": "6e1967b592520cf5aade0bc8efea370cd1c30468913f6d31f60ad854694963a1"
+  },
+  "runtimeCompatibilityDate": "2026-07-30",
+  "compatibilityFlags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "cpuLimitMs": 5000,
+  "checkCount": 37,
+  "checks": [
+    {
+      "id": "worker.baseline.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.baseline_admits",
+      "passed": true
+    },
+    {
+      "id": "worker.calibration.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.cpu-after-marker.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.cpu_interval_exercised",
+      "passed": true
+    },
+    {
+      "id": "worker.cpu-before-marker.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.marker_io_exposes_elapsed_cpu",
+      "passed": true
+    },
+    {
+      "id": "worker.delayed-marker.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.delayed_marker_rejected",
+      "passed": true
+    },
+    {
+      "id": "worker.io-suspension.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.io_suspension_rejected",
+      "passed": true
+    },
+    {
+      "id": "worker.refresh-after-cpu.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.extra_io_exposes_elapsed_cpu",
+      "passed": true
+    },
+    {
+      "id": "worker.cpu-after-extra-io.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.backward-injection.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.negative_age_rejected",
+      "passed": true
+    },
+    {
+      "id": "worker.independent-wall-jump.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "worker.injected_wall_does_not_drive_policy",
+      "passed": true
+    },
+    {
+      "id": "object.baseline.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.baseline_admits",
+      "passed": true
+    },
+    {
+      "id": "object.calibration.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.cpu-after-marker.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.cpu_interval_exercised",
+      "passed": true
+    },
+    {
+      "id": "object.cpu-before-marker.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.marker_io_exposes_elapsed_cpu",
+      "passed": true
+    },
+    {
+      "id": "object.delayed-marker.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.delayed_marker_rejected",
+      "passed": true
+    },
+    {
+      "id": "object.io-suspension.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.io_suspension_rejected",
+      "passed": true
+    },
+    {
+      "id": "object.refresh-after-cpu.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.extra_io_exposes_elapsed_cpu",
+      "passed": true
+    },
+    {
+      "id": "object.cpu-after-extra-io.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.backward-injection.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.negative_age_rejected",
+      "passed": true
+    },
+    {
+      "id": "object.independent-wall-jump.transport_consistent",
+      "passed": true
+    },
+    {
+      "id": "object.injected_wall_does_not_drive_policy",
+      "passed": true
+    },
+    {
+      "id": "source.unchanged",
+      "passed": true
+    }
+  ],
+  "observations": [
+    {
+      "case": "worker.baseline",
+      "eligible": true,
+      "postCount": 1,
+      "observedAgeMs": 3,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": 5,
+      "peerMarkerVisible": 1,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 3,
+      "roundTripMonoMs": 44.9778
+    },
+    {
+      "case": "worker.calibration",
+      "eligible": true,
+      "postCount": 1,
+      "observedAgeMs": 174,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": 187,
+      "peerMarkerVisible": 1,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 171,
+      "cpuAfterMarkerHrMs": 171,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 174,
+      "roundTripMonoMs": 221.6396
+    },
+    {
+      "case": "worker.cpu-after-marker",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1348,
+      "ageAtMarkerMs": 2,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 1346,
+      "cpuAfterMarkerHrMs": 1346,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1348,
+      "roundTripMonoMs": 1377.7496
+    },
+    {
+      "case": "worker.cpu-before-marker",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1341,
+      "ageAtMarkerMs": 1341,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 1338,
+      "cpuBeforeMarkerHrMs": 1338,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1341,
+      "roundTripMonoMs": 1347.3492
+    },
+    {
+      "case": "worker.delayed-marker",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1229,
+      "ageAtMarkerMs": 1229,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1229,
+      "roundTripMonoMs": 1250.1218
+    },
+    {
+      "case": "worker.io-suspension",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1215,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1215,
+      "roundTripMonoMs": 1259.1462
+    },
+    {
+      "case": "worker.refresh-after-cpu",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1364,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 1360,
+      "cpuAfterMarkerHrMs": 1360,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1364,
+      "roundTripMonoMs": 1380.1876
+    },
+    {
+      "case": "worker.cpu-after-extra-io",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1354,
+      "ageAtMarkerMs": 2,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 1351,
+      "cpuAfterRefreshHrMs": 1351,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1354,
+      "roundTripMonoMs": 1366.4742
+    },
+    {
+      "case": "worker.backward-injection",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 3,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 3,
+      "roundTripMonoMs": 43.3144
+    },
+    {
+      "case": "worker.independent-wall-jump",
+      "eligible": true,
+      "postCount": 1,
+      "observedAgeMs": 3,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": 15,
+      "peerMarkerVisible": 1,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": -599997,
+      "roundTripMonoMs": 29.2408
+    },
+    {
+      "case": "object.baseline",
+      "eligible": true,
+      "postCount": 1,
+      "observedAgeMs": 2,
+      "ageAtMarkerMs": 2,
+      "peerReceiptGapMs": 14,
+      "peerMarkerVisible": 1,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 2,
+      "roundTripMonoMs": 61.6616
+    },
+    {
+      "case": "object.calibration",
+      "eligible": true,
+      "postCount": 1,
+      "observedAgeMs": 172,
+      "ageAtMarkerMs": 2,
+      "peerReceiptGapMs": 184,
+      "peerMarkerVisible": 1,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 170,
+      "cpuAfterMarkerHrMs": 170,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 172,
+      "roundTripMonoMs": 216.0376
+    },
+    {
+      "case": "object.cpu-after-marker",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1358,
+      "ageAtMarkerMs": 4,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 1354,
+      "cpuAfterMarkerHrMs": 1354,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1358,
+      "roundTripMonoMs": 1403.0947
+    },
+    {
+      "case": "object.cpu-before-marker",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1345,
+      "ageAtMarkerMs": 1345,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 1339,
+      "cpuBeforeMarkerHrMs": 1339,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1345,
+      "roundTripMonoMs": 1379.1435
+    },
+    {
+      "case": "object.delayed-marker",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1232,
+      "ageAtMarkerMs": 1232,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1232,
+      "roundTripMonoMs": 1277.3008
+    },
+    {
+      "case": "object.io-suspension",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1213,
+      "ageAtMarkerMs": 4,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1213,
+      "roundTripMonoMs": 1255.1776
+    },
+    {
+      "case": "object.refresh-after-cpu",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1344,
+      "ageAtMarkerMs": 2,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 1341,
+      "cpuAfterMarkerHrMs": 1341,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1344,
+      "roundTripMonoMs": 1360.7736
+    },
+    {
+      "case": "object.cpu-after-extra-io",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 1340,
+      "ageAtMarkerMs": 4,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 1335,
+      "cpuAfterRefreshHrMs": 1335,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 1340,
+      "roundTripMonoMs": 1384.516
+    },
+    {
+      "case": "object.backward-injection",
+      "eligible": false,
+      "postCount": 0,
+      "observedAgeMs": 2,
+      "ageAtMarkerMs": 2,
+      "peerReceiptGapMs": null,
+      "peerMarkerVisible": null,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": 2,
+      "roundTripMonoMs": 22.5428
+    },
+    {
+      "case": "object.independent-wall-jump",
+      "eligible": true,
+      "postCount": 1,
+      "observedAgeMs": 3,
+      "ageAtMarkerMs": 3,
+      "peerReceiptGapMs": 14,
+      "peerMarkerVisible": 1,
+      "cpuBeforeMarkerPerfMs": 0,
+      "cpuBeforeMarkerHrMs": 0,
+      "cpuAfterMarkerPerfMs": 0,
+      "cpuAfterMarkerHrMs": 0,
+      "cpuAfterRefreshPerfMs": 0,
+      "cpuAfterRefreshHrMs": 0,
+      "performanceEqualsDate": true,
+      "hrtimeAvailable": true,
+      "injectedWallAgeMs": -599997,
+      "roundTripMonoMs": 25.2455
+    }
+  ],
+  "cleanupConfirmed": true,
+  "detailedReportSha2_256": "d1feb613ea51119d124ce45965886b353831e55059dd7e345dc7a99f0601b932",
+  "peerReceiptIsNotExactHandoffTime": true,
+  "providerClockRollbackOrProcessSuspensionForced": false
+}
