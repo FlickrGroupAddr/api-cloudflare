@@ -35,6 +35,9 @@ now passes all 29 hosted cases with confirmed cleanup. Its
 pause, generation matching, retirement and recovery boundaries. Production
 UI/API integration remains separate. The existing [AWS proof](probes/secrets/README.md)
 is retained fallback evidence.
+The [AWS backing-service evaluation checklist](docs/operations/aws-backing-service-evaluation.md)
+provides a reusable need, proof, cost, recovery and exit record under the current
+accepted native-first decisions. It selects and provisions no service.
 
 The [atomic admission and scheduling proofs](docs/research/2026-09-11-admission-and-scheduling-proof.md)
 now pass 65 hosted checks: complete D1 batches, exact FIFO/fencing, archive
