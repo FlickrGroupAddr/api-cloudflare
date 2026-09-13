@@ -18,7 +18,7 @@ Amazon remains the registrar. The later registrar transfer is separate from this
 completed DNS move and does not block application work. No further registered
 nameserver change is required for the current destination account.
 
-## Existing access and the remaining inspection gap
+## Existing access and verified inspection token
 
 The project-specific `fga-sixbucks` Wrangler operator login remains usable; the
 existing default profile is preserved. A subsequent read-only API check returned:
@@ -40,22 +40,24 @@ Store Edit; do not broaden that token to resolve operator inspection needs.
 Existing local Google configuration and Flickr/writer credential input files
 are present. Their contents must remain private.
 
-A separate optional operator inspection token, **FGA Zone Read**, was requested
-with **Zone / DNS / Read** and **Zone / SSL and Certificates / Read**, restricted
-to `flickrgroupaddr.com` in the destination account. These are the documented
-permissions for the two denied endpoints. The token supplements the operator
-login; it is not a replacement login or an application runtime binding.
-This gap does not block independent release implementation or deployment
-preparation. Public apex A and MX queries returned no corresponding records at
-this checkpoint; that observation is not a complete DNS inventory or proof that
-all source records were preserved.
+The owner supplied the separate **FGA Zone Read** token on 2026-09-13 and
+approved keeping it without expiration. The existing local input manifest now
+contains `zoneReadTokenFile`; the token bytes remain only in the supplied private
+file. At `2026-09-13T22:08:31Z`, `user/tokens/verify` returned active, DNS listing
+returned HTTP 200 with **zero records** (complete, single-page inventory), and
+certificate listing returned HTTP 200 with an **active Universal SSL certificate
+covering the apex**. The earlier operator inspection gap is resolved.
+
+This token has the requested Zone / DNS / Read and Zone / SSL and Certificates /
+Read scope for the destination domain. It supplements the operator login and is
+not an application runtime binding. Source-record preservation remains a
+historical unverified fact; the destination account contains no existing DNS
+records for the initial Worker connection to replace.
 
 ## Next engineering and owner steps
 
-1. Inspect the destination records and certificate status when inspection access
-   is supplied. Existing source-record preservation has not been independently
-   certified. Avoid treating an automatic public-DNS scan as proof that proxied
-   origin records were copied correctly.
+1. DNS and certificate inspection are complete as recorded above. Continue with
+   the [initial disabled deployment](initial-disabled-deployment.md).
 2. Prepare the persistent Worker, D1 and native secret bindings with the accepted
    feature flags initially disabled. The prepared custom-domain configuration
    connects the apex to the Worker; the documented domain-attachment API accepts

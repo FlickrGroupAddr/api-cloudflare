@@ -74,17 +74,18 @@ not configured. The prior target-zone-missing owner step is resolved; the later
 registrar transfer remains independent.
 
 The existing Wrangler profile still accesses Worker, D1 and Secrets Store
-inventories. DNS-record and certificate inspection each return 403, so a
-separate zone-restricted read token was requested. Existing credential input
-files are available. See the updated
+inventories. A separate zone-restricted read token was supplied and verified active. Both
+DNS-record and certificate inspection now return HTTP 200; the destination DNS
+inventory is empty and its Universal SSL certificate covers the apex and is
+active. Existing credential input files are available. See the updated
 [DNS/account procedure](../operations/fga-domain-account-move.md) for current
-access evidence and the exact two read permissions. No repeat operator login or
+access evidence and the exact two read permissions, plus the initial disabled
+deployment procedure. No repeat operator login or
 Google owner setup is required to continue engineering work.
 
 The apex is not yet connected to a Worker. Finish the exact destination
 configuration and continue hosted lifecycle/status/bypass, process/deployment-
 stop, current-schema restore/reconciliation and complete conformance/promotion
 work. The production UI still needs the real owner's Google/Flickr browser
-validation after deployment. Independent implementation and preparation can
-continue while the read token is supplied. DNS activation and these local
+validation after deployment. The read-token owner input is complete; engineering work can continue. DNS activation and these local
 results do not authorize enabling real group adds.
