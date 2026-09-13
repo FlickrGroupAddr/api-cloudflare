@@ -109,3 +109,13 @@ control renders normally and reaches Google's sign-in page. See the
 [repair and current owner step](2026-09-13-google-button-style-fix.md).
 No additional Google settings or referrer-policy amendment was required for
 this result. The owner authentication callback is still pending.
+
+## Login health follow-up
+
+The remaining Google origin error and Cloudflare analytics injection are now
+resolved. The owner's Google settings were correct. Only the public, query-free
+login page uses an origin-only referrer; protected pages and callbacks retain
+no-referrer. Administrative HTML prevents intermediary script injection.
+The live framed Google button renders without console errors and opens Google
+sign-in. See the [verified correction](2026-09-13-google-login-origin-fix.md). The next owner action is
+to refresh the login page and complete sign-in; no Google Console edit is needed.

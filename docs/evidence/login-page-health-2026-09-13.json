@@ -1,0 +1,57 @@
+{
+  "checkedAt": "2026-09-13T23:20:04.173157+00:00",
+  "artifactSha2_256": "126759eb8d2df2a9af5b58347d5571f0a14b2acfa90124ca4f387025cfeea6c1",
+  "featureFlags": {
+    "FGA_READ_ENABLED": "0",
+    "FGA_ADMIN_ENABLED": "1",
+    "FGA_INTAKE_ENABLED": "0",
+    "FGA_DISPATCH_ENABLED": "0"
+  },
+  "change": "origin-only referrer on the public query-free login page; no-transform on administrative HTML",
+  "verifiedAt": "2026-09-13T23:26:55.535737+00:00",
+  "httpChecks": [
+    {
+      "path": "/admin/login",
+      "status": 200,
+      "referrerPolicy": "strict-origin",
+      "cacheControl": "no-store, no-transform",
+      "analyticsInjected": false,
+      "passed": true
+    },
+    {
+      "path": "/admin/login?unexpected=1",
+      "status": 400,
+      "referrerPolicy": "no-referrer",
+      "cacheControl": "no-store",
+      "analyticsInjected": false,
+      "passed": true
+    },
+    {
+      "path": "/api/v001/admin/session",
+      "status": 401,
+      "referrerPolicy": "no-referrer",
+      "cacheControl": "no-store",
+      "analyticsInjected": false,
+      "passed": true
+    },
+    {
+      "path": "/admin/",
+      "status": 303,
+      "referrerPolicy": "no-referrer",
+      "cacheControl": "no-store",
+      "analyticsInjected": false,
+      "passed": true
+    }
+  ],
+  "httpChecksPassed": true,
+  "compiledAuthenticationRegressionPassed": true,
+  "nativeTypescriptPassed": true,
+  "architectureChecksPassed": 13,
+  "liveBrowserConsoleErrors": 0,
+  "liveBrowserConsoleWarnings": 0,
+  "googleFrameButtonRendered": true,
+  "googleSignInPageReached": true,
+  "ownerAuthenticationComplete": false,
+  "googleConsoleSettingsChanged": false,
+  "diagnosticNote": "The default Python user agent received a Cloudflare 403 before the application; verification uses the existing identified FGA diagnostic user agent. No zone security setting was changed."
+}

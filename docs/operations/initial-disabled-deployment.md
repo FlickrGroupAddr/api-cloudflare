@@ -107,3 +107,13 @@ normally and its click reaches Google sign-in. Terry can refresh the login page
 and complete the owner sign-in. Administration-only flags remain in effect.
 The earlier embedded-browser origin warning persists but did not block that
 redirect; no Google setting or referrer-policy change was made.
+
+## Login health follow-up
+
+The remaining Google origin error and Cloudflare analytics injection are now
+resolved. The owner's Google settings were correct. Only the public, query-free
+login page uses an origin-only referrer; protected pages and callbacks retain
+no-referrer. Administrative HTML prevents intermediary script injection.
+The live framed Google button renders without console errors and opens Google
+sign-in. See the [verified correction](../research/2026-09-13-google-login-origin-fix.md). The next owner action is
+to refresh the login page and complete sign-in; no Google Console edit is needed.

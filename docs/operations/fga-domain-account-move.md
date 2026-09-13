@@ -64,7 +64,9 @@ validation; reads, submission intake and group dispatch stay disabled.
 The owner browser check identified a blocked Google stylesheet. The
 [button integration repair](../research/2026-09-13-google-button-style-fix.md)
 is deployed and verified: the normal-sized button reaches Google sign-in.
-The next owner step is to refresh the page and complete that sign-in.
+The remaining origin warning and analytics injection were also
+[resolved](../research/2026-09-13-google-login-origin-fix.md); the live login
+page now has a clean console. The next owner step is to refresh and sign in.
 Existing Cloudflare access is sufficient; no additional Cloudflare token or
 nameserver change is currently requested. Remaining hosted release gates are
 engineering work and are not waived by this deployment.
