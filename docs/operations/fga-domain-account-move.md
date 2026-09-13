@@ -54,20 +54,19 @@ not an application runtime binding. Source-record preservation remains a
 historical unverified fact; the destination account contains no existing DNS
 records for the initial Worker connection to replace.
 
-## Next engineering and owner steps
+## Current application handoff
 
-1. DNS and certificate inspection are complete as recorded above. Continue with
-   the [initial disabled deployment](initial-disabled-deployment.md).
-2. Prepare the persistent Worker, D1 and native secret bindings with the accepted
-   feature flags initially disabled. The prepared custom-domain configuration
-   connects the apex to the Worker; the documented domain-attachment API accepts
-   Workers Scripts Write. No broader DNS-write token is requested here.
-3. Verify the connected hostname and TLS, then complete the actual owner Google
-   sign-in and Flickr authorization/browser validation. The owner performs those
-   identity-provider interactions when the deployed flow is ready.
-4. Complete the remaining hosted restore/reconciliation, process-stop and full
-   conformance/promotion gates before enabling real Flickr group adds. DNS
-   activation supplies no production conformance receipt.
+The [initial persistent deployment](initial-disabled-deployment.md) is now
+complete. The Worker is connected to the apex with working TLS and the current
+D1 schema. Administration alone is enabled for the approved owner browser
+validation; reads, submission intake and group dispatch stay disabled.
+
+The embedded-browser check reached the Google sign-in page but reported a
+provider origin/client-ID error. The owner has been asked to verify the flow in
+regular Chrome before changing identity-provider settings or page policy.
+Existing Cloudflare access is sufficient; no additional Cloudflare token or
+nameserver change is currently requested. Remaining hosted release gates are
+engineering work and are not waived by this deployment.
 
 Google's authorized origin stays `https://flickrgroupaddr.com` and its redirect
 URI stays `https://flickrgroupaddr.com/admin/google-login`. The Flickr owner

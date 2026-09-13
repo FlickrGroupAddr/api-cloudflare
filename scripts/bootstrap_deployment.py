@@ -205,7 +205,7 @@ class Bootstrap:
             return {
                 "mode": "apply",
                 "alreadyComplete": True,
-                "featureFlags": dict.fromkeys(FLAGS, "0"),
+                "currentDeploymentNotModified": True,
             }
         self.checkpoint()
         stores = self.rows("secrets_store/stores")

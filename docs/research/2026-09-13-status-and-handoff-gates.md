@@ -2,8 +2,10 @@
 
 Date: 2026-09-13
 
-Status: Local integration and bounded regression checks passed. Production
-conformance and deployment remain incomplete; real Flickr writes stay disabled.
+Status: Local integration and bounded regression checks passed. The initial
+persistent deployment is running in administration-only mode. Production
+conformance and owner browser validation remain incomplete; real Flickr writes
+stay disabled.
 
 ## Completed continuation
 
@@ -83,9 +85,18 @@ access evidence and the exact two read permissions, plus the initial disabled
 deployment procedure. No repeat operator login or
 Google owner setup is required to continue engineering work.
 
-The apex is not yet connected to a Worker. Finish the exact destination
-configuration and continue hosted lifecycle/status/bypass, process/deployment-
-stop, current-schema restore/reconciliation and complete conformance/promotion
-work. The production UI still needs the real owner's Google/Flickr browser
-validation after deployment. The read-token owner input is complete; engineering work can continue. DNS activation and these local
-results do not authorize enabling real group adds.
+The apex is now connected to the persistent Worker. The current D1 schema was
+verified and the initial quiescent 37-table archive round-tripped through a
+separate local SQLite database. Administration alone is enabled; installation
+reads, intake and dispatch remain disabled. The embedded browser reaches Google
+sign-in but records a provider origin/client-ID error. Terry has been asked to
+check the real flow in regular Chrome. No Google session or Flickr grant was
+created by the agent. See the
+[deployed checkpoint](../operations/initial-disabled-deployment.md) and its
+sanitized evidence for exact scope, flags and pending browser findings.
+
+Continue hosted lifecycle/status/bypass, process/deployment-stop, current-schema
+restore/reconciliation and complete conformance/promotion work. The initial
+archive check and DNS activation are not a production release pass. No
+referrer-policy change or additional Google configuration change is approved or
+inferred from the embedded-browser error.

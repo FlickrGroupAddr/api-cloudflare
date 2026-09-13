@@ -47,6 +47,53 @@ the application JSON 503 without a session cookie. Unknown paths remain JSON
 responses do not constitute the owner browser smoke check or any of the full
 production release/restore/mutation gates.
 
-Validation for the initial implementation: six bootstrap boundary checks,
+Validation for the initial implementation: seven bootstrap boundary checks,
 102 existing Node backend tests, Ruff and Pyright passed; native TypeScript is
 also required by the apply command before deployment.
+
+## Deployed checkpoint - 2026-09-13
+
+The bootstrap completed successfully. The domain resolves to the real
+`fga-api` Worker; `fga-production` contains migrations through
+`0012_protocol_repair_evidence.sql`. The schema matches the 36 current domain
+tables plus retained D1 migration history. The initial 37-table quiescent D1
+archive was restored and compared in a separate local SQLite database. This is
+not a hosted restore/restart or post-backup reconciliation conformance result.
+
+After disabled-edge verification, the same optimized artifact was deployed in
+**administration-only** mode for the approved real owner browser check:
+
+| Feature | Current value |
+| --- | --- |
+| `FGA_ADMIN_ENABLED` | `1` |
+| `FGA_READ_ENABLED` | `0` |
+| `FGA_INTAKE_ENABLED` | `0` |
+| `FGA_DISPATCH_ENABLED` | `0` |
+
+The remote settings were read back. `/admin/` redirects to `/admin/login`, the
+login page returns HTML 200, anonymous session reads return JSON 401, disabled
+installation reads return JSON 503, and the synthetic probe path returns JSON
+404. Each checked response is no-store and creates no application session cookie.
+See [sanitized evidence](../evidence/initial-deployment-2026-09-13.json).
+
+The embedded-browser check displayed Google's sign-in control, but the provider
+logged that the origin is not allowed for the supplied client ID; the button
+also rendered without its expected sizing. The deployed client matches the
+owner's supplied credential file. This does not prove the live Google Console
+origin configuration or a page-policy cause. The next owner action is to open
+`https://flickrgroupaddr.com/admin/` in regular Chrome, try Google sign-in, and
+report success or the exact provider error. Do not repeat Cloudflare login,
+rotate the supplied token, or blindly change Google settings in response.
+
+Google's [integration guidance](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid)
+recommends a cross-origin referrer policy, while the accepted administrative
+contract currently requires no-referrer. No referrer-policy exception has been
+implemented or accepted. Two direct stylesheet diagnostics, with no referrer and
+with only the FGA origin, both returned 403 and do not establish that changing
+this policy will solve the browser failure. If policy is shown to be the cause,
+prepare a narrow anonymous-login change against the canonical contract first.
+
+No Google owner login or Flickr grant was completed by the agent, and no live
+Flickr call was made. Full production conformance remains unfinished. Initial
+configuration and archive files remain ignored; the completed bootstrap must
+not be rerun as an ordinary deployment updater.

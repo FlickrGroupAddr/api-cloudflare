@@ -27,6 +27,20 @@ class BootstrapBoundaryTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 b.require_disabled(config)
 
+    def test_completed_bootstrap_does_not_claim_current_feature_flags(self):
+        instance = self.make_bootstrap(state={"complete": True})
+        with (
+            patch.object(instance, "plan", return_value={}),
+            patch.object(
+                instance,
+                "checkpoint",
+                side_effect=AssertionError("Do not change completed deployment"),
+            ),
+        ):
+            result = instance.apply()
+        self.assertTrue(result["currentDeploymentNotModified"])
+        self.assertNotIn("featureFlags", result)
+
     def make_bootstrap(self, inventory=None, state=None):
         instance = b.Bootstrap.__new__(b.Bootstrap)
         instance.inputs = {

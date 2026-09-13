@@ -1,0 +1,74 @@
+{
+  "date": "2026-09-13",
+  "scope": "initial persistent deployment and administration-only HTTP verification",
+  "hostname": "flickrgroupaddr.com",
+  "bootstrapCommit": "21dda03",
+  "artifactSha2_256": "34e67f978d0c6fe1092ce37ed9b4ecf678dc575fa5a998382b4d8414435b2a65",
+  "featureFlags": {
+    "FGA_ADMIN_ENABLED": "1",
+    "FGA_DISPATCH_ENABLED": "0",
+    "FGA_INTAKE_ENABLED": "0",
+    "FGA_READ_ENABLED": "0"
+  },
+  "migrationHead": "0012_protocol_repair_evidence.sql",
+  "schemaMatchesCurrentMigrations": true,
+  "domainTableCount": 36,
+  "archiveTableCount": 37,
+  "archiveIncludesMigrationHistory": true,
+  "initialLocalRestoreVerified": true,
+  "restoreScope": "initial quiescent D1 archive restored to independent local SQLite; not hosted recovery or historical reconciliation",
+  "hostnameAttached": true,
+  "apexCertificateActive": true,
+  "httpChecks": [
+    {
+      "path": "/admin/",
+      "httpStatus": 303,
+      "expectedStatus": 303,
+      "passed": true,
+      "cacheControl": "no-store",
+      "sessionCookiePresent": false
+    },
+    {
+      "path": "/admin/login",
+      "httpStatus": 200,
+      "expectedStatus": 200,
+      "passed": true,
+      "cacheControl": "no-store",
+      "sessionCookiePresent": false,
+      "googleLibraryPresent": true
+    },
+    {
+      "path": "/api/v001/admin/session",
+      "httpStatus": 401,
+      "expectedStatus": 401,
+      "passed": true,
+      "cacheControl": "no-store",
+      "sessionCookiePresent": false
+    },
+    {
+      "path": "/api/v001/installations/current",
+      "httpStatus": 503,
+      "expectedStatus": 503,
+      "passed": true,
+      "cacheControl": "no-store",
+      "sessionCookiePresent": false
+    },
+    {
+      "path": "/probe/seed",
+      "httpStatus": 404,
+      "expectedStatus": 404,
+      "passed": true,
+      "cacheControl": "no-store",
+      "sessionCookiePresent": false
+    }
+  ],
+  "nodeTestsPassed": 102,
+  "bootstrapBoundaryTestsPassed": 7,
+  "typescriptPassed": true,
+  "ruffPassed": true,
+  "pyrightPassed": true,
+  "interactiveOwnerLoginComplete": false,
+  "browserFinding": "Embedded browser renders the sign-in page but Google reports that the origin is not allowed for the client ID; real Chrome owner validation is pending.",
+  "liveFlickrCallsPerformed": false,
+  "fullProductionConformanceComplete": false
+}
