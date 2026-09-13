@@ -1,5 +1,5 @@
 import { preflightIsFresh } from "./dispatch_freshness.ts";
-// Internal candidate adapter. No production route or real Flickr transport is enabled.
+// Shared fenced attempt path. Deployment remains subject to the full release gate.
 import type { SqlStore } from "./admission.ts";
 import { NOW_US_SQL } from "./installations.ts";
 import { claimPartition, type Lease, type LeasePolicy } from "./scheduling.ts";
@@ -10,7 +10,11 @@ export interface AttemptContext { attemptId:string;photoId:string;groupId:string
 export interface Transport {
  membership(context:AttemptContext):Promise<boolean>; // true means exact target present; invalid response must throw
  preflight(context:AttemptContext):Promise<0|1>;
- add(context:AttemptContext):Promise<"ok"|number>; // exception or unrecognized response is ambiguous
+ prepareAdd(context:AttemptContext):Promise<PreparedAdd>;
+}
+export interface PreparedAdd {
+ handoff():Promise<"ok"|number>; // already signed and materialized; no retries
+ dispose():void;
 }
 export interface Dependencies {
  db:SqlStore; transport:Transport; monotonicUs:()=>number;
@@ -130,11 +134,19 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   await fault("after_preflight");await record(db,lease,attempt,"preflight",moderated);await fault("preflight_committed");
   const fresh=()=>preflightIsFresh(received,deps.monotonicUs());
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
-  await record(db,lease,attempt,"marker");await fault("marker_committed");
+  // Resolve credentials, sign and materialize before the last marker I/O (ADR 0056).
+  let prepared:PreparedAdd;
+  try {prepared=await deps.transport.prepareAdd(attempt);}
+  catch {await resolveAttempt(db,lease,attempt.attemptId,"retrying","safe_read_unavailable");return "deferred";}
+  try {
+  const handoff=()=>{reservation.consume("add");return prepared.handoff();};
+  if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
+  await record(db,lease,attempt,"marker");
+  if(deps.fault) await deps.fault("marker_committed");
   // No await between this live zero-handoff check and the call into the adapter.
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
   let result:"ok"|number;
-  try {reservation.consume("add");result=await deps.transport.add(attempt);}
+  try {result=await handoff();}
   catch {await resolveAttempt(db,lease,attempt.attemptId,"delivery_uncertain","unresolved_dispatch");return "uncertain";}
   await fault("response_received");
   let outcome:Outcome,reason:Reason;
@@ -143,5 +155,6 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   else if(result===105||result===106) {outcome="retrying";reason=result===105?"flickr_code_105":"flickr_code_106";}
   else {outcome="delivery_uncertain";reason="unknown_code";}
   await resolveAttempt(db,lease,attempt.attemptId,outcome,reason);await fault("result_committed");return outcome;
+  } finally {prepared.dispose();}
  } finally {reservation.releaseUnused();}
 }

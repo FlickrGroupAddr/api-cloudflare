@@ -20,7 +20,9 @@
     "api:check-generated": "uv run --frozen python scripts/generate_api.py --check",
     "intake:test": "node --test tests/intake.test.mjs tests/flickr_reads.test.mjs",
     "admin:test": "node --test tests/admin_core.test.mjs tests/admin_runtime.test.mjs tests/flickr_oauth.test.mjs tests/google_identity.test.mjs tests/session_inventory.test.mjs",
-    "cba:mutations": "uv run --frozen python scripts/cba_mutations.py"
+    "cba:mutations": "uv run --frozen python scripts/cba_mutations.py",
+    "release:verify": "uv run --frozen python -m scripts.fail_polite_release",
+    "release:inventory": "uv run --frozen python -m scripts.fail_polite_release --inventory"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260906.1",

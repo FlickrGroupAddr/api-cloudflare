@@ -3,8 +3,8 @@ import { NOW_US_SQL } from "./installations.ts";
 import type { SqlStore, AdmissionAuth } from "./admission.ts";
 export interface SecretReads { FLICKR_APPLICATION:Pick<SecretsStoreSecret,"get">;FLICKR_GRANT:Pick<SecretsStoreSecret,"get">; }
 export interface GrantSnapshot {userId:string;ownerNsid:string;revision:string;generation:string;}
-interface Pair {token:string;tokenSecret:string;}
-interface Application {consumerKey:string;consumerSecret:string;}
+export interface Pair {token:string;tokenSecret:string;}
+export interface Application {consumerKey:string;consumerSecret:string;}
 export class FlickrReadError extends Error {}
 const opaque=(x:unknown):x is string=>typeof x==="string"&&x.length>0&&x.length<=2048&&!/[\x00-\x20\x7f]/.test(x);
 function object(raw:string,keys:string[]):Record<string,unknown> {
@@ -34,7 +34,7 @@ export async function withGrant<T>(db:SqlStore,auth:AdmissionAuth,secrets:Secret
  if(!sameGrant(snapshot,await linkedGrant(db,auth)))throw new FlickrReadError("flickr_link_changed");
  return operation({token:grant.token,tokenSecret:grant.tokenSecret},{consumerKey:app.consumerKey,consumerSecret:app.consumerSecret});
 }
-function hmac(base:string,key:string):string {
+export function hmac(base:string,key:string):string {
  const process=(globalThis as unknown as {process?:{getBuiltinModule:(name:string)=>{createHmac:(algorithm:string,key:string)=>{update:(data:string)=>{digest:(encoding:string)=>string}}}}}).process;
  if(!process?.getBuiltinModule)throw new FlickrReadError("crypto_unavailable");
  return process.getBuiltinModule("crypto").createHmac("sha1",key).update(base).digest("base64");

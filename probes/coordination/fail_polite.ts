@@ -57,11 +57,20 @@ function transport(env:Fixture,origin:string):Transport {
    if(value.stat!=='ok'||!group||group.id!==context.groupId||!['0','1',0,1].includes(group.ispoolmoderated as string|number)) throw new Error('malformed');
    return Number(group.ispoolmoderated) as 0|1;
   },
-  async add(context) {
-   const value=await operation(context,'flickr.groups.pools.add',true);
+  async prepareAdd(context) {
+   const params=new URLSearchParams({method:'flickr.groups.pools.add',attempt_id:context.attemptId,photo_id:context.photoId,group_id:context.groupId,format:'json',nojsoncallback:'1'});
+   const request=new Request(origin+'/fake',{method:'POST',headers:{Authorization:'Bearer '+env.PROOF_TOKEN,'Content-Type':'application/x-www-form-urlencoded'},body:params.toString(),redirect:'manual'});
+   let sent=false;
+   return {dispose(){}, async handoff() {
+   if(sent)throw new Error('already_dispatched');sent=true;
+   const response=await fetch(request);
+   if(!response.ok||!response.headers.get('Content-Type')?.startsWith('application/json'))throw new Error('unavailable');
+   const text=await response.text();if(text.length>16_384)throw new Error('over_budget');
+   const value=JSON.parse(text);
    if(value.stat==='ok') return 'ok';
    if(value.stat==='fail'&&typeof value.code==='number'&&Number.isSafeInteger(value.code)) return value.code;
    throw new Error('ambiguous');
+   }};
   }
  };
 }

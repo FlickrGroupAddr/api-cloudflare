@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "scope": "bounded local release preparation checkpoint",
+  "productionConformance": false,
+  "collectedOn": "2026-09-13",
+  "nodeTestsPassed": 68,
+  "pythonTestsPassed": 94,
+  "compiledCrashProof": {
+    "environment": "local",
+    "casesPassed": 84,
+    "allPassed": true,
+    "cleanupConfirmed": true,
+    "sourceHashes": {
+      "src/admin_api.ts": "7d46add2cf25f2427599e445d43b027e98ebbaec0f6472c8f597a91daa755b97",
+      "src/admin_registry.ts": "08f70ce7555c124b5345435c33d8c69e777b466cbbf0d1e47455c65aa8ed5513",
+      "src/admission.ts": "dda9480c0482426e8010181cd713b90b8afe00a228804b4d1f52a3d2e4001191",
+      "src/auth_admission.ts": "860d233d562680ff06b03a05903b6f6401b76cdbdc69b8e01da998c7cfd1d31c",
+      "src/browser_sessions.ts": "b7343082f3d038bb053b36ad28fdf4330d423fc2b8cc9d8b7f5c2c553d2b4597",
+      "src/dispatch_freshness.ts": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+      "src/dispatch_transport.ts": "5a4b7192a14cf5d660113273850efa10bf8507467b9543de6a99973e0c59d11f",
+      "src/fail_polite.ts": "45530d4b8ba8a1cc0d995417a59fe6af27bd0ad4d64bc8e1d6fbfa44ff3ff216",
+      "src/flickr_oauth.ts": "a37ea25b6cb92fc08f8e5e0e383220009b9cb06792c26abda411934ae148be42",
+      "src/flickr_reads.ts": "61fcb729df6597d3989f26b7a4e161d8897ad4583fba31b9b4fbdb7e0a9b0ab4",
+      "src/google_identity.ts": "be706eb7facc60ff68719cb11ec68d233523279b1f836024f4690165b15dd6e4",
+      "src/installations.ts": "ffaf34c32fd46467c8aada154261d30bda4e758deb1021fddf46e9b6e11c888d",
+      "src/intake_api.ts": "3b13b2e7d12d13d96fdef7094d3529588956b979dce029b53177db662ec333b2",
+      "src/native_lifecycle.ts": "015325877057efb22cdea10e517423c5e7334d0900ae78dc7e6d18bd0518a4cc",
+      "src/native_writer.ts": "8447ce435599f4bacc41eed8d5984c840316b2ee3890dd5905ee70897efd9cfa",
+      "src/registry.ts": "0267fd55f55cea7193db88fe97383c3892f7d26c9fd619ddc3b0613b5afc826c",
+      "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+      "src/session_inventory.ts": "ef8af97adefe2ca4fe7ff3e8e17199908ec2197d2aec18171e092ebd3b5720bd",
+      "src/worker.ts": "393808638046405bea2c091aa08bbe701621bbeed1670974c24dd3afea9b816e",
+      "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+      "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+      "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+      "migrations/0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+      "migrations/0005_native_credential_reference.sql": "301386c253b3d75d70ff3563cb9667ec9fcfc4fa2301bd7abb6ee80b2c902e49",
+      "migrations/0006_native_lifecycle.sql": "a65aa87b4bda490d5736e10f86666821797faf5e0dd5fc62975b6fdb57bb4fd4",
+      "migrations/0007_browser_auth.sql": "cc542e09934b6f3ea2dda1571d06b8f584ba840d4e97d66e9b6a6b5f56f25768",
+      "migrations/0008_flickr_oauth.sql": "1cb19cbef66e0abcb1a14530fb900147a771b8f0ff0845aef88955cd8c51519f",
+      "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+      "probes/coordination/fail_polite.ts": "a0ee19d42fd62376c955acfb12269a7e546421fcb1e5d401a611c93a3b7af1f4",
+      "probes/coordination/worker.ts": "15afcafbfd950b21297260c5d887e0684d2c3c1acc82354f8491209bc3a27d72",
+      "probes/coordination/schema.sql": "b411c3943ce9e4071fd0a8d228f566bc6ac164a762bc394dc93346d0db8d1ffb",
+      "probes/coordination/local.mjs": "c4c4c1ecb71b97d3e87fdb5e0fc80fe6c9045bf0335b22033b92b9a7269e531d",
+      "scripts/coordination_probe.py": "849d2adb44837da79ab4cd0527224020e5748edf99626c499d3e3aef0b95141e",
+      "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+      "scripts/coordination_backup.py": "508fa40c9904a36862c10274153f6770221ff21771f9e470ec2e4b6014e3c63a",
+      "scripts/fail_polite_cases.py": "7ad1bf84c4ac139c25e0baa439ff70141ec48226714de3fc1d7017951580c871",
+      "scripts/fail_polite_mutations.py": "4c47a990c9dc4e896cb4d303e13e7ae9e6a9994f100580a1bd9b98cb1926328f",
+      "scripts/foundation_probe.py": "586adfe9cefa7e2241149957d1e07811fd532c02bbb8969464dfffab7605a835",
+      "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+      "package-lock.json": "c32c2906418013cd34b0a9a18e85f34756ed04c02e31d7df36a8fbc81694b930",
+      "tsconfig.json": "d6dd44f33ed662bf221137c3a172135d9da891f1ddf89cd8ce6e726ae62d668e"
+    }
+  },
+  "preparationMutation": {
+    "schemaVersion": 1,
+    "scope": "bounded local preparation-boundary mutation",
+    "sourceSha2_256": "45530d4b8ba8a1cc0d995417a59fe6af27bd0ad4d64bc8e1d6fbfa44ff3ff216",
+    "outcomes": [
+      {
+        "id": "baseline",
+        "passed": true,
+        "exitCode": 0
+      },
+      {
+        "id": "deferred_preparation",
+        "passed": true,
+        "exitCode": 1
+      }
+    ],
+    "workingSourcesUnchanged": true,
+    "allPassed": true
+  },
+  "currentSchema": {
+    "tableCount": 29,
+    "migrationHead": "0008_flickr_oauth.sql",
+    "migrationSha2_256": "fe44d217c757868ddf7366f4bde7e346ebeea7c68c0821a6531c19b601af5dd8"
+  },
+  "releaseVerifierRefusedMissingProductionEvidence": true,
+  "liveFlickrCalls": 0
+}

@@ -50,6 +50,9 @@ adds retained attempts, dispatch markers, atomic terminal/block results and
 recovery through the shared D1 claim path. The controlled peer observes actual
 POSTs independently of database outcomes. Production clock enforcement and the
 complete release conformance gate remain separate; real Flickr writes are disabled.
+The [release preparation checkpoint](docs/research/2026-09-13-release-preparation.md)
+adds prepared signed transport, current-schema archive coverage and strict
+production-evidence verification; full production conformance remains incomplete.
 
 The [hosted clock investigation](docs/research/2026-09-11-workers-preflight-clock.md)
 records the native timer blind interval and the private timing profile accepted
