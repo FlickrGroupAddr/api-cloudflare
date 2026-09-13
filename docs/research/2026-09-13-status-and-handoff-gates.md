@@ -100,3 +100,12 @@ restore/reconciliation and complete conformance/promotion work. The initial
 archive check and DNS activation are not a production release pass. No
 referrer-policy change or additional Google configuration change is approved or
 inferred from the embedded-browser error.
+
+## Owner browser follow-up
+
+Terry reproduced the broken button in Chrome. A blocked Google stylesheet was
+identified, fixed using fresh style nonces, tested and deployed. The repaired
+control renders normally and reaches Google's sign-in page. See the
+[repair and current owner step](2026-09-13-google-button-style-fix.md).
+No additional Google settings or referrer-policy amendment was required for
+this result. The owner authentication callback is still pending.

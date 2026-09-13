@@ -97,3 +97,13 @@ No Google owner login or Flickr grant was completed by the agent, and no live
 Flickr call was made. Full production conformance remains unfinished. Initial
 configuration and archive files remain ignored; the completed bootstrap must
 not be rerun as an ordinary deployment updater.
+
+## Login repair follow-up
+
+The owner reproduced the oversized control in Chrome and supplied its CSP
+stylesheet error. The [Google button repair](../research/2026-09-13-google-button-style-fix.md)
+is deployed for both login and reauthentication. The live control now renders
+normally and its click reaches Google sign-in. Terry can refresh the login page
+and complete the owner sign-in. Administration-only flags remain in effect.
+The earlier embedded-browser origin warning persists but did not block that
+redirect; no Google setting or referrer-policy change was made.

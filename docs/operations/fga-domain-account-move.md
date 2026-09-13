@@ -61,9 +61,10 @@ complete. The Worker is connected to the apex with working TLS and the current
 D1 schema. Administration alone is enabled for the approved owner browser
 validation; reads, submission intake and group dispatch stay disabled.
 
-The embedded-browser check reached the Google sign-in page but reported a
-provider origin/client-ID error. The owner has been asked to verify the flow in
-regular Chrome before changing identity-provider settings or page policy.
+The owner browser check identified a blocked Google stylesheet. The
+[button integration repair](../research/2026-09-13-google-button-style-fix.md)
+is deployed and verified: the normal-sized button reaches Google sign-in.
+The next owner step is to refresh the page and complete that sign-in.
 Existing Cloudflare access is sufficient; no additional Cloudflare token or
 nameserver change is currently requested. Remaining hosted release gates are
 engineering work and are not waived by this deployment.

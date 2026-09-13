@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-09-13T23:00:41.943210+00:00",
+  "artifactSha2_256": "be48d02751ea0b2f32d67b1523d48cd77538ea4690a79c510c520bbdade79745",
+  "featureFlags": {
+    "FGA_READ_ENABLED": "0",
+    "FGA_ADMIN_ENABLED": "1",
+    "FGA_INTAKE_ENABLED": "0",
+    "FGA_DISPATCH_ENABLED": "0"
+  },
+  "change": "per-response Google stylesheet nonce for login and reauthentication",
+  "remoteConfigurationVerified": true,
+  "schemaVersion": 1,
+  "scope": "Google login and reauthentication button styling",
+  "compiledAuthenticationRegressionPassed": true,
+  "nativeTypescriptPassed": true,
+  "perResponseNonceUniquenessChecked": true,
+  "inlineScriptsRemainBlocked": true,
+  "referrerPolicyUnchanged": "no-referrer",
+  "liveButtonHeightPixels": 40,
+  "googleSigninPageReached": true,
+  "ownerAuthenticationComplete": false,
+  "personalizedButtonOriginWarningRemains": true,
+  "warningScope": "Google iframe warning remained, but clicking the repaired control reached the Google account sign-in page; completed owner authentication is still pending.",
+  "realFlickrGroupWritesEnabled": false
+}
