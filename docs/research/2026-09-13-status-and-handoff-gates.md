@@ -66,56 +66,65 @@ missing production evidence. It remains an evidence verifier, not a substitute
 for the unfinished full runner and CI promotion wiring. See the
 [sanitized evidence](../evidence/status-and-rotation-integration-2026-09-13.json).
 
-## Current deployment handoff
+## Stop point for the night - 2026-09-13
 
-The owner completed the approved DNS move later on 2026-09-13. The destination
-zone is active; both checked public resolvers return `norah.ns.cloudflare.com`
-and `valentin.ns.cloudflare.com`. The read-only readiness report at
-`2026-09-13T21:59:17Z` confirms account/delegation readiness. Registrar DNSSEC is
-not configured. The prior target-zone-missing owner step is resolved; the later
-registrar transfer remains independent.
+Terry directed a stop for the night and a later continuation. No further
+implementation, credential change, or deployment is running for this handoff.
 
-The existing Wrangler profile still accesses Worker, D1 and Secrets Store
-inventories. A separate zone-restricted read token was supplied and verified active. Both
-DNS-record and certificate inspection now return HTTP 200; the destination DNS
-inventory is empty and its Universal SSL certificate covers the apex and is
-active. Existing credential input files are available. See the updated
-[DNS/account procedure](../operations/fga-domain-account-move.md) for current
-access evidence and the exact two read permissions, plus the initial disabled
-deployment procedure. No repeat operator login or
-Google owner setup is required to continue engineering work.
+The DNS move and Cloudflare access work are complete. The destination zone is
+active, the native read token is verified, the apex is connected to `fga-api`,
+and its TLS certificate is active. The persistent `fga-production` D1 schema
+matches migration head `0012_protocol_repair_evidence.sql`. The initial 37-table
+archive (36 domain tables plus D1 migration history) round-tripped through a
+separate local SQLite database; this is not hosted restore/reconciliation proof.
 
-The apex is now connected to the persistent Worker. The current D1 schema was
-verified and the initial quiescent 37-table archive round-tripped through a
-separate local SQLite database. Administration alone is enabled; installation
-reads, intake and dispatch remain disabled. The embedded browser reaches Google
-sign-in but records a provider origin/client-ID error. Terry has been asked to
-check the real flow in regular Chrome. No Google session or Flickr grant was
-created by the agent. See the
-[deployed checkpoint](../operations/initial-disabled-deployment.md) and its
-sanitized evidence for exact scope, flags and pending browser findings.
+The Google button styles, embedded-frame origin rejection and injected analytics
+are fixed. The public query-free login page uses an origin-only referrer;
+protected pages, callbacks and APIs retain no-referrer. Administrative HTML uses
+no-store and no-transform. Fresh live-browser loads had no console errors or
+warnings, and clicking the framed control reached Google's sign-in page. The
+owner's Google Console origin and redirect values were correct throughout.
+Latest implementation commit before this stop note: `844857b`; corresponding
+canonical clarification: architecture-design `cb311b5`.
+See the [verified login repair](2026-09-13-google-login-origin-fix.md).
 
-Continue hosted lifecycle/status/bypass, process/deployment-stop, current-schema
-restore/reconciliation and complete conformance/promotion work. The initial
-archive check and DNS activation are not a production release pass. No
-referrer-policy change or additional Google configuration change is approved or
-inferred from the embedded-browser error.
+### First work when resumed
 
-## Owner browser follow-up
+Resolve the Google owner identity, not another DNS or Cloudflare-login issue.
+The owner's personal-account callback reached the FGA API backend and returned
+`401 unauthorized`. Terry also reported that the business-account attempt did
+not work. The deployed `GOOGLE_OWNER_SUB` was confirmed to match the saved setup
+configuration, but its mapping to the desired personal account has not been
+established. The application distinguishes owner rejection from an invalid
+Google assertion; investigate that exact callback/allowlist boundary before
+asking for another attempt.
 
-Terry reproduced the broken button in Chrome. A blocked Google stylesheet was
-identified, fixed using fresh style nonces, tested and deployed. The repaired
-control renders normally and reaches Google's sign-in page. See the
-[repair and current owner step](2026-09-13-google-button-style-fix.md).
-No additional Google settings or referrer-policy amendment was required for
-this result. The owner authentication callback is still pending.
+Terry explicitly chose his personal Gmail account as the sole administrator.
+The exact requested email is stored privately as `requestedGoogleOwnerEmail`
+with `googleOwnerChangePending: true` in
+`.coordination-runs/fga-runtime-inputs.json` and on the private work card.
+It is independent of the sixbucks Cloudflare account. Do not repeat the earlier
+suggestion to use the business Google account. No allowlist value was changed
+before the stop.
 
-## Login health follow-up
+Compare the original owner setup value with the configured value, obtain the
+correct Google-verified subject for the requested personal account if needed,
+and update only that sole-owner binding under Terry's explicit direction.
+Preserve signed assertion, audience, issuer, nonce and CSRF checks; do not guess
+a subject ID or admit additional accounts to bypass the error. Avoid collecting
+or printing raw Google assertions. Once the owner can sign in, complete the
+Flickr connection/browser checks and continue the remaining release work.
 
-The remaining Google origin error and Cloudflare analytics injection are now
-resolved. The owner's Google settings were correct. Only the public, query-free
-login page uses an origin-only referrer; protected pages and callbacks retain
-no-referrer. Administrative HTML prevents intermediary script injection.
-The live framed Google button renders without console errors and opens Google
-sign-in. See the [verified correction](2026-09-13-google-login-origin-fix.md). The next owner action is
-to refresh the login page and complete sign-in; no Google Console edit is needed.
+### Deployment left in place
+
+Only administration is enabled: `FGA_ADMIN_ENABLED=1`; read, intake and dispatch
+flags are all `0`. No live Flickr group adds are enabled. The current optimized
+artifact is `126759eb8d2df2a9af5b58347d5571f0a14b2acfa90124ca4f387025cfeea6c1`.
+Private current configuration, artifact and verification are under
+`.coordination-runs/production/`; the latest summary is `current-deployment.json`.
+Do not run the initial bootstrap again as an ordinary deployment updater.
+
+Full 56-case/28-mutation production conformance, hosted restore/reconciliation,
+process-stop and promotion work remain incomplete. The initial deployment and
+login rendering checks do not establish those gates. Registrar-transfer work
+remains separate. The owner has not requested an overnight automation.
