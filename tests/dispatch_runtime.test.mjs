@@ -18,7 +18,7 @@ test("production coordinator dispatches signed requests once with D1 reservation
   const migrations=JSON.parse(execFileSync("uv",["run","--frozen","python","-c","import json;from pathlib import Path;from scripts.coordination_probe import statements;print(json.dumps([statements(p.read_text(encoding='utf-8')) for p in sorted(Path('migrations').glob('*.sql'))]))"],{encoding:"utf8"}));
   const calls=[],responses=new Map();
   let db;
-  const mf=new Miniflare({modules:true,script:await readFile(path.join(directory,"bundle/worker.js"),"utf8"),compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat"],cf:false,telemetry:{enabled:false},d1Databases:["DB"],durableObjects:{COORD:{className:"PartitionWorker",useSQLite:true}},bindings:{FGA_DISPATCH_ENABLED:"1",FGA_ADMIN_ENABLED:"0",FGA_READ_ENABLED:"0",FGA_INTAKE_ENABLED:"1",FGA_MAX_GROUP_IDS_PER_BATCH:"60"},secretsStoreSecrets:{FLICKR_APPLICATION:{store_id:"local",secret_name:"application"},FLICKR_GRANT:{store_id:"local",secret_name:"grant"}},outboundService:async request=>{
+  const mf=new Miniflare({modules:true,script:await readFile(path.join(directory,"bundle/worker.js"),"utf8"),compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat"],cf:false,telemetry:{enabled:false},d1Databases:["DB"],durableObjects:{COORD:{className:"PartitionWorker",useSQLite:true}},bindings:{FGA_DISPATCH_ENABLED:"1",FGA_ADMIN_ENABLED:"0",FGA_READ_ENABLED:"1",FGA_INTAKE_ENABLED:"1",FGA_MAX_GROUP_IDS_PER_BATCH:"60"},secretsStoreSecrets:{FLICKR_APPLICATION:{store_id:"local",secret_name:"application"},FLICKR_GRANT:{store_id:"local",secret_name:"grant"}},outboundService:async request=>{
     assert.equal(new URL(request.url).origin,"https://www.flickr.com");
     assert.match(request.headers.get("Authorization"),/^OAuth /);
     const params=request.method==="POST"?new URLSearchParams(await request.text()):new URL(request.url).searchParams;
@@ -54,6 +54,11 @@ test("production coordinator dispatches signed requests once with D1 reservation
       db.prepare("INSERT INTO flickr_connection_state(user_id,state,local_state,verified_permission,verified_at_us) VALUES('user','linked','available','write',1)"),
       db.prepare("INSERT INTO flickr_native_credentials VALUES('user','generation',1,'owner','write',NULL)"),
       db.prepare("INSERT INTO flickr_write_gates VALUES('deployment','*',1,1),('user','user',1,1)"),
+    ]);
+    const statusCode=Array(13).fill("0000").join("-");
+    await db.batch([
+      db.prepare("INSERT INTO installations(installation_id,user_id,credential_class,state,revision,current_version_id) VALUES('status-installation','user','lrc_plugin','active',1,'status-version')"),
+      db.prepare("INSERT INTO installation_credential_versions(version_id,installation_id,credential_digest,state,ordinal) VALUES('status-version','status-installation',?,'current',1)").bind(createHash("sha256").update(statusCode).digest("hex")),
     ]);
     const namespace=await mf.getDurableObjectNamespace("COORD");
     const enqueue=async(name,code=6)=>{
@@ -137,6 +142,15 @@ test("production coordinator dispatches signed requests once with D1 reservation
       assert.equal((await db.prepare("SELECT enabled FROM flickr_write_gates WHERE scope='deployment'").first()).enabled,1);
       assert.equal((await db.prepare("SELECT retiring_generation FROM flickr_lifecycle_operations WHERE operation_id=?").bind(connection.operation_id).first()).retiring_generation,"generation");
       assert.equal((await db.prepare("SELECT COUNT(*) n FROM submission_blocks WHERE photo_id='rejectedgrant'").first()).n,0);
+    });
+    await t.test("native status reads expose protected outcomes without another provider operation",async()=>{
+      const before=calls.length;
+      const response=await mf.dispatchFetch("https://flickrgroupaddr.com/api/v001/group-submission-intents?view=history",{headers:{Authorization:"Bearer "+statusCode}});
+      assert.equal(response.status,200);const page=await response.json();
+      const protectedIntent=page.intents.find(x=>x.flickrPhotoId==="moderated");
+      assert.equal(protectedIntent.permanentSubmissionBlock.reasonCode,"moderation_submission_recorded");
+      assert.equal(page.intents.find(x=>x.flickrPhotoId==="unknown").attention.fgaResubmissionAllowed,false);
+      assert.equal(page.summary.writeGates[0].state,"paused");assert.equal(calls.length,before);
     });
     assert.equal((await mf.dispatchFetch("https://flickrgroupaddr.com/api/v001/force-retry",{method:"POST"})).status,404);
     if(process.env.FGA_DISPATCH_REPORT){

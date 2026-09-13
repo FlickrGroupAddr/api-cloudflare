@@ -84,6 +84,12 @@ class CurrentArchiveTests(unittest.TestCase):
                 300001000,
             ),
         )
+        self.source.execute(
+            "INSERT INTO deployment_conformance("
+            "artifact_sha2_256,contract_sha2_256,evidence_sha2_256) "
+            "VALUES(?,?,?)",
+            ("a" * 64, "b" * 64, "c" * 64),
+        )
         self.source.commit()
 
     def test_current_schema_round_trip_preserves_every_table_and_guard(self):

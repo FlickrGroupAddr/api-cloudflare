@@ -1,3 +1,4 @@
+import {readSubmissionStatus,statusFailure} from "./submission_status.ts";
 import {PluginCodeError,createPluginCode,getPluginCode,listPluginCodes,changePluginCode,pluginCodeEtag} from "./plugin_codes.ts";
 import {sessionInventory,revokeSession,revokeOtherSessions} from "./session_inventory.ts";
 import {startFlickrOAuth,completeFlickrOAuth,retireOAuthSlot,observeOAuthRetirement,type OAuthSlots,FlickrOAuthError} from "./flickr_oauth.ts";
@@ -13,7 +14,7 @@ import {nativeWriter} from "./native_writer.ts";
 import {NOW_US_SQL as NOW,errorResponse} from "./installations.ts";
 import {jsonBody} from "./intake_api.ts";
 import type {FlickrFetch,SecretReads} from "./flickr_reads.ts";
-export interface AdminEnv extends SecretReads {ASSETS?:Fetcher;DB:D1Database;FGA_ADMIN_ENABLED?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_OWNER_SUB?:string;FGA_FLICKR_OWNER_NSID?:string;AUTH_LIMITER_KEY?:Pick<SecretsStoreSecret,"get">;NATIVE_WRITER_TOKEN?:Pick<SecretsStoreSecret,"get">;CF_ACCOUNT_ID?:string;CF_SECRET_STORE_ID?:string;CF_GRANT_SLOT_ID?:string;CF_OAUTH_SLOT_IDS?:string;FLICKR_TEMP_0?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_1?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_2?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_3?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_4?:Pick<SecretsStoreSecret,"get">;}
+export interface AdminEnv extends SecretReads {ASSETS?:Fetcher;DB:D1Database;FGA_ADMIN_ENABLED?:string;FGA_ARTIFACT_SHA2_256?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_OWNER_SUB?:string;FGA_FLICKR_OWNER_NSID?:string;AUTH_LIMITER_KEY?:Pick<SecretsStoreSecret,"get">;NATIVE_WRITER_TOKEN?:Pick<SecretsStoreSecret,"get">;CF_ACCOUNT_ID?:string;CF_SECRET_STORE_ID?:string;CF_GRANT_SLOT_ID?:string;CF_OAUTH_SLOT_IDS?:string;FLICKR_TEMP_0?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_1?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_2?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_3?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_4?:Pick<SecretsStoreSecret,"get">;}
 export const ADMIN_PATHS=["/admin/login","/admin/google-login","/admin/flickr-oauth/callback","/api/v001/admin/session","/api/v001/admin/session/reauthentication","/api/v001/admin/session/logout","/api/v001/admin/flickr-connection","/api/v001/admin/flickr-connection/disconnection"] as const;
 const timestamp=(us:number)=>new Date(us/1000).toISOString().replace("Z","000Z");
 export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
@@ -33,7 +34,7 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
      .bind(crypto.randomUUID(),session.userId,crypto.randomUUID(),session.sessionId,code).run();
    }catch{/* Failed/anonymous audit has no authority to release data or retry a mutation. */}
   }
-  const statuses:Record<string,number>={unauthorized:401,invalid_origin:403,invalid_csrf:403,recent_authentication_required:403,invalid_google_assertion:401,rate_limited:429,invalid_request:400,stale_connection:409,stale_session_revision:409,stale_session_set:409,current_session_requires_logout:409};
+  const statuses:Record<string,number>={unauthorized:401,invalid_origin:403,invalid_csrf:403,recent_authentication_required:403,invalid_google_assertion:401,rate_limited:429,invalid_request:400,stale_connection:409,stale_session_revision:409,stale_session_set:409,current_session_requires_logout:409,deployment_conformance_required:409};
   const response=errorResponse(error instanceof PluginCodeError?error.status:statuses[code]??503,code,"The request could not be completed.");if(code==="rate_limited")response.headers.set("Retry-After","120");return response;
  });
  async function admission(request:Request,env:AdminEnv,route:"login"|"start"|"callback"){
@@ -108,6 +109,11 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
   const result=await changePluginCode(c.env.DB,session,c.req.param("pluginCodeId"),c.req.header("If-Match")??null,value,c.req.param("candidateId"));
   c.header("ETag",pluginCodeEtag(result.pluginCodeId,result.revision));return c.json(result);
  });
+ for(const route of ["/api/v001/admin/group-submission-intents","/api/v001/admin/group-submission-intents/:submissionIntentId"])app.get(route,async c=>{
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);
+  try{return c.json(await readSubmissionStatus(c.env.DB,{family:"admin",userId:session.userId,subjectId:session.sessionId,proof:c.env.GOOGLE_OWNER_SUB!},new URL(c.req.url),c.req.param("submissionIntentId")) as object);}
+  catch(error){return statusFailure(error);}
+ });
  app.get("/api/v001/admin/session",async c=>{const s=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);return c.json({schemaVersion:1,sessionId:s.sessionId,revision:s.revision,sessionSetRevision:s.sessionSetRevision,createdAt:timestamp(s.createdAtUs),recentAuthenticationAt:timestamp(s.recentAtUs),lastActivityAt:timestamp(s.lastActivityUs),expiresAt:timestamp(s.expiresAtUs),csrfToken:s.csrfToken});});
  app.post("/api/v001/admin/session/reauthentication",async c=>{const s=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,s);await admission(c.req.raw,c.env,"start");return c.json({schemaVersion:1,...await startLogin(c.env.DB,s)},201);});
  app.post("/api/v001/admin/session/logout",async c=>{const cookie=await logoutBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);c.header("Set-Cookie",cookie);return c.body(null,204);});
@@ -153,7 +159,7 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
   const response=await c.env.ASSETS.fetch(new Request(ADMIN_ORIGIN+"/admin/index.html"));
   const headers=new Headers(response.headers);headers.set("Cache-Control","no-store");headers.set("Referrer-Policy","no-referrer");headers.set("Content-Security-Policy","default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com/gsi/style; frame-src https://accounts.google.com; connect-src 'self' https://accounts.google.com; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'");return new Response(response.body,{status:response.status,headers});
  });
- for(const gate of ["user","deployment"] as const)app.post("/api/v001/admin/flickr-write-gates/"+gate+"/resume",async c=>{const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,session,true);const value=await jsonBody(c.req.raw);if(value instanceof Response)return value;if(!value||typeof value!=="object"||Object.keys(value).sort().join()!=="expectedRevision,schemaVersion"||(value as {schemaVersion:unknown}).schemaVersion!==1)return errorResponse(400,"invalid_request","Invalid resume request.");return c.json(await resumeWriteGate(c.env.DB,session.userId,gate,(value as {expectedRevision:number}).expectedRevision,c.env,fetcher) as object);});
+ for(const gate of ["user","deployment"] as const)app.post("/api/v001/admin/flickr-write-gates/"+gate+"/resume",async c=>{const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,session,true);const value=await jsonBody(c.req.raw);if(value instanceof Response)return value;if(!value||typeof value!=="object"||Object.keys(value).sort().join()!=="expectedRevision,schemaVersion"||(value as {schemaVersion:unknown}).schemaVersion!==1)return errorResponse(400,"invalid_request","Invalid resume request.");return c.json(await resumeWriteGate(c.env.DB,session.userId,gate,(value as {expectedRevision:number}).expectedRevision,c.env,fetcher,c.env.FGA_ARTIFACT_SHA2_256) as object);});
  app.notFound(()=>errorResponse(404,"not_found","Resource not found."));return app;
 }
 

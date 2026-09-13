@@ -25,6 +25,7 @@ export interface Dependencies {
  rateRetryDelayMs?:()=>Promise<number>;
  beforePreflight?:(lease:Lease)=>Promise<boolean>;
  onFlickrCode?:(code:number)=>Promise<void>;
+ artifactSha2_256?:string;
 }
 interface Attempt extends AttemptContext { intentId:string;marked:number; }
 const HEAD = `(SELECT intent_id FROM submission_intents WHERE partition_id=?1 AND active_fifo_member=1 ORDER BY enqueue_ordinal LIMIT 1)`;
@@ -97,7 +98,7 @@ async function record(db:SqlStore,lease:Lease,attempt:Attempt,kind:"membership"|
 }
 export interface ResolutionOptions {
  code?:number; pause?:"deployment"|"user"|null; delayMs?:number; observedAgeUs?:number;
- retryDelayMs?:(count:number)=>number;
+ retryDelayMs?:(count:number)=>number; artifactSha2_256?:string;
 }
 export async function resolveAttempt(db:SqlStore,lease:Lease,attemptId:string,outcome:Outcome,reason:string,options:ResolutionOptions={}):Promise<Outcome> {
  if(!/^[a-z][a-z0-9_]{0,95}$/.test(reason))throw new Error("invalid_resolution_reason");
@@ -112,8 +113,8 @@ export async function resolveAttempt(db:SqlStore,lease:Lease,attemptId:string,ou
  if(!Number.isSafeInteger(delay)||delay<0||delay>THROTTLE_DELAY_MS)throw new Error("invalid_resolution_delay");
  const tx=crypto.randomUUID();
  const params=[lease.partitionId,lease.leaseId,lease.generation,lease.headId,attemptId,tx,
-  outcome,reason,delay*1000,options.code??null,options.observedAgeUs??null];
- const sql=(text:string)=>db.prepare("WITH input AS(SELECT ?1 p,?2 l,?3 g,?4 h,?5 a,?6 t,?7 o,?8 r,?9 d,?10 c,?11 m) "+text).bind(...params);
+  outcome,reason,delay*1000,options.code??null,options.observedAgeUs??null,options.artifactSha2_256??null];
+ const sql=(text:string)=>db.prepare("WITH input AS(SELECT ?1 p,?2 l,?3 g,?4 h,?5 a,?6 t,?7 o,?8 r,?9 d,?10 c,?11 m,?12 b) "+text).bind(...params);
  const statements=[sql(`INSERT INTO transaction_guards(transaction_id,approved) VALUES(?6,
   EXISTS(SELECT 1 FROM group_partitions p WHERE ${OWNED}
    AND EXISTS(SELECT 1 FROM submission_attempts WHERE attempt_id=?5 AND intent_id=?4)
@@ -134,8 +135,8 @@ export async function resolveAttempt(db:SqlStore,lease:Lease,attemptId:string,ou
  const pause=options.pause??(reason==="unknown_code"?"deployment":null);
  if(pause) {
   const target=pause==="deployment"?"scope='deployment' AND scope_id='*'":"scope='user' AND scope_id=(SELECT user_id FROM group_partitions WHERE partition_id=?1)";
-  statements.push(sql(`INSERT INTO flickr_write_gate_events(event_id,scope,scope_id,revision,reason,flickr_code,attempt_id)
-   SELECT lower(hex(randomblob(16))),scope,scope_id,revision+1,?8,?10,?5 FROM flickr_write_gates WHERE ${target} AND enabled=1`));
+  statements.push(sql(`INSERT INTO flickr_write_gate_events(event_id,scope,scope_id,revision,reason,flickr_code,attempt_id,artifact_sha2_256)
+   SELECT lower(hex(randomblob(16))),scope,scope_id,revision+1,?8,?10,?5,?12 FROM flickr_write_gates WHERE ${target} AND enabled=1`));
   statements.push(sql(`UPDATE flickr_write_gates SET enabled=0,revision=revision+1 WHERE ${target} AND enabled=1`));
  }
  statements.push(sql(`UPDATE group_partitions SET lease_id=NULL,lease_started_at_us=NULL,lease_expires_at_us=NULL,invocation_deadline_at_us=NULL,
@@ -159,7 +160,7 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   const code=error instanceof FlickrFailure?error.code:undefined;
   const pause=code===undefined?null:classifyAdd(code).pause;
   const resolved=await resolveAttempt(db,lease,attempt.attemptId,"retrying",code===undefined?"safe_read_unavailable":"flickr_read_failure",
-   {code,pause,retryDelayMs:deps.retryDelayMs});
+   {code,pause,retryDelayMs:deps.retryDelayMs,artifactSha2_256:deps.artifactSha2_256});
   if(code!==undefined)await deps.onFlickrCode?.(code);
   return resolved==="needs_attention"?resolved:"deferred";
  };
@@ -200,7 +201,7 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   await fault("response_received");
   const classified=classifyAdd(result);
   const outcome=await resolveAttempt(db,lease,attempt.attemptId,classified.outcome,classified.reason,
-   {code:result==="ok"?undefined:result,pause:classified.pause,retryDelayMs:deps.retryDelayMs});
+   {code:result==="ok"?undefined:result,pause:classified.pause,retryDelayMs:deps.retryDelayMs,artifactSha2_256:deps.artifactSha2_256});
   await fault("result_committed");
   if(result!=="ok")await deps.onFlickrCode?.(result);
   return outcome;

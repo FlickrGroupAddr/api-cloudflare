@@ -15,6 +15,8 @@
     // Keep disabled until provisioning, restoration checks and release gates are complete.
     "FGA_READ_ENABLED": "0", "FGA_INTAKE_ENABLED": "0", "FGA_ADMIN_ENABLED": "0", "FGA_DISPATCH_ENABLED": "0",
     "FGA_MAX_GROUP_IDS_PER_BATCH": "60",
+    // Release tooling supplies the validated optimized artifact digest.
+    "FGA_ARTIFACT_SHA2_256": "",
     "GOOGLE_CLIENT_ID": "REPLACE_WITH_FGA_GOOGLE_CLIENT_ID",
     "GOOGLE_OWNER_SUB": "REPLACE_WITH_VERIFIED_OWNER_SUB",
     "FGA_FLICKR_OWNER_NSID": "REPLACE_WITH_VERIFIED_FLICKR_OWNER",

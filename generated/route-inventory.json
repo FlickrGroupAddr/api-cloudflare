@@ -1013,6 +1013,1684 @@
       }
     },
     {
+      "method": "GET",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "allowPending": false,
+      "successStatuses": [
+        200
+      ],
+      "request": null,
+      "id": "listGroupSubmissionIntents",
+      "pathPattern": "/api/v001/group-submission-intents",
+      "handler": "status",
+      "auth": "installation_bearer",
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "observedAt",
+          "view",
+          "pageSize",
+          "photoBindingId",
+          "summary",
+          "intents",
+          "nextPage",
+          "recommendedPollAfterSeconds"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "active",
+              "attention",
+              "history"
+            ]
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "photoBindingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "activeIntentCount",
+              "activePartitionCount",
+              "attentionIntentCount",
+              "oldestActiveEnqueuedAt",
+              "writeGates"
+            ],
+            "properties": {
+              "activeIntentCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "activePartitionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "attentionIntentCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oldestActiveEnqueuedAt": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "writeGates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "scope",
+                    "state",
+                    "revision",
+                    "pausedAt",
+                    "reasonCode",
+                    "affectedActiveIntentCount"
+                  ],
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "deployment"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "enabled",
+                        "paused"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "pausedAt": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reasonCode": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "affectedActiveIntentCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "maxItems": 2
+              }
+            }
+          },
+          "intents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fgaSubmissionIntentId",
+                "fgaPhotoBindingId",
+                "flickrPhotoId",
+                "flickrGroupId",
+                "groupDisplayName",
+                "groupDisplayNameObservedAt",
+                "state",
+                "stateRevision",
+                "createdAt",
+                "stateChangedAt",
+                "terminalAt",
+                "attemptCount",
+                "queue",
+                "lastOutcome",
+                "permanentSubmissionBlock",
+                "attention"
+              ],
+              "properties": {
+                "fgaSubmissionIntentId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "fgaPhotoBindingId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "flickrPhotoId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "flickrGroupId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "groupDisplayName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "groupDisplayNameObservedAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "queued",
+                    "attempting",
+                    "retrying",
+                    "throttled",
+                    "added",
+                    "moderation_submitted",
+                    "delivery_uncertain",
+                    "needs_attention",
+                    "cancelled"
+                  ]
+                },
+                "stateRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                },
+                "stateChangedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                },
+                "terminalAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attemptCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "queue": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "isPartitionHead",
+                        "activeAheadInPartition",
+                        "nextWorkNotBefore",
+                        "holds"
+                      ],
+                      "properties": {
+                        "isPartitionHead": {
+                          "type": "boolean"
+                        },
+                        "activeAheadInPartition": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nextWorkNotBefore": {
+                          "description": "Advisory database lower bound for head work at observedAt; null for a non-head or an attempt already in progress. This is not an ETA or scheduler-cadence promise.",
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "holds": {
+                          "type": "array",
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "user_flickr_write_gate_paused",
+                              "deployment_flickr_write_gate_paused"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lastOutcome": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reasonCode",
+                        "flickrResultCode",
+                        "observedAt",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "reasonCode": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "flickrResultCode": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "observedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "permanentSubmissionBlock": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reasonCode",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "reasonCode": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attention": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "reasonCode",
+                        "occurredAt",
+                        "operatorAction",
+                        "fgaResubmissionAllowed"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "needs_attention",
+                            "delivery_uncertain"
+                          ]
+                        },
+                        "reasonCode": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "occurredAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        "operatorAction": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "fgaResubmissionAllowed": {
+                          "type": "boolean",
+                          "const": false
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "maxItems": 100
+          },
+          "nextPage": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "beforeCreatedAt",
+                  "beforeIntentId"
+                ],
+                "properties": {
+                  "beforeCreatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "beforeIntentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommendedPollAfterSeconds": {
+            "description": "Minimum client read interval only; never worker cadence or an ETA.",
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              15,
+              60,
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "allowPending": false,
+      "successStatuses": [
+        200
+      ],
+      "request": null,
+      "id": "readGroupSubmissionIntent",
+      "pathPattern": "/api/v001/group-submission-intents/{submissionIntentId}",
+      "handler": "status",
+      "auth": "installation_bearer",
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "observedAt",
+          "intent",
+          "writeGates",
+          "recommendedPollAfterSeconds"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "intent": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fgaSubmissionIntentId",
+              "fgaPhotoBindingId",
+              "flickrPhotoId",
+              "flickrGroupId",
+              "groupDisplayName",
+              "groupDisplayNameObservedAt",
+              "state",
+              "stateRevision",
+              "createdAt",
+              "stateChangedAt",
+              "terminalAt",
+              "attemptCount",
+              "queue",
+              "lastOutcome",
+              "permanentSubmissionBlock",
+              "attention"
+            ],
+            "properties": {
+              "fgaSubmissionIntentId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "fgaPhotoBindingId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "flickrPhotoId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "flickrGroupId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "groupDisplayName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "groupDisplayNameObservedAt": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "attempting",
+                  "retrying",
+                  "throttled",
+                  "added",
+                  "moderation_submitted",
+                  "delivery_uncertain",
+                  "needs_attention",
+                  "cancelled"
+                ]
+              },
+              "stateRevision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              "stateChangedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              "terminalAt": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attemptCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "queue": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "isPartitionHead",
+                      "activeAheadInPartition",
+                      "nextWorkNotBefore",
+                      "holds"
+                    ],
+                    "properties": {
+                      "isPartitionHead": {
+                        "type": "boolean"
+                      },
+                      "activeAheadInPartition": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "nextWorkNotBefore": {
+                        "description": "Advisory database lower bound for head work at observedAt; null for a non-head or an attempt already in progress. This is not an ETA or scheduler-cadence promise.",
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "holds": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "user_flickr_write_gate_paused",
+                            "deployment_flickr_write_gate_paused"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastOutcome": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "reasonCode",
+                      "flickrResultCode",
+                      "observedAt",
+                      "correlationId"
+                    ],
+                    "properties": {
+                      "reasonCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "flickrResultCode": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "observedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      "correlationId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "permanentSubmissionBlock": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "reasonCode",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "reasonCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attention": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "reasonCode",
+                      "occurredAt",
+                      "operatorAction",
+                      "fgaResubmissionAllowed"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "needs_attention",
+                          "delivery_uncertain"
+                        ]
+                      },
+                      "reasonCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "occurredAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      "operatorAction": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "fgaResubmissionAllowed": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "writeGates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scope",
+                "state",
+                "revision",
+                "pausedAt",
+                "reasonCode",
+                "affectedActiveIntentCount"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "deployment"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "enabled",
+                    "paused"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "pausedAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reasonCode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "affectedActiveIntentCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "maxItems": 2
+          },
+          "recommendedPollAfterSeconds": {
+            "description": "Minimum client read interval only; never worker cadence or an ETA.",
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              15,
+              60,
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "allowPending": false,
+      "successStatuses": [
+        200
+      ],
+      "request": null,
+      "id": "listAdministrativeSubmissionIntents",
+      "pathPattern": "/api/v001/admin/group-submission-intents",
+      "handler": "status_admin",
+      "auth": "browser_session",
+      "expectedChallenge": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "observedAt",
+          "view",
+          "pageSize",
+          "photoBindingId",
+          "summary",
+          "intents",
+          "nextPage",
+          "recommendedPollAfterSeconds"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "active",
+              "attention",
+              "history"
+            ]
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "photoBindingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "activeIntentCount",
+              "activePartitionCount",
+              "attentionIntentCount",
+              "oldestActiveEnqueuedAt",
+              "writeGates"
+            ],
+            "properties": {
+              "activeIntentCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "activePartitionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "attentionIntentCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oldestActiveEnqueuedAt": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "writeGates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "scope",
+                    "state",
+                    "revision",
+                    "pausedAt",
+                    "reasonCode",
+                    "affectedActiveIntentCount"
+                  ],
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "deployment"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "enabled",
+                        "paused"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "pausedAt": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reasonCode": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "affectedActiveIntentCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "maxItems": 2
+              }
+            }
+          },
+          "intents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fgaSubmissionIntentId",
+                "fgaPhotoBindingId",
+                "flickrPhotoId",
+                "flickrGroupId",
+                "groupDisplayName",
+                "groupDisplayNameObservedAt",
+                "state",
+                "stateRevision",
+                "createdAt",
+                "stateChangedAt",
+                "terminalAt",
+                "attemptCount",
+                "queue",
+                "lastOutcome",
+                "permanentSubmissionBlock",
+                "attention"
+              ],
+              "properties": {
+                "fgaSubmissionIntentId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "fgaPhotoBindingId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "flickrPhotoId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "flickrGroupId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "groupDisplayName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "groupDisplayNameObservedAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "queued",
+                    "attempting",
+                    "retrying",
+                    "throttled",
+                    "added",
+                    "moderation_submitted",
+                    "delivery_uncertain",
+                    "needs_attention",
+                    "cancelled"
+                  ]
+                },
+                "stateRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                },
+                "stateChangedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                },
+                "terminalAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attemptCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "queue": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "isPartitionHead",
+                        "activeAheadInPartition",
+                        "nextWorkNotBefore",
+                        "holds"
+                      ],
+                      "properties": {
+                        "isPartitionHead": {
+                          "type": "boolean"
+                        },
+                        "activeAheadInPartition": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nextWorkNotBefore": {
+                          "description": "Advisory database lower bound for head work at observedAt; null for a non-head or an attempt already in progress. This is not an ETA or scheduler-cadence promise.",
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "holds": {
+                          "type": "array",
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "user_flickr_write_gate_paused",
+                              "deployment_flickr_write_gate_paused"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lastOutcome": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reasonCode",
+                        "flickrResultCode",
+                        "observedAt",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "reasonCode": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "flickrResultCode": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "observedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "permanentSubmissionBlock": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reasonCode",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "reasonCode": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attention": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "reasonCode",
+                        "occurredAt",
+                        "operatorAction",
+                        "fgaResubmissionAllowed"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "needs_attention",
+                            "delivery_uncertain"
+                          ]
+                        },
+                        "reasonCode": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "occurredAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        "operatorAction": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "fgaResubmissionAllowed": {
+                          "type": "boolean",
+                          "const": false
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "maxItems": 100
+          },
+          "nextPage": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "beforeCreatedAt",
+                  "beforeIntentId"
+                ],
+                "properties": {
+                  "beforeCreatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "beforeIntentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommendedPollAfterSeconds": {
+            "description": "Minimum client read interval only; never worker cadence or an ETA.",
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              15,
+              60,
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "allowPending": false,
+      "successStatuses": [
+        200
+      ],
+      "request": null,
+      "id": "readAdministrativeSubmissionIntent",
+      "pathPattern": "/api/v001/admin/group-submission-intents/{submissionIntentId}",
+      "handler": "status_admin",
+      "auth": "browser_session",
+      "expectedChallenge": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "observedAt",
+          "intent",
+          "writeGates",
+          "recommendedPollAfterSeconds"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "intent": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fgaSubmissionIntentId",
+              "fgaPhotoBindingId",
+              "flickrPhotoId",
+              "flickrGroupId",
+              "groupDisplayName",
+              "groupDisplayNameObservedAt",
+              "state",
+              "stateRevision",
+              "createdAt",
+              "stateChangedAt",
+              "terminalAt",
+              "attemptCount",
+              "queue",
+              "lastOutcome",
+              "permanentSubmissionBlock",
+              "attention"
+            ],
+            "properties": {
+              "fgaSubmissionIntentId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "fgaPhotoBindingId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "flickrPhotoId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "flickrGroupId": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+              },
+              "groupDisplayName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "groupDisplayNameObservedAt": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "attempting",
+                  "retrying",
+                  "throttled",
+                  "added",
+                  "moderation_submitted",
+                  "delivery_uncertain",
+                  "needs_attention",
+                  "cancelled"
+                ]
+              },
+              "stateRevision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              "stateChangedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              "terminalAt": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attemptCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "queue": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "isPartitionHead",
+                      "activeAheadInPartition",
+                      "nextWorkNotBefore",
+                      "holds"
+                    ],
+                    "properties": {
+                      "isPartitionHead": {
+                        "type": "boolean"
+                      },
+                      "activeAheadInPartition": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "nextWorkNotBefore": {
+                        "description": "Advisory database lower bound for head work at observedAt; null for a non-head or an attempt already in progress. This is not an ETA or scheduler-cadence promise.",
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "holds": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "user_flickr_write_gate_paused",
+                            "deployment_flickr_write_gate_paused"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastOutcome": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "reasonCode",
+                      "flickrResultCode",
+                      "observedAt",
+                      "correlationId"
+                    ],
+                    "properties": {
+                      "reasonCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "flickrResultCode": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "observedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      "correlationId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "permanentSubmissionBlock": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "reasonCode",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "reasonCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attention": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "reasonCode",
+                      "occurredAt",
+                      "operatorAction",
+                      "fgaResubmissionAllowed"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "needs_attention",
+                          "delivery_uncertain"
+                        ]
+                      },
+                      "reasonCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "occurredAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      "operatorAction": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "fgaResubmissionAllowed": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "writeGates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scope",
+                "state",
+                "revision",
+                "pausedAt",
+                "reasonCode",
+                "affectedActiveIntentCount"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "deployment"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "enabled",
+                    "paused"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "pausedAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reasonCode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "affectedActiveIntentCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "maxItems": 2
+          },
+          "recommendedPollAfterSeconds": {
+            "description": "Minimum client read interval only; never worker cadence or an ETA.",
+            "type": [
+              "integer",
+              "null"
+            ],
+            "enum": [
+              15,
+              60,
+              null
+            ]
+          }
+        }
+      }
+    },
+    {
       "owner": "fga_api_backend",
       "routingClass": "worker_first",
       "probe": "missing_authentication",

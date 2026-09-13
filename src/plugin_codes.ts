@@ -85,7 +85,7 @@ export async function getPluginCode(db:SqlStore,session:AdminSession,id:string,a
  if(!ID.test(id))throw new PluginCodeError("not_found",404);
  const result=await db.batch([
   db.prepare(DETAIL_SQL+" AND i.installation_id=?2").bind(session.userId,id),
-  audit(db,session,"plugin_code.detail_read",id),
+  db.prepare(`INSERT INTO audit_events(event_id,user_id,action,request_correlation_id,session_correlation_id,outcome,reason,target_id) SELECT ?,?,'plugin_code.detail_read',?,?,CASE WHEN EXISTS(SELECT 1 FROM installations WHERE installation_id=? AND user_id=?) THEN 'succeeded' ELSE 'failed' END,'scoped_metadata_read',(SELECT installation_id FROM installations WHERE installation_id=? AND user_id=?)`).bind(crypto.randomUUID(),session.userId,crypto.randomUUID(),session.sessionId,id,session.userId,id,session.userId),
  ]);
  const row=result[0].results[0];if(!row)throw new PluginCodeError("not_found",404);return metadata(row);
 }

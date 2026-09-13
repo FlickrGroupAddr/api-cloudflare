@@ -15,7 +15,7 @@ test("optimized production routes authenticate browser issuance and serialize na
  execFileSync(process.execPath,["node_modules/wrangler/bin/wrangler.js","deploy","--dry-run","--minify","--config",config,"--outdir",path.join(directory,"bundle")],{env:{...process.env,WRANGLER_WRITE_LOGS:"false",WRANGLER_SEND_METRICS:"false",CI:"true"},stdio:"pipe"});
  const migrations=JSON.parse(execFileSync("uv",["run","--frozen","python","-c","import json;from pathlib import Path;from scripts.coordination_probe import statements;print(json.dumps([statements(p.read_text(encoding='utf-8')) for p in sorted(Path('migrations').glob('*.sql'))]))"],{encoding:"utf8"}));
  const keys=await generateKeyPair("RS256"),jwk={...await exportJWK(keys.publicKey),kid:"key",alg:"RS256",use:"sig"};let external=0;
- const mf=new Miniflare({modules:true,script:await readFile(path.join(directory,"bundle/worker.js"),"utf8"),compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat"],cf:{colo:"LOCAL"},telemetry:{enabled:false},d1Databases:["DB"],bindings:{FGA_ADMIN_ENABLED:"1",FGA_READ_ENABLED:"1",FGA_INTAKE_ENABLED:"1",GOOGLE_CLIENT_ID:"client",GOOGLE_OWNER_SUB:"owner-subject"},secretsStoreSecrets:{AUTH_LIMITER_KEY:{store_id:"local",secret_name:"limiter"}},outboundService:async request=>{external++;assert.equal(request.url,"https://www.googleapis.com/oauth2/v3/certs");return Response.json({keys:[jwk]},{headers:{"Cache-Control":"public, max-age=3600"}});}});
+ const mf=new Miniflare({modules:true,script:await readFile(path.join(directory,"bundle/worker.js"),"utf8"),compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat"],cf:{colo:"LOCAL"},telemetry:{enabled:false},d1Databases:["DB"],bindings:{FGA_ADMIN_ENABLED:"1",FGA_READ_ENABLED:"1",FGA_INTAKE_ENABLED:"1",GOOGLE_CLIENT_ID:"client",GOOGLE_OWNER_SUB:"owner-subject",FGA_FLICKR_OWNER_NSID:"synthetic-owner"},secretsStoreSecrets:{AUTH_LIMITER_KEY:{store_id:"local",secret_name:"limiter"}},outboundService:async request=>{external++;assert.equal(request.url,"https://www.googleapis.com/oauth2/v3/certs");return Response.json({keys:[jwk]},{headers:{"Cache-Control":"public, max-age=3600"}});}});
  try{
   const db=await mf.getD1Database("DB");for(const batch of migrations)await db.batch(batch.map(sql=>db.prepare(sql)));
   await(await mf.getSecretsStoreSecretAPI("AUTH_LIMITER_KEY"))().create("synthetic-limiter-key-at-least-32-characters");
@@ -43,6 +43,8 @@ test("optimized production routes authenticate browser issuance and serialize na
   assert.equal((await mf.dispatchFetch(origin+"/api/v001/installations/current",{headers:{Authorization:"Bearer "+candidate.pluginCode}})).status,200);
   assert.equal((await db.prepare("SELECT first_reason FROM submission_blocks").first()).first_reason,"flickr_code_7");
   assert.equal((await db.prepare("SELECT COUNT(*) n FROM installation_lifecycle_events WHERE kind='rotation_completed'").first()).n,1);
+  const status=await call("/api/v001/admin/group-submission-intents?view=history");assert.equal(status.status,200);
+  const statusBody=await status.json();assert.equal(statusBody.intents.length,0);assert.equal(statusBody.recommendedPollAfterSeconds,null);
   assert.equal(external,1,"only synthetic Google key fetch may occur; lifecycle makes no Flickr call");
   const list=await(await call("/api/v001/plugin-codes")).json();assert(!JSON.stringify(list).includes(candidate.pluginCode));
  }finally{await mf.dispose();await rm(directory,{recursive:true,force:true});}

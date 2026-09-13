@@ -1,3 +1,4 @@
+import {FGA_FAIL_POLITE_CONTRACT_SHA2_256} from "./release_contract.ts";
 import type {SqlStore} from "./admission.ts";
 import {NOW_US_SQL as NOW} from "./installations.ts";
 import {verifyCandidateCredential,type FlickrFetch,type SecretReads} from "./flickr_reads.ts";
@@ -77,8 +78,17 @@ export async function connectionView(db:SqlStore,userId:string):Promise<unknown>
  return {schemaVersion:1,revision:row.revision,state:row.state,flickrOwnerNsid:row.owner,verifiedPermission:row.verified_permission,verifiedAt:row.verified_at_us===null?null:new Date(Number(row.verified_at_us)/1000).toISOString().replace("Z","000Z"),localCredentialState:row.local_state,fgaOperationState:active?(row.user_gate===1&&row.deployment_gate===1?"enabled":"read_only"):"stopped",flickrPermissionState:row.external_removal===1?"owner_action_required":"not_requested",userWriteGate:gate(row.user_gate,row.user_revision),deploymentWriteGate:gate(row.deployment_gate,row.deployment_revision)};
 }
 
-export async function resumeWriteGate(db:SqlStore,userId:string,scope:"user"|"deployment",revision:number,secrets:SecretReads,fetcher:FlickrFetch):Promise<unknown>{
+export async function resumeWriteGate(db:SqlStore,userId:string,scope:"user"|"deployment",revision:number,secrets:SecretReads,fetcher:FlickrFetch,artifactSha2_256?:string):Promise<unknown>{
  if(!Number.isSafeInteger(revision)||revision<1||revision>=Number.MAX_SAFE_INTEGER)throw new LifecycleError("stale_connection");
+ if(scope==="deployment"){
+  const cause=await db.prepare("SELECT reason,flickr_code code,artifact_sha2_256 artifact FROM flickr_write_gate_events WHERE scope='deployment' AND scope_id='*' AND revision=? ORDER BY created_at_us DESC LIMIT 1").bind(revision).first<{reason:string;code:number|null;artifact:string|null}>();
+  const documented=[1,2,3,4,5,6,7,8,10,11,95,96,97,98,99,100,105,106,111,112,114,115,116];
+  const protocol=cause&&(cause.reason==="unknown_code"||[111,112,114,115].includes(cause.code??0)||cause.code!==null&&!documented.includes(cause.code));
+  if(protocol){
+   if(!artifactSha2_256||!/^[a-f0-9]{64}$/.test(artifactSha2_256)||!cause.artifact||artifactSha2_256===cause.artifact||
+    !await db.prepare("SELECT 1 FROM deployment_conformance WHERE artifact_sha2_256=? AND contract_sha2_256=?").bind(artifactSha2_256,FGA_FAIL_POLITE_CONTRACT_SHA2_256).first())throw new LifecycleError("deployment_conformance_required");
+  }
+ }
  const current=await db.prepare("SELECT l.owner_nsid owner,l.link_revision revision,n.active_generation generation FROM flickr_links l JOIN flickr_native_credentials n ON n.user_id=l.user_id JOIN flickr_connection_state c ON c.user_id=l.user_id WHERE l.user_id=? AND l.state='linked' AND c.state='linked' AND c.operation_id IS NULL AND n.operation_id IS NULL AND n.link_revision=l.link_revision").bind(userId).first<{owner:string;revision:number;generation:string}>();if(!current)throw new LifecycleError("connection_unavailable");
  await verifyCandidateCredential(await secrets.FLICKR_GRANT.get(),await secrets.FLICKR_APPLICATION.get(),current.generation,current.owner,fetcher);
  const tx=crypto.randomUUID(),scopeId=scope==="user"?userId:"*";

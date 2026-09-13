@@ -11,7 +11,7 @@ export function initializePluginCodes({getSession,onTransfer}){
  const erase=()=>{epoch++;transfer.erase();};
  async function api(path,method="GET",body,etag,media="application/json"){
   const session=getSession();if(!session)throw Error("authentication_required");
-  const response=await fetch(path,{method,credentials:"same-origin",cache:"no-store",redirect:"error",
+  const response=await fetch(path,{method,credentials:"same-origin",cache:"no-store",redirect:"error",signal:AbortSignal.timeout(15000),
    headers:{...(method==="GET"?{}:{"Content-Type":media,"X-CSRF-Token":session.csrfToken}),...(etag?{"If-Match":etag}:{})},
    ...(body===undefined?{}:{body:JSON.stringify(body)})});
   if(!response.ok){if(response.status===401)erase();throw Error(response.status===403?"recent_authentication_required":response.status===412?"record_changed":response.status===409?"rotation_conflict":"request_unconfirmed");}
@@ -44,7 +44,7 @@ export function initializePluginCodes({getSession,onTransfer}){
     const rotate=document.createElement("button");rotate.className="secondary";rotate.textContent="Prepare rotation";rotate.disabled=!!row.pendingCandidate;
     rotate.onclick=()=>act(async()=>{const current=await detail(row.pluginCodeId);selected={...current.body,etag:current.etag};$("installation-label").value=current.body.installationLabel;for(const key of confirmations)$("confirm-"+key).checked=false;$("create-code-card").scrollIntoView({block:"center"});});card.append(rotate);
     if(row.pendingCandidate){
-     const verified=document.createElement("label"),check=document.createElement("input");check.type="checkbox";verified.append(check,document.createTextNode(" Lightroom showed this candidate as pending_rotation; the clipboard and transfer view are cleared."));card.append(verified);
+     const verified=document.createElement("label"),check=document.createElement("input");check.type="checkbox";verified.append(check,document.createTextNode(" Lightroom verified this candidate; the clipboard and transfer view are cleared."));card.append(verified);
      const complete=document.createElement("button");complete.className="primary";complete.textContent="Complete rotation";complete.disabled=true;
      check.onchange=()=>complete.disabled=!check.checked||transfer.active||busy;
      complete.onclick=()=>act(async()=>{if(!check.checked||transfer.active)throw Error("confirmation_required");const current=await detail(row.pluginCodeId);await api(`/api/v001/plugin-codes/${encodeURIComponent(row.pluginCodeId)}/rotation-candidates/${encodeURIComponent(row.pendingCandidate.versionId)}`,"PATCH",{schemaVersion:1,state:"current",pluginValidationConfirmed:true},current.etag);await load();feedback("Rotation completed. Finish local rotation in Lightroom Classic; the old code is invalid.");});
@@ -77,5 +77,5 @@ export function initializePluginCodes({getSession,onTransfer}){
  $("confirm-code-revoke").onclick=()=>act(async()=>{const target=selected;if(!target)throw Error("missing_selection");erase();await api("/api/v001/plugin-codes/"+encodeURIComponent(target.pluginCodeId),"PATCH",{state:"revoked"},target.etag,"application/merge-patch+json");$("revoke-code-dialog").close();selected=null;await load();feedback("Server access revoked. Clear both Plugin Code keys on the workstation; remote erasure is not confirmed.");});
  for(const key of confirmations)$("confirm-"+key).onchange=controls;$("installation-label").oninput=controls;
  window.addEventListener("pagehide",erase);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")erase();});
- return {open:()=>act(()=>load()),erase,controls,get active(){return transfer.active;}};
+ return {open:()=>act(()=>load()),erase,clear(){erase();selected=null;pageToken=null;$("plugin-code-list").replaceChildren();$("installation-label").value="";for(const key of confirmations)$("confirm-"+key).checked=false;controls();},controls,get active(){return transfer.active;}};
 }

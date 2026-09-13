@@ -55,3 +55,6 @@ current-schema restore or the complete fail-polite release gate. Remaining
 status/bypass, process/deployment restart, hosted restore/reconciliation and
 release-pipeline work stays on implementation ticket #0018. The separate
 DNS/account handoff on #0016 remains a production prerequisite.
+
+The later [status and deployment handoff](2026-09-13-status-and-handoff-gates.md)
+records the current implementation, verification and remaining owner input.

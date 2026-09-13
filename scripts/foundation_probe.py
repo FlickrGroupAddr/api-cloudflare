@@ -617,7 +617,7 @@ def restore(run: Run, stage: str, value: str) -> None:
 def sql_literal(column: str) -> str:
     # quote(TEXT) truncates at a NUL. Hex preserves every UTF-8 text byte, while
     # quote() preserves INTEGER, REAL, BLOB and NULL without JavaScript numbers.
-    if not re.fullmatch(r"[a-z_]+", column):
+    if not re.fullmatch(r"[a-z_][a-z0-9_]*", column):
         raise ProbeError("Unsafe export column.")
     return (
         f"CASE WHEN typeof({column})='text' AND instr({column},char(0))>0 "

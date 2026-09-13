@@ -58,6 +58,8 @@ connects the real coordinator, signed transport, shared D1 reservations and
 result policy. It records the remaining rotation decision and release work.
 The [Plugin Code lifecycle checkpoint](docs/research/2026-09-13-plugin-code-rotation-integration.md)
 records the accepted rotation routes, their implementation and one-time transfer UI.
+The current [status and deployment handoff](docs/research/2026-09-13-status-and-handoff-gates.md)
+adds read-only submission history and records the remaining DNS and full release gates.
 
 The [hosted clock investigation](docs/research/2026-09-11-workers-preflight-clock.md)
 records the native timer blind interval and the private timing profile accepted

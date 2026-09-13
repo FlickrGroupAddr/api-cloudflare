@@ -58,10 +58,10 @@ export function representation(row: CredentialRow, allowPending: boolean,
 }
 export async function authenticate(request: Request, lookup: Lookup, allowPending: boolean,
   alert: () => void = () => console.warn("fga_installation_integrity_failure"),
-  envelope: "empty" | "json" = "empty"): Promise<CurrentInstallation | Response> {
+  envelope: "empty" | "json" | "query" = "empty"): Promise<CurrentInstallation | Response> {
   const url = new URL(request.url);
   const auth = request.headers.get("Authorization");
-  if (url.search || (envelope === "empty" && (request.body !== null ||
+  if ((envelope !== "query" && url.search) || (envelope !== "json" && (request.body !== null ||
       (request.headers.has("Content-Length") && request.headers.get("Content-Length") !== "0") ||
       request.headers.has("Transfer-Encoding"))) || auth?.includes(",")) {
     return errorResponse(400,"invalid_request","Invalid authentication request.",true);

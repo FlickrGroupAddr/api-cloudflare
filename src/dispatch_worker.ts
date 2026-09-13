@@ -10,6 +10,7 @@ import { scheduleView } from "./scheduling.ts";
 export interface DispatchEnv extends SecretReads {
   DB: D1Database;
   FGA_DISPATCH_ENABLED?: string;
+  FGA_ARTIFACT_SHA2_256?: string;
 }
 
 export async function workerGrant(db: SqlStore, userId: string): Promise<GrantSnapshot | null> {
@@ -66,7 +67,7 @@ export async function consumePartition(
     await current();
     return createDispatchTransport(env,snapshot!.generation,current,fetcher);
   })();
-  return runPartition({db:env.DB,monotonicUs:()=>Date.now()*1000,
+  return runPartition({db:env.DB,monotonicUs:()=>Date.now()*1000,artifactSha2_256:env.FGA_ARTIFACT_SHA2_256,
     transport:{
       membership:async context=>(await transport()).membership(context),
       preflight:async context=>(await transport()).preflight(context),

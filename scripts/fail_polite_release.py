@@ -81,6 +81,12 @@ def inventory(contract: Path) -> tuple[list[str], str]:
     ids = re.findall(r"^\| `(FP-[A-Z]+-\d{3})` \|", source, re.MULTILINE)
     if not ids or len(ids) != len(set(ids)):
         raise ValueError("Accepted contract has missing or duplicate case IDs")
+    runtime_pin = re.findall(
+        r'FGA_FAIL_POLITE_CONTRACT_SHA2_256 = "([a-f0-9]{64})"',
+        (ROOT / "src/release_contract.ts").read_text(encoding="utf-8"),
+    )
+    if runtime_pin != [MUTATION_CONTRACT_SHA2_256]:
+        raise ValueError("Runtime repair evidence and release verifier contract identities differ")
     contract_digest = digest(contract)
     if contract_digest != MUTATION_CONTRACT_SHA2_256:
         raise ValueError("Mutation inventory requires review after accepted contract changes")

@@ -16,3 +16,12 @@ Google's authorized origin stays `https://flickrgroupaddr.com` and its redirect 
 The supplied Secrets Store token is intentionally not a DNS-management credential. The accepted permanent token has no expiration and only Secrets Store Edit in the destination account. No AWS application backend is required; Amazon is relevant here because it is the existing domain registrar.
 
 Primary procedure: [Move a domain between Cloudflare accounts](https://developers.cloudflare.com/fundamentals/manage-domains/move-domain/). The registrar/account transfer distinction matters: this handoff changes authoritative DNS/account placement and does not request a registrar transfer or a domain purchase.
+
+## Rechecked after implementation, 2026-09-13
+
+The read-only readiness check still finds no destination zone. Source DNS-record
+and DNSSEC inspection each return 403; both Wrangler profiles authenticate.
+Provide the current source export/settings or complete the account move before
+production configuration and browser validation. Run
+`uv run --frozen python -m scripts.deployment_readiness` from the implementation
+repository to recheck. Its ignored report contains no credential values.
