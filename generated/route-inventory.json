@@ -1013,6 +1013,1224 @@
       }
     },
     {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "plugin_code",
+      "auth": "browser_session",
+      "allowPending": false,
+      "id": "listPluginCodes",
+      "method": "GET",
+      "pathPattern": "/api/v001/plugin-codes",
+      "successStatuses": [
+        200
+      ],
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "pluginCodes"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "pluginCodes": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "schemaVersion",
+                "pluginCodeId",
+                "installationLabel",
+                "state",
+                "revision",
+                "createdAt",
+                "revokedAt",
+                "lastAuthenticatedAt",
+                "rotationDueAt",
+                "currentVersion",
+                "pendingCandidate",
+                "lastLifecycleOutcome"
+              ],
+              "properties": {
+                "schemaVersion": {
+                  "const": 1
+                },
+                "pluginCodeId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                },
+                "installationLabel": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "state": {
+                  "enum": [
+                    "active",
+                    "revoked"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                },
+                "revokedAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lastAuthenticatedAt": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rotationDueAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                },
+                "currentVersion": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "versionId",
+                        "state",
+                        "createdAt",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "versionId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                        },
+                        "state": {
+                          "enum": [
+                            "current",
+                            "pending_rotation",
+                            "replaced",
+                            "revoked",
+                            "expired_unactivated"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        "expiresAt": {
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pendingCandidate": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "versionId",
+                        "state",
+                        "createdAt",
+                        "expiresAt"
+                      ],
+                      "properties": {
+                        "versionId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                        },
+                        "state": {
+                          "enum": [
+                            "current",
+                            "pending_rotation",
+                            "replaced",
+                            "revoked",
+                            "expired_unactivated"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        },
+                        "expiresAt": {
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lastLifecycleOutcome": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "versionId",
+                        "occurredAt"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "created",
+                            "rotation_created",
+                            "rotation_completed",
+                            "rotation_cancelled",
+                            "rotation_expired",
+                            "revoked"
+                          ]
+                        },
+                        "versionId": {
+                          "oneOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "occurredAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "nextPageToken": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        }
+      }
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "plugin_code",
+      "auth": "browser_session",
+      "allowPending": false,
+      "id": "createPluginCode",
+      "method": "POST",
+      "pathPattern": "/api/v001/plugin-codes",
+      "successStatuses": [
+        201
+      ],
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "installationLabel",
+          "transferConfirmations"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "installationLabel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "transferConfirmations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ownerControlledWorkstation",
+              "privateBrowser",
+              "clipboardHistoryOff",
+              "clipboardSyncOff",
+              "noObserversOrRecording",
+              "pluginReady"
+            ],
+            "properties": {
+              "ownerControlledWorkstation": {
+                "const": true
+              },
+              "privateBrowser": {
+                "const": true
+              },
+              "clipboardHistoryOff": {
+                "const": true
+              },
+              "clipboardSyncOff": {
+                "const": true
+              },
+              "noObserversOrRecording": {
+                "const": true
+              },
+              "pluginReady": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "pluginCodeId",
+          "pluginCode"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "pluginCodeId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+          },
+          "pluginCode": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "^[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){11}-[0-9A-HJKMNP-TV-Z]{3}[0G]$",
+            "description": "ADR 0044 canonical encoding of exactly 32 random octets: 52 uppercase Crockford Base32 symbols in 13 four-symbol groups separated by ASCII hyphens. The hyphens are part of the credential; parsers perform no normalization or repair."
+          }
+        }
+      }
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "plugin_code",
+      "auth": "browser_session",
+      "allowPending": false,
+      "id": "getPluginCode",
+      "method": "GET",
+      "pathPattern": "/api/v001/plugin-codes/{pluginCodeId}",
+      "successStatuses": [
+        200
+      ],
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "pluginCodeId",
+          "installationLabel",
+          "state",
+          "revision",
+          "createdAt",
+          "revokedAt",
+          "lastAuthenticatedAt",
+          "rotationDueAt",
+          "currentVersion",
+          "pendingCandidate",
+          "lastLifecycleOutcome"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "pluginCodeId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+          },
+          "installationLabel": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "state": {
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "revokedAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastAuthenticatedAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rotationDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "currentVersion": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "versionId",
+                  "state",
+                  "createdAt",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "versionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  },
+                  "state": {
+                    "enum": [
+                      "current",
+                      "pending_rotation",
+                      "replaced",
+                      "revoked",
+                      "expired_unactivated"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "expiresAt": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pendingCandidate": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "versionId",
+                  "state",
+                  "createdAt",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "versionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  },
+                  "state": {
+                    "enum": [
+                      "current",
+                      "pending_rotation",
+                      "replaced",
+                      "revoked",
+                      "expired_unactivated"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "expiresAt": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastLifecycleOutcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "versionId",
+                  "occurredAt"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "created",
+                      "rotation_created",
+                      "rotation_completed",
+                      "rotation_cancelled",
+                      "rotation_expired",
+                      "revoked"
+                    ]
+                  },
+                  "versionId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "plugin_code",
+      "auth": "browser_session",
+      "allowPending": false,
+      "id": "revokePluginCode",
+      "method": "PATCH",
+      "pathPattern": "/api/v001/plugin-codes/{pluginCodeId}",
+      "successStatuses": [
+        200
+      ],
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "const": "revoked"
+          }
+        }
+      },
+      "requestMediaType": "application/merge-patch+json",
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "pluginCodeId",
+          "installationLabel",
+          "state",
+          "revision",
+          "createdAt",
+          "revokedAt",
+          "lastAuthenticatedAt",
+          "rotationDueAt",
+          "currentVersion",
+          "pendingCandidate",
+          "lastLifecycleOutcome"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "pluginCodeId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+          },
+          "installationLabel": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "state": {
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "revokedAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastAuthenticatedAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rotationDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "currentVersion": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "versionId",
+                  "state",
+                  "createdAt",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "versionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  },
+                  "state": {
+                    "enum": [
+                      "current",
+                      "pending_rotation",
+                      "replaced",
+                      "revoked",
+                      "expired_unactivated"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "expiresAt": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pendingCandidate": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "versionId",
+                  "state",
+                  "createdAt",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "versionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  },
+                  "state": {
+                    "enum": [
+                      "current",
+                      "pending_rotation",
+                      "replaced",
+                      "revoked",
+                      "expired_unactivated"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "expiresAt": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastLifecycleOutcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "versionId",
+                  "occurredAt"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "created",
+                      "rotation_created",
+                      "rotation_completed",
+                      "rotation_cancelled",
+                      "rotation_expired",
+                      "revoked"
+                    ]
+                  },
+                  "versionId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "plugin_code",
+      "auth": "browser_session",
+      "allowPending": false,
+      "id": "createPluginCodeRotationCandidate",
+      "method": "POST",
+      "pathPattern": "/api/v001/plugin-codes/{pluginCodeId}/rotation-candidates",
+      "successStatuses": [
+        201
+      ],
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "transferConfirmations"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "transferConfirmations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ownerControlledWorkstation",
+              "privateBrowser",
+              "clipboardHistoryOff",
+              "clipboardSyncOff",
+              "noObserversOrRecording",
+              "pluginReady"
+            ],
+            "properties": {
+              "ownerControlledWorkstation": {
+                "const": true
+              },
+              "privateBrowser": {
+                "const": true
+              },
+              "clipboardHistoryOff": {
+                "const": true
+              },
+              "clipboardSyncOff": {
+                "const": true
+              },
+              "noObserversOrRecording": {
+                "const": true
+              },
+              "pluginReady": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "pluginCodeId",
+          "rotationCandidateId",
+          "pluginCode",
+          "expiresAt"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "pluginCodeId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+          },
+          "rotationCandidateId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+          },
+          "pluginCode": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "^[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){11}-[0-9A-HJKMNP-TV-Z]{3}[0G]$",
+            "description": "ADR 0044 canonical encoding of exactly 32 random octets: 52 uppercase Crockford Base32 symbols in 13 four-symbol groups separated by ASCII hyphens. The hyphens are part of the credential; parsers perform no normalization or repair."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          }
+        }
+      }
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "plugin_code",
+      "auth": "browser_session",
+      "allowPending": false,
+      "id": "changePluginCodeRotationCandidate",
+      "method": "PATCH",
+      "pathPattern": "/api/v001/plugin-codes/{pluginCodeId}/rotation-candidates/{rotationCandidateId}",
+      "successStatuses": [
+        200
+      ],
+      "request": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "state",
+              "pluginValidationConfirmed"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "state": {
+                "const": "current"
+              },
+              "pluginValidationConfirmed": {
+                "const": true
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "state"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "state": {
+                "const": "revoked"
+              }
+            }
+          }
+        ]
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "pluginCodeId",
+          "installationLabel",
+          "state",
+          "revision",
+          "createdAt",
+          "revokedAt",
+          "lastAuthenticatedAt",
+          "rotationDueAt",
+          "currentVersion",
+          "pendingCandidate",
+          "lastLifecycleOutcome"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "pluginCodeId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+          },
+          "installationLabel": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "state": {
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "revokedAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastAuthenticatedAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rotationDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "currentVersion": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "versionId",
+                  "state",
+                  "createdAt",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "versionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  },
+                  "state": {
+                    "enum": [
+                      "current",
+                      "pending_rotation",
+                      "replaced",
+                      "revoked",
+                      "expired_unactivated"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "expiresAt": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pendingCandidate": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "versionId",
+                  "state",
+                  "createdAt",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "versionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                  },
+                  "state": {
+                    "enum": [
+                      "current",
+                      "pending_rotation",
+                      "replaced",
+                      "revoked",
+                      "expired_unactivated"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  },
+                  "expiresAt": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastLifecycleOutcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "versionId",
+                  "occurredAt"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "created",
+                      "rotation_created",
+                      "rotation_completed",
+                      "rotation_cancelled",
+                      "rotation_expired",
+                      "revoked"
+                    ]
+                  },
+                  "versionId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Opaque identifier; clients do not parse, increment, or derive authority from its spelling."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
       "id": "installation_current",
       "method": "GET",
       "pathPattern": "/api/v001/installations/current",

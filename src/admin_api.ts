@@ -1,3 +1,4 @@
+import {PluginCodeError,createPluginCode,getPluginCode,listPluginCodes,changePluginCode,pluginCodeEtag} from "./plugin_codes.ts";
 import {sessionInventory,revokeSession,revokeOtherSessions} from "./session_inventory.ts";
 import {startFlickrOAuth,completeFlickrOAuth,retireOAuthSlot,observeOAuthRetirement,type OAuthSlots,FlickrOAuthError} from "./flickr_oauth.ts";
 import {Hono} from "hono";
@@ -23,10 +24,17 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
   if(new URL(c.req.url).origin!==ADMIN_ORIGIN)return errorResponse(400,"invalid_request","Invalid request origin.");
   await next();
  });
- app.onError((error)=>{
-  const code=error instanceof BrowserAuthError||error instanceof AuthAdmissionError||error instanceof LifecycleError||error instanceof FlickrOAuthError?error.message:"service_unavailable";
+ app.onError(async(error,c)=>{
+  const code=error instanceof PluginCodeError||error instanceof BrowserAuthError||error instanceof AuthAdmissionError||error instanceof LifecycleError||error instanceof FlickrOAuthError?error.message:"service_unavailable";
+  if(new URL(c.req.url).pathname.startsWith("/api/v001/plugin-codes")){
+   try{
+    const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);
+    await c.env.DB.prepare("INSERT INTO audit_events(event_id,user_id,action,request_correlation_id,session_correlation_id,outcome,reason) VALUES(?,?,'plugin_code.request_failed',?,?,'failed',?)")
+     .bind(crypto.randomUUID(),session.userId,crypto.randomUUID(),session.sessionId,code).run();
+   }catch{/* Failed/anonymous audit has no authority to release data or retry a mutation. */}
+  }
   const statuses:Record<string,number>={unauthorized:401,invalid_origin:403,invalid_csrf:403,recent_authentication_required:403,invalid_google_assertion:401,rate_limited:429,invalid_request:400,stale_connection:409,stale_session_revision:409,stale_session_set:409,current_session_requires_logout:409};
-  const response=errorResponse(statuses[code]??503,code,"The request could not be completed.");if(code==="rate_limited")response.headers.set("Retry-After","120");return response;
+  const response=errorResponse(error instanceof PluginCodeError?error.status:statuses[code]??503,code,"The request could not be completed.");if(code==="rate_limited")response.headers.set("Retry-After","120");return response;
  });
  async function admission(request:Request,env:AdminEnv,route:"login"|"start"|"callback"){
   // CF-Connecting-IP is trusted only on an actual Cloudflare edge request, never forwarding headers.
@@ -58,6 +66,47 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
   const cookie=await finishLogin(c.env.DB,{stateDigest:digest(state),nonceDigest:tx.nonce_digest,googleSub:sub,ownerSub:c.env.GOOGLE_OWNER_SUB!,ownerNsid:c.env.FGA_FLICKR_OWNER_NSID});
   try{await finishAuthentication(c.env.DB,cost);}catch{/* Conservatively retain the cost charge. */}
   c.header("Set-Cookie",cookie);return c.redirect("/admin/",303);
+ });
+ async function pluginRequest(request:Request,mergePatch=false){
+  if(new URL(request.url).search)throw new PluginCodeError("invalid_plugin_code_request");
+  const expected=mergePatch?"application/merge-patch+json":"application/json";
+  if(!(request.headers.get("Content-Type")??"").toLowerCase().match(new RegExp("^"+expected.replace("+","\\+")+"(?:;\\s*charset=utf-8)?$")))throw new PluginCodeError("unsupported_media_type",415);
+  const headers=new Headers(request.headers);headers.set("Content-Type","application/json");
+  return jsonBody(new Request(request,{headers}));
+ }
+ app.get("/api/v001/plugin-codes",async c=>{
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);
+  if(!c.env.AUTH_LIMITER_KEY)throw new PluginCodeError("plugin_code_unavailable",503);
+  return c.json(await listPluginCodes(c.env.DB,session,new URL(c.req.url),await c.env.AUTH_LIMITER_KEY.get()) as object);
+ });
+ app.get("/api/v001/plugin-codes/:pluginCodeId",async c=>{
+  if(new URL(c.req.url).search)throw new PluginCodeError("invalid_plugin_code_query");
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);
+  const result=await getPluginCode(c.env.DB,session,c.req.param("pluginCodeId"));
+  c.header("ETag",pluginCodeEtag(result.pluginCodeId,result.revision));return c.json(result);
+ });
+ app.post("/api/v001/plugin-codes",async c=>{
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,session,true);
+  const value=await pluginRequest(c.req.raw);if(value instanceof Response)return value;
+  const result=await createPluginCode(c.env.DB,session,value);c.header("Pragma","no-cache");return c.json(result as object,201);
+ });
+ app.post("/api/v001/plugin-codes/:pluginCodeId/rotation-candidates",async c=>{
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,session,true);
+  const value=await pluginRequest(c.req.raw);if(value instanceof Response)return value;
+  const result=await createPluginCode(c.env.DB,session,value,c.req.param("pluginCodeId"),c.req.header("If-Match")??null);
+  c.header("Pragma","no-cache");return c.json(result as object,201);
+ });
+ app.patch("/api/v001/plugin-codes/:pluginCodeId",async c=>{
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,session,true);
+  const value=await pluginRequest(c.req.raw,true);if(value instanceof Response)return value;
+  const result=await changePluginCode(c.env.DB,session,c.req.param("pluginCodeId"),c.req.header("If-Match")??null,value);
+  c.header("ETag",pluginCodeEtag(result.pluginCodeId,result.revision));return c.json(result);
+ });
+ app.patch("/api/v001/plugin-codes/:pluginCodeId/rotation-candidates/:candidateId",async c=>{
+  const session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,session,true);
+  const value=await pluginRequest(c.req.raw);if(value instanceof Response)return value;
+  const result=await changePluginCode(c.env.DB,session,c.req.param("pluginCodeId"),c.req.header("If-Match")??null,value,c.req.param("candidateId"));
+  c.header("ETag",pluginCodeEtag(result.pluginCodeId,result.revision));return c.json(result);
  });
  app.get("/api/v001/admin/session",async c=>{const s=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);return c.json({schemaVersion:1,sessionId:s.sessionId,revision:s.revision,sessionSetRevision:s.sessionSetRevision,createdAt:timestamp(s.createdAtUs),recentAuthenticationAt:timestamp(s.recentAtUs),lastActivityAt:timestamp(s.lastActivityUs),expiresAt:timestamp(s.expiresAtUs),csrfToken:s.csrfToken});});
  app.post("/api/v001/admin/session/reauthentication",async c=>{const s=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,s);await admission(c.req.raw,c.env,"start");return c.json({schemaVersion:1,...await startLogin(c.env.DB,s)},201);});

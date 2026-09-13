@@ -56,6 +56,8 @@ production-evidence verification; full production conformance remains incomplete
 The later [production dispatcher checkpoint](docs/research/2026-09-13-production-dispatch-integration.md)
 connects the real coordinator, signed transport, shared D1 reservations and
 result policy. It records the remaining rotation decision and release work.
+The [Plugin Code lifecycle checkpoint](docs/research/2026-09-13-plugin-code-rotation-integration.md)
+records the accepted rotation routes, their implementation and one-time transfer UI.
 
 The [hosted clock investigation](docs/research/2026-09-11-workers-preflight-clock.md)
 records the native timer blind interval and the private timing profile accepted

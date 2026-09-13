@@ -2,3 +2,7 @@
 dialog{border:0;border-radius:16px;max-width:520px;padding:28px}dialog input{display:block;width:100%;padding:12px;margin:16px 0}dialog::backdrop{background:#172c3b88}.session-actions{display:flex;gap:12px;align-items:center}#google-reauth{margin:16px 0}
 
 .login-page{display:grid;place-items:center;min-height:100vh;width:100%;padding:24px}.login-card{width:min(560px,100%);background:white;padding:36px;border-radius:20px;box-shadow:0 12px 42px #1b354414}.login-card h1{font-size:32px}.login-card p{line-height:1.6;color:#52616a}#session-list{padding-left:20px;max-height:50vh;overflow:auto}#session-list li{padding:8px 0;border-bottom:1px solid #e2e8ed}
+
+[hidden]{display:none!important}.transfer-checklist{display:grid;gap:.65rem;margin:1rem 0}.transfer-checklist label{display:flex;gap:.6rem;align-items:flex-start;font-size:.95rem}.transfer-checklist input{width:auto;flex:none}.one-time-code{display:block;font-size:1.2rem;line-height:1.8;padding:1rem;background:#f1f5f9;border-radius:8px;overflow-wrap:anywhere;margin:1rem 0;font-variant-ligatures:none}.code-records{display:grid;gap:1rem;margin:1rem 0}.code-records label{display:block;margin:.8rem 0}.code-records label input{width:auto}nav button{text-align:left;width:100%;margin:.2rem 0}#installation-label{display:block;max-width:28rem;margin:.5rem 0}
+
+#installation-label{width:min(100%,28rem);padding:.7rem .8rem;border:1px solid #cbd5e1;border-radius:8px;font:inherit;background:white}#installation-label:disabled{background:#f1f5f9}

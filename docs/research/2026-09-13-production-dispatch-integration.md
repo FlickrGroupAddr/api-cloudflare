@@ -2,6 +2,11 @@
 
 Date: 2026-09-13
 
+Continuation: Terry subsequently accepted ADR 0049 on the same date. See the
+[rotation integration checkpoint](2026-09-13-plugin-code-rotation-integration.md)
+for the resolved decision and implementation; the history below describes this
+earlier checkpoint.
+
 Status: Local implementation checks passed. Full production conformance remains
 incomplete and requires the outstanding Plugin Code rotation decision. Real
 Flickr group adds remain disabled in the deployment template.

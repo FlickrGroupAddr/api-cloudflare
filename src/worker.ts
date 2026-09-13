@@ -1,3 +1,4 @@
+import {expirePluginCodeCandidates} from "./plugin_codes.ts";
 export {PartitionWorker} from "./dispatch_worker.ts";
 import {createAdmin,maintainNativeCredentials,type AdminEnv} from "./admin_api.ts";
 import {refreshGoogleKeys} from "./google_identity.ts";
@@ -21,12 +22,16 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
     const path = safePath(request.url);
     if (path === null) return errorResponse(400,"invalid_request","Invalid request target.");
     if(path==="/admin/login"||path==="/admin/google-login"||path==="/admin/flickr-oauth/callback")return createAdmin(flickrFetch).fetch(request,env);
-    const route = ROUTES.find(r => r.pathPattern === path || (r.pathPattern==="/api/v001/admin/sessions/{sessionId}/revocation" && /^\/api\/v001\/admin\/sessions\/[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}\/revocation$/.test(path)));
+    const candidates=ROUTES.filter(route=>{
+      const pattern=route.pathPattern.split("/").map(part=>part.startsWith("{")?"[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}":part).join("/");
+      return new RegExp("^"+pattern+"$").test(path);
+    });
+    const route=candidates.find(route=>route.method===request.method)??candidates[0];
     if (route) {
       if (request.method !== route.method) {
-        const reply=errorResponse(405,"method_not_allowed","Method not allowed."); reply.headers.set("Allow",route.method); return reply;
+        const reply=errorResponse(405,"method_not_allowed","Method not allowed."); reply.headers.set("Allow",[...new Set(candidates.map(r=>r.method))].sort().join(", ")); return reply;
       }
-      if(route.handler==="admin")return createAdmin(flickrFetch).fetch(request,env);
+      if(route.handler==="admin"||route.handler==="plugin_code")return createAdmin(flickrFetch).fetch(request,env);
       if (route.handler==="current" ? env.FGA_READ_ENABLED !== "1" : !configured(env)) return errorResponse(503,"service_unavailable","Service unavailable.");
       const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,route.handler==="current"?"empty":"json");
       if(result instanceof Response)return result;
@@ -36,12 +41,12 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
       return route.handler==="batch"?batchRequest(env,auth,value,hint=>publishNativeHint(env,hint)):bindingRequest(env,auth,value,flickrFetch);
     }
     if(path==="/admin/"||path==="/admin/google-client.json"||path==="/admin/signed-out")return createAdmin(flickrFetch).fetch(request,env);
-    if(["/admin/app.mjs","/admin/model.mjs","/admin/styles.css"].includes(path)&&request.method==="GET"&&env.FGA_ADMIN_ENABLED==="1"&&env.ASSETS){const response=await env.ASSETS.fetch(new Request(new URL(path,request.url)));const headers=new Headers(response.headers);headers.set("Cache-Control","no-store");headers.set("X-Content-Type-Options","nosniff");return new Response(response.body,{status:response.status,headers});}
+    if(["/admin/app.mjs","/admin/model.mjs","/admin/styles.css","/admin/plugin-codes-ui.mjs","/admin/plugin-code-transfer.mjs"].includes(path)&&request.method==="GET"&&env.FGA_ADMIN_ENABLED==="1"&&env.ASSETS){const response=await env.ASSETS.fetch(new Request(new URL(path,request.url)));const headers=new Headers(response.headers);headers.set("Cache-Control","no-store");headers.set("X-Content-Type-Options","nosniff");return new Response(response.body,{status:response.status,headers});}
     // No API, health, unknown path, or method falls back to an asset shell.
     return errorResponse(404,"not_found","Resource not found.");
   },
   async scheduled(_event:ScheduledController,env:Env):Promise<void> {
-    if(env.FGA_ADMIN_ENABLED==="1"){await refreshGoogleKeys(env.DB,flickrFetch);await cleanupAuthentication(env.DB);await maintainNativeCredentials(env,flickrFetch);}
+    if(env.FGA_ADMIN_ENABLED==="1"){await refreshGoogleKeys(env.DB,flickrFetch);await cleanupAuthentication(env.DB);await expirePluginCodeCandidates(env.DB);await maintainNativeCredentials(env,flickrFetch);}
     if(!configured(env)||!env.COORD)return;
     for(const hint of await duePartitions(env.DB)){try{await publishNativeHint(env,hint,"sweep");}catch{/* Durable due work remains authoritative. */}}
   },
