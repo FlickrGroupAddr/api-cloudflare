@@ -99,11 +99,15 @@ version tradeoff. Keep npm on a compatible stable release.
 
 ## Git workflow
 
-Terry gave Codex standing authorization on 2026-09-06 for all remote pushes of
-validated, in-scope project work. Commit and push the current branch without
-asking again. This does not authorize force-pushing, changing another
-repository's visibility, publishing a package or release, or including unrelated
-work.
+Terry reaffirmed the standing order on 2026-09-12: "all commits and pushes are
+approved at all times." This continues the 2026-09-06 authorization. Commit and
+push validated, in-scope project work to the current branch without asking for
+commit, push, or publication approval again, including pushes to this existing
+public implementation repository. The authorization remains in effect across
+turns and sessions unless Terry changes it. Preserve unrelated changes and keep
+credentials and private data out of commits. This does not authorize
+force-pushing, changing repository visibility, or publishing packages or
+releases.
 
 ## Local swimlane board
 
