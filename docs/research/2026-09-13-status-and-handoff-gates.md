@@ -64,22 +64,27 @@ missing production evidence. It remains an evidence verifier, not a substitute
 for the unfinished full runner and CI promotion wiring. See the
 [sanitized evidence](../evidence/status-and-rotation-integration-2026-09-13.json).
 
-## Current owner handoff
+## Current deployment handoff
 
-The read-only `uv run --frozen python -m scripts.deployment_readiness` check
-confirms that the destination Cloudflare account still has no
-`flickrgroupaddr.com` zone. The source zone exists, but both DNS-record and
-DNSSEC reads return HTTP 403 with the existing source profile. Authentication
-works; repeating the login flow will not supply those missing permissions.
-No DNS record, nameserver, production resource or Flickr grant was changed.
+The owner completed the approved DNS move later on 2026-09-13. The destination
+zone is active; both checked public resolvers return `norah.ns.cloudflare.com`
+and `valentin.ns.cloudflare.com`. The read-only readiness report at
+`2026-09-13T21:59:17Z` confirms account/delegation readiness. Registrar DNSSEC is
+not configured. The prior target-zone-missing owner step is resolved; the later
+registrar transfer remains independent.
 
-The next owner input is the old account's zone export and current DNSSEC/settings,
-or completion of the already-approved account/zone move on #0016. Follow the
-[DNS/account procedure](../operations/fga-domain-account-move.md). The registrar
-transfer tracked by #0019 is separate and does not delay this DNS work.
+The existing Wrangler profile still accesses Worker, D1 and Secrets Store
+inventories. DNS-record and certificate inspection each return 403, so a
+separate zone-restricted read token was requested. Existing credential input
+files are available. See the updated
+[DNS/account procedure](../operations/fga-domain-account-move.md) for current
+access evidence and the exact two read permissions. No repeat operator login or
+Google owner setup is required to continue engineering work.
 
-After that input, finish the exact destination configuration and continue the
-remaining hosted lifecycle/status/bypass, process/deployment-stop, current-schema
-restore/reconciliation and complete conformance/promotion work. The production
-UI still needs the real owner's Google/Flickr browser smoke check. Do not treat
-these local results or the accepted ADR as permission to enable real group adds.
+The apex is not yet connected to a Worker. Finish the exact destination
+configuration and continue hosted lifecycle/status/bypass, process/deployment-
+stop, current-schema restore/reconciliation and complete conformance/promotion
+work. The production UI still needs the real owner's Google/Flickr browser
+validation after deployment. Independent implementation and preparation can
+continue while the read token is supplied. DNS activation and these local
+results do not authorize enabling real group adds.
