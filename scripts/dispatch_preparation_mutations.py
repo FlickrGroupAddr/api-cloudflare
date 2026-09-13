@@ -24,11 +24,16 @@ def main() -> int:
             path = work / "src/fail_polite.ts"
             source = path.read_text(encoding="utf-8")
             old = "  try {prepared=await deps.transport.prepareAdd(attempt);}"
-            marker = '  await record(db,lease,attempt,"marker");\n  if(deps.fault)'
+            marker = (
+                '  await record(db,lease,attempt,"marker",0,reservation.id??null);\n'
+                "  if(deps.fault)"
+            )
             if source.count(old) != 1 or source.count(marker) != 1:
                 raise RuntimeError("Preparation mutation anchor is not unique")
             source = source.replace(marker, "  if(deps.fault)")
-            source = source.replace(old, '  await record(db,lease,attempt,"marker");\n' + old)
+            source = source.replace(
+                old, '  await record(db,lease,attempt,"marker",0,reservation.id??null);\n' + old
+            )
             path.write_text(source, encoding="utf-8", newline="\n")
         result = subprocess.run(
             ["node", "--test", "--test-reporter=tap", "tests/dispatch_transport.test.mjs"],

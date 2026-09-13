@@ -37,12 +37,7 @@ RUNS = ROOT / ".coordination-runs"
 PROBE = ROOT / "probes/coordination"
 Run = runtime.Run
 ProbeError = runtime.ProbeError
-MIGRATIONS = [
-    "0001_foundation.sql",
-    "0002_audit_component.sql",
-    "0003_submission_coordination.sql",
-    "0004_fail_polite_attempts.sql",
-]
+MIGRATIONS = [path.name for path in sorted((ROOT / "migrations").glob("*.sql"))]
 
 
 def hashes() -> dict[str, str]:

@@ -1,3 +1,4 @@
+export {PartitionWorker} from "./dispatch_worker.ts";
 import {createAdmin,maintainNativeCredentials,type AdminEnv} from "./admin_api.ts";
 import {refreshGoogleKeys} from "./google_identity.ts";
 import {cleanupAuthentication} from "./auth_admission.ts";
@@ -5,7 +6,7 @@ import { authenticate, credentialDigest, d1Lookup, errorResponse, jsonCurrent } 
 import { ROUTES } from "./registry.ts";
 import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
 import {duePartitions} from "./scheduling.ts";
-export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; }
+export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -42,7 +43,7 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
   async scheduled(_event:ScheduledController,env:Env):Promise<void> {
     if(env.FGA_ADMIN_ENABLED==="1"){await refreshGoogleKeys(env.DB,flickrFetch);await cleanupAuthentication(env.DB);await maintainNativeCredentials(env,flickrFetch);}
     if(!configured(env)||!env.COORD)return;
-    for(const hint of await duePartitions(env.DB)){try{await publishNativeHint(env,hint);}catch{/* Durable due work remains authoritative. */}}
+    for(const hint of await duePartitions(env.DB)){try{await publishNativeHint(env,hint,"sweep");}catch{/* Durable due work remains authoritative. */}}
   },
 } satisfies ExportedHandler<Env>;}
 export default createWorker();

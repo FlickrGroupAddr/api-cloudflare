@@ -1,7 +1,9 @@
 """Exact current-schema archives for quiescent, isolated databases.
 
-This codec never changes a database or reads credentials. The caller must stop
-all source writers and restore only to a new, unexposed target. Older-backup
+This codec does not mutate a database or access native-secret/input-file values.
+Archives contain private authentication state, including CSRF values, and must
+stay outside Git and logs. Stop all source writers and restore only to a new,
+unexposed target. Older-backup
 reconciliation and native-secret generation checks remain separate release gates.
 """
 

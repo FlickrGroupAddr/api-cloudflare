@@ -47,7 +47,7 @@ function peer(db, events, result=6) {
 
 function reservation(events) {
   const used = new Set();
-  return { consume(kind) { assert(!used.has(kind)); used.add(kind); events.push("consume:"+kind); },
+  return { async check(){return true;}, consume(kind) { assert(!used.has(kind)); used.add(kind); events.push("consume:"+kind); },
     releaseUnused() { events.push("release:"+(3-used.size)); } };
 }
 

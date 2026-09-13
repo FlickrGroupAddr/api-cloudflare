@@ -85,10 +85,11 @@ export async function consume(env:Fixture,ctx:DurableObjectState,partition:strin
   }return env.DB.batch(statements);
  }}:env.DB;
  return runPartition({db,transport:transport(env,config.peer_origin),monotonicUs:()=>mono,
+  retryDelayMs:()=>1000,
   async reserve(context) {
    await env.DB.prepare("INSERT INTO probe_reservations(attempt_id,slots) VALUES(?,3)").bind(context.attemptId).run();
    const consumed=new Set<string>();let released=false;
-   return {consume(operation){if(released||consumed.has(operation))throw new Error('invalid_reservation');consumed.add(operation);},
+   return {async check(){return true;},consume(operation){if(released||consumed.has(operation))throw new Error('invalid_reservation');consumed.add(operation);},
     releaseUnused(){if(released)throw new Error('double_release');released=true;}};
   },
   async fault(point:FaultPoint) {

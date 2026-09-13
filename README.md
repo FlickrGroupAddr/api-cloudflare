@@ -53,6 +53,9 @@ complete release conformance gate remain separate; real Flickr writes are disabl
 The [release preparation checkpoint](docs/research/2026-09-13-release-preparation.md)
 adds prepared signed transport, current-schema archive coverage and strict
 production-evidence verification; full production conformance remains incomplete.
+The later [production dispatcher checkpoint](docs/research/2026-09-13-production-dispatch-integration.md)
+connects the real coordinator, signed transport, shared D1 reservations and
+result policy. It records the remaining rotation decision and release work.
 
 The [hosted clock investigation](docs/research/2026-09-11-workers-preflight-clock.md)
 records the native timer blind interval and the private timing profile accepted

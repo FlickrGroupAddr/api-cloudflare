@@ -19,7 +19,7 @@ The current-schema archive codec derives its entire table/guard inventory from
 all production migrations. Unlike the historical scoped coordination archive,
 it rejects missing, extra or changed schema objects. Exact SQL literals preserve
 64-bit integers and NUL-bearing text before JSON transport; rows restore before
-allocation/audit triggers. Independent SQLite files round-trip all 28 current
+allocation/audit triggers. Independent SQLite files round-trip all 29 current
 domain tables, including revoked administrative sessions, consumed Google
 login transactions and pending Flickr OAuth/lifecycle retirement. This is local
 codec evidence, not a hosted D1 restore or reconciliation of post-backup facts.

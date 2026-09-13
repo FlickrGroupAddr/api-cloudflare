@@ -20,9 +20,9 @@ export async function jsonBody(request:Request):Promise<unknown|Response> {
  }catch{return errorResponse(400,"invalid_request","Invalid JSON request.");}
 }
 function json(body:unknown,status:number):Response {return Response.json(body,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"}});}
-export async function publishNativeHint(env:Pick<IntakeEnv,"COORD">,hint:WakeHint):Promise<void> {
+export async function publishNativeHint(env:Pick<IntakeEnv,"COORD">,hint:WakeHint,source:"admission"|"sweep"="admission"):Promise<void> {
  if(!env.COORD)throw new Error("wake_delivery_unavailable");
- const response=await env.COORD.get(env.COORD.idFromName(hint.partitionId)).fetch("https://internal.invalid/wake",{method:"POST",body:JSON.stringify({...hint,source:"admission"})});
+ const response=await env.COORD.get(env.COORD.idFromName(hint.partitionId)).fetch("https://internal.invalid/wake",{method:"POST",body:JSON.stringify({...hint,source})});
  if(!response.ok)throw new Error("wake_delivery_unconfirmed");
 }
 async function rejectionCode(env:IntakeEnv,auth:AdmissionAuth,value:unknown):Promise<string> {

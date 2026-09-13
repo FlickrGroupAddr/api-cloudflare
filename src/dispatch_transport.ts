@@ -1,3 +1,4 @@
+import { FlickrFailure } from "./dispatch_policy.ts";
 import OAuth from "oauth-1.0a";
 import type { AttemptContext, PreparedAdd, Transport } from "./fail_polite.ts";
 import { applicationEnvelope, hmac, readJson, type Application, type FlickrFetch,
@@ -32,6 +33,7 @@ function signed(method: Method, context: AttemptContext, pair: Pair, app: Applic
 }
 
 export function membershipPresent(value: Record<string, unknown>, groupId: string): boolean {
+  if(value.stat==="fail"&&typeof value.code==="number"&&Number.isSafeInteger(value.code))throw new FlickrFailure(value.code);
   if (value.stat !== "ok" || !Array.isArray(value.pool) || value.pool.length > 256)
     throw new DispatchTransportError();
   const ids = new Set<string>();
@@ -48,6 +50,7 @@ export function membershipPresent(value: Record<string, unknown>, groupId: strin
 
 export function moderationValue(value: Record<string, unknown>, groupId: string): 0 | 1 {
   const group = value.group;
+  if(value.stat==="fail"&&typeof value.code==="number"&&Number.isSafeInteger(value.code))throw new FlickrFailure(value.code);
   if (value.stat !== "ok" || !group || typeof group !== "object" || Array.isArray(group))
     throw new DispatchTransportError();
   const record = group as Record<string, unknown>;
