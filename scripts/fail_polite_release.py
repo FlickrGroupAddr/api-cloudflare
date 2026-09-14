@@ -53,6 +53,21 @@ MUTATIONS = (
 )
 MUTATION_CONTRACT_SHA2_256 = "8b0f65212f10f3e29ac310abdd62a81d93af45438d1fbaa901e40aaed6b3b7f6"
 PROFILE = "adr-0056-private-workers-observed-time"
+RELEASE_INPUTS = (
+    "src",
+    "migrations",
+    "assets",
+    "tests",
+    "probes",
+    "scripts",
+    ".github",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "wrangler.example.jsonc",
+    "pyproject.toml",
+    "uv.lock",
+)
 REQUIRED_ADAPTERS = (
     "production_worker",
     "production_migrations",
@@ -93,6 +108,16 @@ def inventory(contract: Path) -> tuple[list[str], str]:
     return sorted(ids), contract_digest
 
 
+def release_input_changes(root: Path = ROOT) -> str:
+    return subprocess.run(
+        ["git", "status", "--porcelain", "--", *RELEASE_INPUTS],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
 def validate(report: dict[str, Any], expected: dict[str, Any], ids: list[str]) -> list[str]:
     failures = []
     if (
@@ -110,6 +135,9 @@ def validate(report: dict[str, Any], expected: dict[str, Any], ids: list[str]) -
     if (
         not isinstance(engine, dict)
         or engine.get("provider") != "cloudflare-d1"
+        or engine.get("versionKind") != "sqlite-library"
+        or not isinstance(engine.get("version"), str)
+        or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?", engine["version"]) is None
         or not all(
             isinstance(engine.get(key), str) and engine[key] not in {"", "unknown", "unavailable"}
             for key in ("version", "runtime", "migrationHead")
@@ -199,25 +227,12 @@ def main() -> int:
         source = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, capture_output=True, text=True
         ).stdout.strip()
-        dirty = subprocess.run(
-            [
-                "git",
-                "status",
-                "--porcelain",
-                "--",
-                "src",
-                "migrations",
-                "package.json",
-                "package-lock.json",
-                "tsconfig.json",
-            ],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
+        dirty = release_input_changes()
         if dirty.strip():
-            raise ValueError("Production inputs must be committed before release verification")
+            raise ValueError(
+                "Production, asset, harness and workflow inputs must be committed "
+                "before release verification"
+            )
         contract = schema_contract()
         expected = {
             "releaseCommit": source,

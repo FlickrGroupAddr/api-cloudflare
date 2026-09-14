@@ -1,0 +1,46 @@
+{
+  "recordedOn": "2026-09-14",
+  "scope": "Release prerequisite and verifier hardening; not full production conformance",
+  "releaseEligible": false,
+  "contractSha2_256": "8b0f65212f10f3e29ac310abdd62a81d93af45438d1fbaa901e40aaed6b3b7f6",
+  "requiredCaseCount": 56,
+  "requiredMutationCount": 28,
+  "managedEngineObservation": {
+    "checkedAt": "2026-09-14T11:46:08.528048+00:00",
+    "readOnly": true,
+    "httpStatus": 400,
+    "errors": [
+      {
+        "code": 7500,
+        "message": "not authorized to use function: sqlite_version at offset 7: SQLITE_ERROR"
+      }
+    ],
+    "providerVersionField": "production"
+  },
+  "decision": {
+    "id": "ADR0058",
+    "status": "Proposed",
+    "architectureCommit": "6dc2138"
+  },
+  "verification": {
+    "pythonTestsPassed": 104,
+    "nodeTestsPassed": 107,
+    "nativeTypeScript": "passed",
+    "generatedApiCheck": "passed",
+    "changedPythonPyright": "passed",
+    "changedPythonRuff": "passed"
+  },
+  "completed": [
+    "Reject provider generation tags as SQLite-library versions",
+    "Require committed production assets, harnesses and workflows in release input scope"
+  ],
+  "remaining": [
+    "Full 56-case and 28-mutation production runner",
+    "Independent process-stop and deployment-restart adapters",
+    "Hosted current-schema restore and post-backup protection/revocation reconciliation",
+    "Complete production path and global Flickr budget integration coverage",
+    "CI promotion and exact-artifact evidence publication"
+  ],
+  "liveGroupWritesEnabled": false,
+  "cloudResourcesMutatedByThisWork": false
+}

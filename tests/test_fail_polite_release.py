@@ -1,7 +1,11 @@
 """Promotion rejects partial probes, omitted cases, weak mutations and stale artifacts."""
 
 import copy
+import os
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 from scripts import fail_polite_release as gate
 
@@ -24,7 +28,8 @@ class ReleaseGateTests(unittest.TestCase):
             "clockProfile": gate.PROFILE,
             "databaseEngine": {
                 "provider": "cloudflare-d1",
-                "version": "test-version",
+                "version": "3.50.0",
+                "versionKind": "sqlite-library",
                 "runtime": "test-runtime",
                 "migrationHead": "migration.sql",
             },
@@ -74,6 +79,19 @@ class ReleaseGateTests(unittest.TestCase):
         ):
             self.assertTrue(self.check({**self.report, **change}))
 
+    def test_provider_generation_and_tool_versions_are_not_engine_provenance(self):
+        for patch in (
+            {"version": "production"},
+            {"version": "alpha"},
+            {"version": "unavailable"},
+            {"versionKind": "wrangler"},
+            {"versionKind": "miniflare"},
+            {"versionKind": None},
+        ):
+            report = copy.deepcopy(self.report)
+            report["databaseEngine"].update(patch)
+            self.assertIn("real_database_provenance_required", self.check(report))
+
     def test_missing_duplicate_skipped_extra_and_failed_cases(self):
         for cases in (
             self.report["cases"][:-1],
@@ -108,6 +126,55 @@ class ReleaseGateTests(unittest.TestCase):
             report = copy.deepcopy(self.report)
             report["mutations"][0].update(change)
             self.assertTrue(self.check(report))
+
+
+class ReleaseInputTests(unittest.TestCase):
+    def test_real_git_detects_uncommitted_assets_harness_and_workflow(self):
+        with tempfile.TemporaryDirectory(prefix="fga-release-input-") as directory:
+            root = Path(directory).resolve()
+            self.assertTrue(root.is_relative_to(Path(tempfile.gettempdir()).resolve()))
+            env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", *args], cwd=root, env=env, check=True, capture_output=True, text=True
+                )
+
+            git("init")
+            hooks = root / "empty-hooks"
+            hooks.mkdir()
+            files = [
+                "src/worker.ts",
+                "assets/app.mjs",
+                "tests/case.mjs",
+                "scripts/runner.py",
+                ".github/workflows/release.yml",
+            ]
+            for name in files:
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("baseline\n", encoding="utf-8")
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=FGA Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "core.hooksPath=" + str(hooks),
+                "commit",
+                "-m",
+                "test baseline",
+            )
+            self.assertEqual(gate.release_input_changes(root), "")
+            for name in files[1:]:
+                (root / name).write_text("changed\n", encoding="utf-8")
+                self.assertIn(name, gate.release_input_changes(root))
+            extra = root / "tests/new-case.mjs"
+            extra.write_text("new\n", encoding="utf-8")
+            self.assertIn("tests/new-case.mjs", gate.release_input_changes(root))
 
 
 if __name__ == "__main__":
