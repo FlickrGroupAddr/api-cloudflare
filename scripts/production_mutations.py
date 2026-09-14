@@ -106,10 +106,19 @@ spec(
     "core",
     "FP-MEM-006",
     ("src/flickr_rate.ts", "reserved_slots+3<=capacity", "reserved_slots+1<=capacity"),
+    ("src/flickr_rate.ts", "reserved_slots=reserved_slots+3", "reserved_slots=reserved_slots+1"),
     (
         "src/flickr_rate.ts",
-        "reserved_slots=reserved_slots+3",
-        "reserved_slots=reserved_slots+MIN(3,capacity-reserved_slots)",
+        "    ]);\n  } catch { return null; }",
+        (
+            "    ]);\n    for(let slot=1;slot<3;slot++)await db.batch([\n      "
+            "sql(`INSERT INTO transaction_guards(transaction_id,approved) VAL"
+            "UES(?7,\n        EXISTS(SELECT 1 FROM flickr_rate_window WHERE si"
+            'ngleton=1 AND reserved_slots+1<=capacity))`),\n      sql("UPDATE '
+            "flickr_rate_window SET reserved_slots=reserved_slots+1 WHERE sin"
+            'gleton=1"),\n      sql("DELETE FROM transaction_guards WHERE tran'
+            'saction_id=?7"),\n    ]);\n  } catch { return null; }'
+        ),
     ),
 )
 spec(
@@ -134,8 +143,12 @@ spec(
 spec(
     "wrong_clock_profile",
     "core",
-    "FP-PRE-007",
-    (WORKER, "hooks?.monotonicUs??(()=>Date.now()*1000)", "(()=>Date.now()*1000)"),
+    "FP-PRE-010",
+    (
+        WORKER,
+        "(()=>Date.now()*1000)",
+        "(()=>{const captured=Date.now()*1000;return ()=>captured;})()",
+    ),
 )
 spec(
     "invalid_age_accepted",
@@ -173,15 +186,11 @@ spec(
 spec(
     "intervening_flickr_operation",
     "core",
-    "FP-MEM-001",
+    "FP-PRE-004",
     (
         TRANSPORT,
-        "      const moderated = moderationValue(",
-        (
-            '      await readJson(signed("flickr.photos.getAllContexts", cont'
-            "ext, pair, app), fetcher);\n      const moderated = moderationVal"
-            "ue("
-        ),
+        'if (phase !== "new") throw new DispatchTransportError();',
+        'if (phase !== "new" && phase !== "preflight") throw new DispatchTransportError();',
     ),
 )
 spec(
@@ -413,7 +422,7 @@ def main():
     control = {}
     control_artifacts = set()
     for section in sorted({SPECS[name][0] for name in names}):
-        code, data, _ = invoke(baseline, section)
+        code, data, _ = invoke(baseline, section, SPECS[names[0]][1] if len(names) == 1 else None)
         if code:
             raise RuntimeError("unmutated_production_control_failed")
         control_artifacts.add(data["artifactSha2_256"])

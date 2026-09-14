@@ -1065,13 +1065,20 @@ def core_cases(matrix: Matrix) -> None:
         ),
         [case.intent],
     )[0]["reason"]
-    matrix.check(
-        "FP-PRE-010",
+    manual_expired = (
         state["state"] == "retrying"
         and state["add_dispatch_count"] == 0
         and reason == "not_dispatched_preflight_expired"
         and not any(x["method"] == "flickr.groups.pools.add" for x in calls)
-        and count(case, "submission_blocks") == 0,
+        and count(case, "submission_blocks") == 0
+    )
+    case, _, state, calls = execute("FP-PRE-010-default-clock", realClock=True)
+    matrix.check(
+        "FP-PRE-010",
+        manual_expired
+        and state["state"] == "retrying"
+        and state["add_dispatch_count"] == 0
+        and not any(x["method"] == "flickr.groups.pools.add" for x in calls),
     )
     ok = True
     for age in (-1, "NaN", "Infinity"):

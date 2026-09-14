@@ -97,14 +97,17 @@ export default {
    const fault=async point=>{
     seen.push(point);phases.set(input.partitionId,point);
     if(point==="preflight_committed")clock=input.beforeAge??0;
-    if(point==="marker_committed")clock=input.afterAge??input.beforeAge??0;
+    if(point==="marker_committed"){
+     clock=input.afterAge??input.beforeAge??0;
+     if(input.realClock){await new Promise(resolve=>setTimeout(resolve,1100));await original.prepare("SELECT 1").first();}
+    }
     if(input.gateChange===point)await original.prepare("UPDATE flickr_write_gates SET revision=revision+1 WHERE scope='deployment'").run();
     if(input.stop===point)throw new Error("matrix_boundary_stop");
     if(input.hold===point)await new Promise(()=>{});
    };
    try{
     const result=await consumePartition({...env,DB:database,FGA_DISPATCH_ENABLED:"1"},input.partitionId,input.revision??null,input.source??"hint",
-      req=>{phases.set(input.partitionId,"provider_handoff");return fetch(req);},{fault,monotonicUs:()=>clock,
+      req=>{phases.set(input.partitionId,"provider_handoff");return fetch(req);},{fault,monotonicUs:input.realClock?undefined:()=>clock,
        transport:original=>({...original,
         async preflight(context){const value=await original.preflight(context);if(input.intervene)await original.membership(context);return value;},
         async prepareAdd(context){const prepared=await original.prepareAdd(context);if(input.proveNotSent)prepared.dispose();return prepared;}}),

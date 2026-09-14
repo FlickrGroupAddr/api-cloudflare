@@ -27,7 +27,7 @@ export default {
      markerAt=Date.now();
      if(input.delayAfterMarker){await new Promise(resolve=>setTimeout(resolve,1100));await env.DB.prepare("SELECT 1").first();}
     }
-   },monotonicUs:()=>Date.now()*1000,
+   },
   });
   const state=await env.DB.prepare("SELECT state,add_dispatch_count FROM submission_intents WHERE partition_id=?").bind(input.partitionId).first();
   return Response.json({result,state,calls,markerAt,handoffAt,clockSource:"Date.now with native I/O refresh",compatibilityDate:"2026-09-11"});
