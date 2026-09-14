@@ -650,7 +650,9 @@ def collect(run, token, keys, admin_only=False):
     )
     report.check(
         "admin_signed_login",
-        status == 303,
+        status == 200
+        and isinstance(login_result, str)
+        and "/admin/login-complete.mjs" in login_result,
         httpStatus=status,
         errorCode=code
         if code
@@ -695,8 +697,13 @@ def collect(run, token, keys, admin_only=False):
             "oauth_verifier": "synthetic-verifier",
         }
     )
-    status, _, _ = client.call(callback)
-    report.check("native_oauth_callback", status == 303)
+    status, callback_page, _ = client.call(callback)
+    report.check(
+        "native_oauth_callback",
+        status == 200
+        and isinstance(callback_page, str)
+        and "/admin/login-complete.mjs" in callback_page,
+    )
     observe_native("grantObserved")
     status, _, _ = client.call("/proof/maintenance", {})
     report.check("native_reconciliation_handler", status == 200)

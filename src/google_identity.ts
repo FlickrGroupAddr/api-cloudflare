@@ -30,7 +30,8 @@ export async function refreshGoogleKeys(db:SqlStore,fetcher:FlickrFetch,force=fa
   await db.prepare(`UPDATE google_jwks_cache SET refresh_after_us=${NOW}+60000000,refresh_until_us=${NOW}+60000000,refresh_owner=NULL WHERE singleton=1 AND refresh_owner=?`).bind(owner).run();
  }
 }
-export async function validateGoogle(db:SqlStore,credential:string,audience:string,nonceDigest:string,fetcher:FlickrFetch):Promise<string>{
+export interface VerifiedGoogleIdentity {sub:string;email:string|null;emailVerified:boolean;}
+export async function validateGoogleIdentity(db:SqlStore,credential:string,audience:string,nonceDigest:string,fetcher:FlickrFetch):Promise<VerifiedGoogleIdentity>{
  try {
   if(!audience||credential.length>16384)throw new Error();
   const header=decodeProtectedHeader(credential);if(header.alg!=="RS256"||typeof header.kid!=="string"||header.kid.length>128||header.jku||header.jwk||header.x5u||header.crit)throw new Error();
@@ -43,8 +44,16 @@ export async function validateGoogle(db:SqlStore,credential:string,audience:stri
   }
   if(!current||current.expires_at_us<=current.now||!certs[header.kid])throw new Error();
   const ticket=await new OAuth2Client().verifySignedJwtWithCertsAsync(credential,certs,audience,["accounts.google.com","https://accounts.google.com"],86400);
-  const payload=ticket.getPayload() as unknown as {sub?:unknown;nonce?:unknown;exp?:unknown;iat?:unknown;nbf?:unknown;azp?:unknown};
+  const payload=ticket.getPayload() as unknown as {sub?:unknown;nonce?:unknown;exp?:unknown;iat?:unknown;nbf?:unknown;azp?:unknown;email?:unknown;email_verified?:unknown};
   if(!payload||typeof payload.sub!=="string"||payload.sub.length<1||payload.sub.length>255||typeof payload.nonce!=="string"||digest(payload.nonce)!==nonceDigest||typeof payload.exp!=="number"||payload.exp*1000000<=current.now||typeof payload.iat!=="number"||payload.iat*1000000>current.now+300000000||(payload.nbf!==undefined&&(typeof payload.nbf!=="number"||payload.nbf*1000000>current.now))||(payload.azp!==undefined&&payload.azp!==audience))throw new Error();
-  return payload.sub;
+  return {sub:payload.sub,email:typeof payload.email==="string"&&payload.email.length<=320?payload.email.toLowerCase():null,emailVerified:payload.email_verified===true||payload.email_verified==="true"};
  }catch{throw new BrowserAuthError("invalid_google_assertion");}
+}
+
+export async function validateGoogle(db:SqlStore,credential:string,audience:string,nonceDigest:string,fetcher:FlickrFetch):Promise<string>{return (await validateGoogleIdentity(db,credential,audience,nonceDigest,fetcher)).sub;}
+
+// Operator-only discovery reveals the caller's verified subject; it never grants access.
+export function ownerDiscoverySubject(identity:VerifiedGoogleIdentity,email:string|undefined,deadline:string|undefined,now=Date.now()):string|null{
+ const until=Number(deadline),remaining=until-now;
+ return identity.emailVerified&&identity.email!==null&&identity.email===email?.toLowerCase()&&Number.isSafeInteger(until)&&remaining>0&&remaining<=3600000&&/^[0-9]{10,30}$/.test(identity.sub)?identity.sub:null;
 }

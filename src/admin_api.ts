@@ -2,21 +2,27 @@ import {readSubmissionStatus,statusFailure} from "./submission_status.ts";
 import {PluginCodeError,createPluginCode,getPluginCode,listPluginCodes,changePluginCode,pluginCodeEtag} from "./plugin_codes.ts";
 import {sessionInventory,revokeSession,revokeOtherSessions} from "./session_inventory.ts";
 import {startFlickrOAuth,completeFlickrOAuth,retireOAuthSlot,observeOAuthRetirement,type OAuthSlots,FlickrOAuthError} from "./flickr_oauth.ts";
-import {Hono} from "hono";
+import {Hono,type Context} from "hono";
 import {html} from "hono/html";
 import {parse} from "cookie-es";
 import {timingSafeEqual} from "node:crypto";
 import {authenticateBrowser,enforceUnsafe,startLogin,finishLogin,logoutBrowser,digest,ADMIN_ORIGIN,BrowserAuthError} from "./browser_sessions.ts";
 import {admitAuthentication,finishAuthentication,sourceKey,AuthAdmissionError} from "./auth_admission.ts";
-import {validateGoogle} from "./google_identity.ts";
+import {validateGoogleIdentity,ownerDiscoverySubject} from "./google_identity.ts";
 import {connectionView,resumeWriteGate,beginLifecycle,dispatchLifecycle,reconcileLifecycle,LifecycleError} from "./native_lifecycle.ts";
 import {nativeWriter} from "./native_writer.ts";
 import {NOW_US_SQL as NOW,errorResponse} from "./installations.ts";
 import {jsonBody} from "./intake_api.ts";
 import type {FlickrFetch,SecretReads} from "./flickr_reads.ts";
-export interface AdminEnv extends SecretReads {ASSETS?:Fetcher;DB:D1Database;FGA_ADMIN_ENABLED?:string;FGA_ARTIFACT_SHA2_256?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_OWNER_SUB?:string;FGA_FLICKR_OWNER_NSID?:string;AUTH_LIMITER_KEY?:Pick<SecretsStoreSecret,"get">;NATIVE_WRITER_TOKEN?:Pick<SecretsStoreSecret,"get">;CF_ACCOUNT_ID?:string;CF_SECRET_STORE_ID?:string;CF_GRANT_SLOT_ID?:string;CF_OAUTH_SLOT_IDS?:string;FLICKR_TEMP_0?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_1?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_2?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_3?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_4?:Pick<SecretsStoreSecret,"get">;}
+export interface AdminEnv extends SecretReads {ASSETS?:Fetcher;DB:D1Database;FGA_ADMIN_ENABLED?:string;FGA_ARTIFACT_SHA2_256?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_OWNER_SUB?:string;GOOGLE_OWNER_DISCOVERY_EMAIL?:string;GOOGLE_OWNER_DISCOVERY_UNTIL?:string;FGA_FLICKR_OWNER_NSID?:string;AUTH_LIMITER_KEY?:Pick<SecretsStoreSecret,"get">;NATIVE_WRITER_TOKEN?:Pick<SecretsStoreSecret,"get">;CF_ACCOUNT_ID?:string;CF_SECRET_STORE_ID?:string;CF_GRANT_SLOT_ID?:string;CF_OAUTH_SLOT_IDS?:string;FLICKR_TEMP_0?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_1?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_2?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_3?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_4?:Pick<SecretsStoreSecret,"get">;}
 export const ADMIN_PATHS=["/admin/login","/admin/google-login","/admin/flickr-oauth/callback","/api/v001/admin/session","/api/v001/admin/session/reauthentication","/api/v001/admin/session/logout","/api/v001/admin/flickr-connection","/api/v001/admin/flickr-connection/disconnection"] as const;
 const timestamp=(us:number)=>new Date(us/1000).toISOString().replace("Z","000Z");
+type CompletionTarget="/admin/"|"/admin/?flickr=linked"|"/admin/?flickr=unconfirmed";
+function browserCompletion(c:Context<{Bindings:AdminEnv}>,target:CompletionTarget,title:string){
+ c.header("Cache-Control","no-store, no-transform");
+ c.header("Content-Security-Policy","default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+ return c.html(html`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><link rel="stylesheet" href="/admin/styles.css"><main class="login-page"><section class="login-card"><h1>${title}</h1><p>You will continue to administration automatically.</p><a data-auth-continue href="${target}">Continue to administration</a></section></main><script src="/admin/login-complete.mjs" defer></script></html>`);
+}
 export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
  const app=new Hono<{Bindings:AdminEnv}>();
  app.use("*",async(c,next)=>{
@@ -69,11 +75,20 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
   if(!expected||expected.length>256||supplied.length>256||expected.length!==supplied.length||!timingSafeEqual(Buffer.from(expected),Buffer.from(supplied)))throw new BrowserAuthError("invalid_google_assertion");
   const state=form.get("state")!;if(!/^[A-Za-z0-9_-]{43}$/.test(state))throw new BrowserAuthError("invalid_google_assertion");
   const tx=await c.env.DB.prepare(`SELECT nonce_digest FROM google_login_transactions WHERE state_digest=? AND consumed_at_us IS NULL AND expires_at_us>${NOW}`).bind(digest(state)).first<{nonce_digest:string}>();if(!tx)throw new BrowserAuthError("invalid_google_assertion");
-  const sub=await validateGoogle(c.env.DB,form.get("credential")!,c.env.GOOGLE_CLIENT_ID!,tx.nonce_digest,fetcher);
-  if(sub!==c.env.GOOGLE_OWNER_SUB)throw new BrowserAuthError("unauthorized");
+  const identity=await validateGoogleIdentity(c.env.DB,form.get("credential")!,c.env.GOOGLE_CLIENT_ID!,tx.nonce_digest,fetcher),sub=identity.sub;
+  if(sub!==c.env.GOOGLE_OWNER_SUB){
+   if(ownerDiscoverySubject(identity,c.env.GOOGLE_OWNER_DISCOVERY_EMAIL,c.env.GOOGLE_OWNER_DISCOVERY_UNTIL)!==null){
+    c.header("Cache-Control","no-store, no-transform");
+    c.header("Content-Security-Policy","default-src 'none'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+    return c.html(html`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Confirm administrator account</title><link rel="stylesheet" href="/admin/styles.css"><main class="login-page"><section class="login-card"><h1>Google account verified</h1><p>You selected the requested administrator account. Its saved account ID needs correcting before you can sign in.</p><p>Account ID (sub): <code>${sub}</code></p><p>Return this account ID to finish setup. No application session has been created.</p></section></main></html>`,401);
+   }
+   throw new BrowserAuthError("unauthorized");
+  }
   const cookie=await finishLogin(c.env.DB,{stateDigest:digest(state),nonceDigest:tx.nonce_digest,googleSub:sub,ownerSub:c.env.GOOGLE_OWNER_SUB!,ownerNsid:c.env.FGA_FLICKR_OWNER_NSID});
   try{await finishAuthentication(c.env.DB,cost);}catch{/* Conservatively retain the cost charge. */}
-  c.header("Set-Cookie",cookie);return c.redirect("/admin/",303);
+  c.header("Set-Cookie",cookie);
+  // A document ends Google's cross-site navigation before the Strict-cookie request.
+  return browserCompletion(c,"/admin/","Finishing sign-in");
  });
  async function pluginRequest(request:Request,mergePatch=false){
   if(new URL(request.url).search)throw new PluginCodeError("invalid_plugin_code_request");
@@ -146,12 +161,12 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
  app.get("/admin/flickr-oauth/callback",async c=>{
   const cost=await admission(c.req.raw,c.env,"callback");
   const query=new URL(c.req.url).searchParams;const keys=[...query.keys()].sort();
-  if(keys.join()!=="oauth_token,oauth_verifier,state")return c.redirect("/admin/?flickr=unconfirmed",303);
+  if(keys.join()!=="oauth_token,oauth_verifier,state")return browserCompletion(c,"/admin/?flickr=unconfirmed","Returning to administration");
   const allowed=await c.env.DB.prepare("SELECT 1 FROM flickr_oauth_transactions t JOIN admin_principals p ON p.user_id=t.user_id WHERE t.state_digest=? AND p.google_sub=?").bind(digest(query.get("state")??""),c.env.GOOGLE_OWNER_SUB).first();
-  if(!allowed)return c.redirect("/admin/?flickr=unconfirmed",303);
+  if(!allowed)return browserCompletion(c,"/admin/?flickr=unconfirmed","Returning to administration");
   const config=oauthInfrastructure(c.env,fetcher);const success=await completeFlickrOAuth(c.env.DB,query.get("state")!,query.get("oauth_token")!,query.get("oauth_verifier")!,c.env,config.slots,config.grant,fetcher,c.env.GOOGLE_OWNER_SUB);
   if(success){try{await finishAuthentication(c.env.DB,cost);}catch{}}
-  return c.redirect(success?"/admin/?flickr=linked":"/admin/?flickr=unconfirmed",303);
+  return browserCompletion(c,success?"/admin/?flickr=linked":"/admin/?flickr=unconfirmed","Finishing Flickr connection");
  });
 
 

@@ -128,3 +128,14 @@ Full 56-case/28-mutation production conformance, hosted restore/reconciliation,
 process-stop and promotion work remain incomplete. The initial deployment and
 login rendering checks do not establish those gates. Registrar-transfer work
 remains separate. The owner has not requested an overnight automation.
+
+## Morning continuation - 2026-09-14
+
+The saved subject was checked against the original setup value and matches.
+One matching administrator/session already exists. The independent browser test
+reproduced a Strict-cookie redirect problem; callback completion is repaired and
+validated. A targeted, time-limited owner-ID check is prepared for the explicitly
+requested personal account. See the
+[current recovery handoff](2026-09-14-owner-login-recovery.md) before changing an
+identity or asking for another sign-in. Existing principal identity guards and
+history must be preserved. The owner subject has not yet been changed.
