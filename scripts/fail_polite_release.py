@@ -54,7 +54,7 @@ MUTATIONS = (
     "allow_block_deletion",
     "missing_sql_guard",
 )
-MUTATION_CONTRACT_SHA2_256 = "dd2d82c7580cd44a9bd9f8f6a00b853ce1e104134eb2b9890ec40e49d4460872"
+MUTATION_CONTRACT_SHA2_256 = "0cadf1da68a9a978d48975500bf8ee03a42fbf7b34c35c49a7b45692565970f5"
 PROFILE = "adr-0056-private-workers-observed-time"
 RELEASE_INPUTS = (
     ".gitattributes",

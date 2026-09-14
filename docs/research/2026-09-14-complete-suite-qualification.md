@@ -1,4 +1,4 @@
-# Complete suite qualification — 2026-09-14
+# Complete suite qualification â€” 2026-09-14
 
 Terry approved all recommendations following the explicit synthetic hosted restore
 request. That execution hold is resolved. #0018 and #0002 are In Progress for final
@@ -61,3 +61,21 @@ seeds passed locally. This does not dismantle a production guard.
 No live application deployment, production restore or real Flickr request occurs
 in this suite. Live dispatch stays disabled; the synthetic hosted endpoint uses
 an expiring bearer guard and is removed after each run.
+
+## Native adapter follow-up
+
+The first complete CI attempt stopped at the safe-retry/order case. The private
+native-secret bridge now uses standard service-binding fetch calls instead of
+custom RPC getters. Public routes stay disabled and each named entry point still
+reads one fixed native binding. A fresh hosted reproduction passed with zero
+native-read failures: two reads and no add in the rejected attempt, followed by
+fresh reads and one synthetic add on retry. Both cleanup checks passed.
+Failure receipts now retain sanitized case witnesses for diagnosis.
+
+The canonical test contract now records the executable repository/command,
+engine disclosure policy and CI artifact name required by its implementation
+section. No stable case, mutation or safety requirement changed. Its reviewed
+fingerprint, public mirror and runtime constant were synchronized together.
+Negative mutation controls run locally with production migrations and the same
+unmodified control module; the positive storage matrix uses managed D1. Those
+runtime scopes are explicit in the final receipt.

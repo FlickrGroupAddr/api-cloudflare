@@ -1,4 +1,4 @@
-"""Owned native secret fixtures and an RPC adapter for independent-process tests."""
+"""Owned native secret fixtures and an private service adapter for independent-process tests."""
 
 from __future__ import annotations
 
@@ -158,13 +158,15 @@ class NativeFixtures:
         bindings.append(
             {"binding": "WRITER", "store_id": self.store, "secret_name": "fga-native-writer"}
         )
+        bridge_source = self.proof.directory / "secret-bridge.mjs"
+        bridge_source.write_bytes((runtime.ROOT / "probes/release/secret-bridge.mjs").read_bytes())
         config = self.proof.directory / "native-bridge.json"
         bootstrap.save(
             config,
             {
                 "name": self.name,
                 "account_id": self.proof.operator.account_id,
-                "main": str(runtime.ROOT / "probes/release/secret-bridge.mjs"),
+                "main": str(bridge_source),
                 "compatibility_date": "2026-09-11",
                 "workers_dev": False,
                 "preview_urls": False,

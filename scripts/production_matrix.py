@@ -986,15 +986,26 @@ def core_cases(matrix: Matrix) -> None:
         and len(trace(case)) == 3,
     )
 
-    case, _, state, calls = execute("FP-PRE-004", intervene=True)
+    case, first_result, state, calls = execute("FP-PRE-004", intervene=True)
     ok = state["state"] == "retrying" and no_post(case, calls) and len(calls) == 2
+    first_witness = {
+        "result": first_result,
+        "state": state,
+        "methods": [x["method"] for x in calls],
+    }
     due(case)
     matrix.peer.calls = []
     matrix.peer.mode = {}
-    matrix.run(case)
+    second_result = matrix.run(case)
     matrix.check(
         "FP-PRE-004",
         ok and matrix.state(case)["state"] == "moderation_submitted" and len(trace(case)) == 3,
+        firstAttempt=first_witness,
+        secondAttempt={
+            "result": second_result,
+            "state": matrix.state(case),
+            "methods": [x["method"] for x in trace(case)],
+        },
     )
 
     case, _, state, calls = execute("FP-PRE-006", scopeMismatch=True)

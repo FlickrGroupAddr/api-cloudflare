@@ -59,6 +59,18 @@ def qualify(token_file: Path | None = None):
         shutil.copyfile(
             matrix.directory / "production-wrangler.json", output / "configuration.json"
         )
+    except Exception as error:
+        bootstrap.save(
+            output / "evidence.json",
+            {
+                "scope": "incomplete-run",
+                "fullConformancePassed": False,
+                "runStartedAt": started,
+                "failureType": type(error).__name__,
+                "cases": matrix.records,
+            },
+        )
+        raise
     finally:
         matrix.close()
     if matrix.proof.report.get("cleanupConfirmed") is not True:
@@ -116,6 +128,7 @@ def qualify(token_file: Path | None = None):
         "hostedRuntime": hosted,
         "adapterRuntime": {
             "independentProcess": "local-workerd",
+            "mutationRuntime": "local-workerd/D1; production migrations; same control artifact",
             "localCompatibilityDate": "2026-07-30",
             "storage": "hosted D1 and native Secrets Store",
             "hostedSupplementCompatibilityDate": "2026-09-11",

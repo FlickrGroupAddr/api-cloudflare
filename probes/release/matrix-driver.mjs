@@ -12,13 +12,14 @@ function observeDatabase(db) {
 }
 export default {
  async fetch(request, env) {
+  let nativeReadFailures=0;
   if(env.MATRIX_NATIVE_PROXY==="1"){
    const original=env;env={...env};
    for(const name of ["FLICKR_GRANT","NATIVE_WRITER_TOKEN",...Array.from({length:5},(_,i)=>"FLICKR_TEMP_"+i)]){
     env[name]={async get(){
      for(let attempt=0;;attempt++){
-      try{return await original[name].get();}
-      catch(error){if(attempt>=3||!String(error).includes("Network connection lost"))throw error;await new Promise(resolve=>setTimeout(resolve,100*(2**attempt)));}
+      try{const reply=await original[name].fetch(new Request("https://secret.invalid/read"));if(!reply.ok)throw new Error("native_secret_binding_http_failure");return await reply.text();}
+      catch(error){nativeReadFailures++;if(attempt>=3||!String(error).includes("Network connection lost"))throw error;await new Promise(resolve=>setTimeout(resolve,100*(2**attempt)));}
      }
     }};
    }
@@ -114,8 +115,8 @@ export default {
        reservation:original=>{let checks=0;return !original?null:{...original,
         check(context){checks++;return original.check(input.scopeMismatch&&checks===2?{...context,groupId:"wrong-scope"}:context);}}}
       });
-    return Response.json({result,seen,postMarkerAuthorityReads});
-   }catch{return Response.json({result:"boundary_stopped",seen,postMarkerAuthorityReads},{status:409});}
+    return Response.json({result,seen,postMarkerAuthorityReads,nativeReadFailures});
+   }catch{return Response.json({result:"boundary_stopped",seen,postMarkerAuthorityReads,nativeReadFailures},{status:409});}
   }
   if(input.action==="scheduled"){
    await production.scheduled({scheduledTime:Date.now(),cron:"* * * * *"},env);

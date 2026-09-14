@@ -319,3 +319,24 @@ The initial implementation must update this document with the concrete hosted
 repository path, command, database engine/version, and CI artifact name. Until
 then, project documents must continue to say that fail-polite conformance is
 specified but not executable or passed.
+
+## Executable implementation binding (2026-09-14)
+
+- Hosted repository: `FlickrGroupAddr/api-cloudflare`
+  (`https://github.com/FlickrGroupAddr/api-cloudflare`).
+- Locked, noninteractive command: `uv run --frozen python -m scripts.production_release_suite`.
+- Engine: managed Cloudflare D1. Each run records its fresh library-version
+  observation; an undisclosed version follows ADR0058 and is never replaced by
+  the provider generation label.
+- CI workflow: `Release validation`; retained artifact: `fail-polite-production-evidence`.
+  The artifact contains the sanitized exact-candidate receipt. Raw credentials,
+  provider logs and database snapshots are not uploaded.
+- Mutation adequacy uses isolated local D1 fixtures, production migrations and
+  the identical unmodified control artifact; positive storage cases use managed D1.
+- The independently stoppable adapter runs the production module against hosted
+  D1 and native Secrets Store. Its local runtime date is reported separately from
+  the same-module hosted Workers runtime and redeployment supplement.
+
+The suite is executable. A conformance pass is a property of a complete successful
+CI receipt for its recorded candidate, not of this document or component results.
+All requirements above, stable IDs and required mutations remain unchanged.
