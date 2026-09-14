@@ -10,7 +10,10 @@ Cloudflare D1 Time Travel is always on for the production storage backend and
 supports recovery to a chosen minute. Its retention is 7 days on Workers Free
 and 30 days on Workers Paid, with no additional history/restore charge. The
 observed database generation is `production`, which supports Time Travel. The
-account's Workers plan and exact available recovery window have not been checked.
+owner confirmed upgrading the account to Workers Paid on 2026-09-14. The
+project's documented Time Travel retention is therefore **30 days**. This records
+the owner's confirmation and the provider's plan limit; it does not claim a
+30-day-old bookmark was tested on this recently created database.
 
 Source checked 2026-09-14:
 [Cloudflare Time Travel and backups](https://developers.cloudflare.com/d1/reference/time-travel/).
@@ -53,5 +56,5 @@ the accepted contract requires writes to remain paused rather than guessing.
 
 Track that implementation and proof in #0018; see the
 [release handoff](../research/2026-09-14-foundation-release-handoff.md).
-No production restore, paid-plan change, scheduled export, or write-enable was
-performed while answering the backup question.
+The owner performed the Workers Paid upgrade. Codex did not perform a production
+restore, scheduled export, or write-enable while documenting this decision.

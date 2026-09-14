@@ -89,3 +89,6 @@ that the question be marked investigated and resolved. D1 automatic Time Travel
 meets that frequency requirement. No separate daily export job is required;
 the current-schema hosted restore/reconciliation proof remains part of #0018.
 See the [accepted backup baseline](../operations/d1-backup-and-recovery.md).
+
+Terry subsequently confirmed upgrading to Workers Paid on 2026-09-14. The
+backup baseline now records the paid plan's 30-day Time Travel retention.
