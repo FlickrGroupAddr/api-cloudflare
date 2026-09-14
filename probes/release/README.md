@@ -66,3 +66,9 @@ and the exact-module hosted runtime/redeployment supplement. The latter imports
 the unchanged optimized module and uses synthetic provider responses. Its endpoint
 has an expiring bearer guard and is removed after the run. Ordinary section runs
 remain partial. See [the qualification checkpoint](../../docs/research/2026-09-14-complete-suite-qualification.md).
+
+The manual `Native matrix diagnostic (not release qualification)` workflow runs a
+fixed partial case with the same hosted setup and provenance read. Its output is
+sanitized diagnostic evidence only; a successful diagnostic cannot replace the
+complete Release validation workflow. Failed cases record invocation phases,
+provider/native-read failures, call methods and durable resolution reasons.

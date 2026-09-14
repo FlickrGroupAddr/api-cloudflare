@@ -12,7 +12,7 @@ function observeDatabase(db) {
 }
 export default {
  async fetch(request, env) {
-  let nativeReadFailures=0;
+  let nativeReadFailures=0,providerFailures=0;
   if(env.MATRIX_NATIVE_PROXY==="1"){
    const original=env;env={...env};
    for(const name of ["FLICKR_GRANT","NATIVE_WRITER_TOKEN",...Array.from({length:5},(_,i)=>"FLICKR_TEMP_"+i)]){
@@ -108,15 +108,15 @@ export default {
    };
    try{
     const result=await consumePartition({...env,DB:database,FGA_DISPATCH_ENABLED:"1"},input.partitionId,input.revision??null,input.source??"hint",
-      req=>{phases.set(input.partitionId,"provider_handoff");return fetch(req);},{fault,monotonicUs:input.realClock?undefined:()=>clock,
+      req=>{phases.set(input.partitionId,"provider_handoff");return fetch(req).catch(error=>{providerFailures++;throw error;});},{fault,monotonicUs:input.realClock?undefined:()=>clock,
        transport:original=>({...original,
         async preflight(context){const value=await original.preflight(context);if(input.intervene)await original.membership(context);return value;},
         async prepareAdd(context){const prepared=await original.prepareAdd(context);if(input.proveNotSent)prepared.dispose();return prepared;}}),
        reservation:original=>{let checks=0;return !original?null:{...original,
         check(context){checks++;return original.check(input.scopeMismatch&&checks===2?{...context,groupId:"wrong-scope"}:context);}}}
       });
-    return Response.json({result,seen,postMarkerAuthorityReads,nativeReadFailures});
-   }catch{return Response.json({result:"boundary_stopped",seen,postMarkerAuthorityReads,nativeReadFailures},{status:409});}
+    return Response.json({result,seen,postMarkerAuthorityReads,nativeReadFailures,providerFailures});
+   }catch{return Response.json({result:"boundary_stopped",seen,postMarkerAuthorityReads,nativeReadFailures,providerFailures},{status:409});}
   }
   if(input.action==="scheduled"){
    await production.scheduled({scheduledTime:Date.now(),cron:"* * * * *"},env);

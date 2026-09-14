@@ -284,6 +284,7 @@ class Matrix:
         self.log = (self.directory / "runtime.private.log").open("w", encoding="utf-8")
         self.counter = 0
         self.records: list[dict[str, Any]] = []
+        self.invocations: list[tuple[Case, dict[str, Any]]] = []
         self.environment = environment
         self.stop_after: str | None = None
         self.url = ""
@@ -716,7 +717,14 @@ class Matrix:
         )
 
     def run(self, case: Case, **settings):
-        return self.control(action="run", partitionId=case.partition, **settings)
+        result = self.control(action="run", partitionId=case.partition, **settings)
+        calls = [
+            {key: call[key] for key in ("method", "signatureValid", "markerVisible") if key in call}
+            for call in self.peer.calls
+            if call.get("photo") == case.photo or call.get("group") == case.group
+        ]
+        self.invocations.append((case, {"result": result, "calls": calls}))
+        return result
 
     def state(self, case: Case):
         return self.sql(
@@ -727,6 +735,24 @@ class Matrix:
 
     def check(self, case_id: str, condition: bool, **detail):
         condition = condition and all(call["signatureValid"] for call in self.peer.calls)
+        if not condition:
+            diagnostics = []
+            for case, invocation in self.invocations:
+                if not case.user.startswith(case_id.lower()):
+                    continue
+                snapshot = dict(invocation)
+                try:
+                    snapshot["state"] = self.state(case)
+                    snapshot["resolution"] = self.sql(
+                        "SELECT r.outcome,r.reason FROM attempt_resolutions r "
+                        "JOIN submission_attempts a ON a.attempt_id=r.attempt_id "
+                        "WHERE a.intent_id=? ORDER BY a.ordinal DESC LIMIT 1",
+                        [case.intent],
+                    )
+                except Exception:
+                    snapshot["stateUnavailable"] = True
+                diagnostics.append(snapshot)
+            detail["diagnostics"] = diagnostics
         self.records.append(
             {
                 "id": case_id,
@@ -1645,6 +1671,7 @@ def main() -> int:
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--block-ids", nargs="*")
     parser.add_argument("--stop-after")
+    parser.add_argument("--provenance", action="store_true")
     parser.add_argument(
         "--section",
         choices=["core", "crash", "queue", "blocks", "smoke", "hosted-runtime", "all"],
@@ -1658,6 +1685,16 @@ def main() -> int:
     print("Private matrix run: " + str(matrix.directory), flush=True)
     try:
         matrix.start()
+        if args.provenance:
+            from scripts import d1_engine_provenance
+
+            if matrix.proof is None:
+                raise ValueError("hosted_provenance_requires_hosted_database")
+            observation = d1_engine_provenance.collect(
+                json.loads(Path(matrix.settings["wrangler"]).read_text()),
+                matrix.proof.operator.operator,
+            )
+            bootstrap.save(matrix.directory / "engine-observation.json", observation)
         if args.section == "hosted-runtime":
             from scripts.hosted_matrix_runtime import hosted_runtime
 
