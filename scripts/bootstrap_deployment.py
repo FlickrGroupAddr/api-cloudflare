@@ -119,6 +119,7 @@ class Bootstrap:
             headers={
                 "Authorization": "Bearer " + self.operator,
                 "Content-Type": "application/json",
+                "User-Agent": "FlickrGroupAddr-DeploymentOperator/1",
             },
             data=None if body is None else json.dumps(body).encode(),
         )

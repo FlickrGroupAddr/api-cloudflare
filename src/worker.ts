@@ -50,7 +50,7 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
       return route.handler==="batch"?batchRequest(env,auth,value,hint=>publishNativeHint(env,hint)):bindingRequest(env,auth,value,flickrFetch);
     }
     if(path==="/admin/"||path==="/admin/google-client.json"||path==="/admin/signed-out")return createAdmin(flickrFetch).fetch(request,env);
-    if(["/admin/login-complete.mjs","/admin/app.mjs","/admin/model.mjs","/admin/styles.css","/admin/plugin-codes-ui.mjs","/admin/plugin-code-transfer.mjs","/admin/submission-status-ui.mjs","/admin/submission-status-model.mjs"].includes(path)&&request.method==="GET"&&env.FGA_ADMIN_ENABLED==="1"&&env.ASSETS){const response=await env.ASSETS.fetch(new Request(new URL(path,request.url)));const headers=new Headers(response.headers);headers.set("Cache-Control","no-store");headers.set("X-Content-Type-Options","nosniff");return new Response(response.body,{status:response.status,headers});}
+    if(["/admin/connection-polling.mjs","/admin/login-complete.mjs","/admin/app.mjs","/admin/model.mjs","/admin/styles.css","/admin/plugin-codes-ui.mjs","/admin/plugin-code-transfer.mjs","/admin/submission-status-ui.mjs","/admin/submission-status-model.mjs"].includes(path)&&request.method==="GET"&&env.FGA_ADMIN_ENABLED==="1"&&env.ASSETS){const response=await env.ASSETS.fetch(new Request(new URL(path,request.url)));const headers=new Headers(response.headers);headers.set("Cache-Control","no-store");headers.set("X-Content-Type-Options","nosniff");return new Response(response.body,{status:response.status,headers});}
     // No API, health, unknown path, or method falls back to an asset shell.
     return errorResponse(404,"not_found","Resource not found.");
   },

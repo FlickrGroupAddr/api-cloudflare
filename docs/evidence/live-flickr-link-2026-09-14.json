@@ -1,0 +1,50 @@
+{
+  "deployedAt": "2026-09-14T11:29:27.083649+00:00",
+  "artifactSha2_256": "6f448c77c90894950f213d504c1a9472fafa4677ad7a91fef0050a6f1960450c",
+  "featureFlags": {
+    "FGA_READ_ENABLED": "0",
+    "FGA_ADMIN_ENABLED": "1",
+    "FGA_INTAKE_ENABLED": "0",
+    "FGA_DISPATCH_ENABLED": "0"
+  },
+  "personalOwnerLoginVerified": true,
+  "flickrConnectionVerified": true,
+  "temporaryOAuthRetirementVerified": true,
+  "change": "bounded visible pending-connection refresh",
+  "connection": [
+    {
+      "state": "linked",
+      "local_state": "available",
+      "verified_permission": "write",
+      "link_revision": 3,
+      "ownerAndRevisionMatch": 1
+    }
+  ],
+  "lifecycleOperations": [
+    {
+      "phase": "complete",
+      "count": 1
+    }
+  ],
+  "oauthTransactions": [
+    {
+      "phase": "retired",
+      "count": 1
+    }
+  ],
+  "writeGates": [
+    {
+      "scope": "deployment",
+      "enabled": 0
+    },
+    {
+      "scope": "user",
+      "enabled": 0
+    }
+  ],
+  "pollingTestsPassed": 3,
+  "nativeTypescriptPassed": true,
+  "ruffPassed": true,
+  "pyrightPassed": true,
+  "fullProductionReleaseConformance": false
+}

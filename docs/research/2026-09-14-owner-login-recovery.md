@@ -143,3 +143,12 @@ is currently unlinked; the next owner action is **Link Flickr**, complete the
 provider's authorization, and return to administration. Both write gates and
 actual group dispatch remain paused/disabled. See the
 [login confirmation](../evidence/personal-owner-login-2026-09-14.json).
+
+## Live Flickr integration complete
+
+The real Flickr link is verified, credential permission is write, the lifecycle
+operation is complete, and temporary OAuth payload retirement is confirmed.
+Both write gates remain paused. The Google/Flickr setup handoff is resolved;
+see the [current integration milestone](2026-09-14-live-flickr-link.md). Remaining
+full production release verification is engineering work, not another owner
+identity or DNS setup task.

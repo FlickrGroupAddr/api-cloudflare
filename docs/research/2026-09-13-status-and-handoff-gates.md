@@ -156,3 +156,12 @@ screen. Do not repeat identity discovery or switch Google accounts. The current
 owner handoff is Flickr authorization through **Link Flickr**, followed by
 connection validation. Follow the latest
 [recovery record](2026-09-14-owner-login-recovery.md). Group adds remain disabled.
+
+## Live Flickr integration complete
+
+The real Flickr link is verified, credential permission is write, the lifecycle
+operation is complete, and temporary OAuth payload retirement is confirmed.
+Both write gates remain paused. The Google/Flickr setup handoff is resolved;
+see the [current integration milestone](2026-09-14-live-flickr-link.md). Remaining
+full production release verification is engineering work, not another owner
+identity or DNS setup task.
