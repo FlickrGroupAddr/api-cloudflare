@@ -59,3 +59,14 @@ from an unavailable recovery source or assert that secret generations were teste
 
 No additional architecture exception is requested. These are explicit remaining
 implementation tasks in #0018, whose completion also controls rollup #0002.
+
+## Verified CI setup boundary
+
+The first real [GitHub Actions run](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/34859438245)
+at commit `42ffb00` successfully checked out the repository, configured Node/uv,
+and installed locked dependencies. It failed at the dedicated-credential check
+with exactly `FGA_CLOUDFLARE_CI_TOKEN` missing; the account variable was accepted.
+No hosted resource operation or release verification ran in that failed CI job.
+The [sanitized receipt](../evidence/ci-credential-handoff-2026-09-14.json) records
+that concrete boundary. Workflow syntax and dependency installation have therefore
+been exercised on the actual GitHub runner, not only inspected locally.

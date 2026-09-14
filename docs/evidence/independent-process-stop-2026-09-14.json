@@ -1,0 +1,34 @@
+{
+  "scope": "bounded local process-loss proof using production attempt implementation",
+  "fullConformancePassed": false,
+  "localCompatibilityDate": "2026-07-30",
+  "records": [
+    {
+      "entryPath": "hint",
+      "passed": true,
+      "actualProcessKill": true,
+      "cloudflareHostKill": false,
+      "fullConformancePassed": false,
+      "instanceChanged": true,
+      "processChanged": true,
+      "preservedMarker": true,
+      "recoveryBlocksPair": true,
+      "postCount": 1,
+      "cleanupConfirmed": true
+    },
+    {
+      "entryPath": "sweep",
+      "passed": true,
+      "actualProcessKill": true,
+      "cloudflareHostKill": false,
+      "fullConformancePassed": false,
+      "instanceChanged": true,
+      "processChanged": true,
+      "preservedMarker": true,
+      "recoveryBlocksPair": true,
+      "postCount": 1,
+      "cleanupConfirmed": true
+    }
+  ],
+  "productionArtifactTransportIntegrationComplete": false
+}

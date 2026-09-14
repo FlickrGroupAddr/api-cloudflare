@@ -1,0 +1,539 @@
+{
+  "schemaVersion": 1,
+  "kind": "fail-polite",
+  "environment": "cloudflare",
+  "productionConformance": false,
+  "collectedAt": "2026-09-14T14:57:12.290706+00:00",
+  "sourceHashes": {
+    "src/admin_api.ts": "1247e16e3e9c39dbbeed898e42c93877469f113efd67e73e0d8118fd3cb9816c",
+    "src/admin_registry.ts": "08f70ce7555c124b5345435c33d8c69e777b466cbbf0d1e47455c65aa8ed5513",
+    "src/admission.ts": "dda9480c0482426e8010181cd713b90b8afe00a228804b4d1f52a3d2e4001191",
+    "src/auth_admission.ts": "860d233d562680ff06b03a05903b6f6401b76cdbdc69b8e01da998c7cfd1d31c",
+    "src/browser_sessions.ts": "b7343082f3d038bb053b36ad28fdf4330d423fc2b8cc9d8b7f5c2c553d2b4597",
+    "src/dispatch_freshness.ts": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+    "src/dispatch_policy.ts": "9754f97c6fd0eb49e126ed8169f6508ef20b5450d10a862d3842392a461cc064",
+    "src/dispatch_transport.ts": "5de99c216cdae1a23c466f838889f6fa5487743ab63a61c7e0c29ad0c126957c",
+    "src/dispatch_worker.ts": "ed616f4dd8e4e686bf8f554ab692b47f1047687c357a884877ab8b3619690dda",
+    "src/fail_polite.ts": "a37b2fa26d4aa12d0121196ca21b9317e48310d1d77400125bdd1d6b750f0e70",
+    "src/flickr_oauth.ts": "a37ea25b6cb92fc08f8e5e0e383220009b9cb06792c26abda411934ae148be42",
+    "src/flickr_rate.ts": "2d15010c2912ece27c9c2bdad98b10069f5f5b8cc4593c9045d526bc8e3ad7be",
+    "src/flickr_reads.ts": "61fcb729df6597d3989f26b7a4e161d8897ad4583fba31b9b4fbdb7e0a9b0ab4",
+    "src/google_identity.ts": "c86c283f157a36e2d9daf06302777a64d59d2495f72ca125920eab60c1ae0590",
+    "src/installations.ts": "922495dc20bf436d71562d7f1ccfae71221db5e24912b802411c054aa6eba94b",
+    "src/intake_api.ts": "df646f7f19aa6af3be1944a9532aee2cfff55aa65ea54acdfc8e803889f403f1",
+    "src/native_lifecycle.ts": "fe00636727cbab84e46551969e8f06891ad5ed3f9607eeed8356b4d0bf9122a7",
+    "src/native_writer.ts": "8447ce435599f4bacc41eed8d5984c840316b2ee3890dd5905ee70897efd9cfa",
+    "src/plugin_codes.ts": "87fde13a31a93c1af5ed65965060fce44f5033564dd11c3cc2448cd92e69211e",
+    "src/plugin_code_registry.ts": "3606703e4940335df8db6507b09a7da9b5a2c7de857c8d479913fdc4f87aeaf1",
+    "src/registry.ts": "f8e7207811ca24cf5d855bec1b944795335118fa9e212734bb9cd933db34270a",
+    "src/release_contract.ts": "37d511747a6100c20afb60ea216254b1529062b5c69dba33930d70bd4e263772",
+    "src/scheduling.ts": "efbd9bf7b49dc5345d25d3e2092f78d6dc3274a9a189e3924e95da99dfc6f9b1",
+    "src/session_inventory.ts": "ef8af97adefe2ca4fe7ff3e8e17199908ec2197d2aec18171e092ebd3b5720bd",
+    "src/status_registry.ts": "03054f47f251581217439afdd03b4fb70af5b59f30f18ee1910c7db83a730cc1",
+    "src/submission_status.ts": "b3f0ec8c1381cb31d8998bf172d1083bab09b60268570751beb511010f2c6a00",
+    "src/worker.ts": "1db324a364891940626970762fe28c2fe9c26ef4f1c5fd542a5bd10d1c42b8e1",
+    "migrations/0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "migrations/0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "migrations/0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "migrations/0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+    "migrations/0005_native_credential_reference.sql": "301386c253b3d75d70ff3563cb9667ec9fcfc4fa2301bd7abb6ee80b2c902e49",
+    "migrations/0006_native_lifecycle.sql": "a65aa87b4bda490d5736e10f86666821797faf5e0dd5fc62975b6fdb57bb4fd4",
+    "migrations/0007_browser_auth.sql": "cc542e09934b6f3ea2dda1571d06b8f584ba840d4e97d66e9b6a6b5f56f25768",
+    "migrations/0008_flickr_oauth.sql": "1cb19cbef66e0abcb1a14530fb900147a771b8f0ff0845aef88955cd8c51519f",
+    "migrations/0009_dispatch_policy.sql": "3599806bd20ad6d19beb516c882580b2ede9320094c644808fcbb91344cb1c5f",
+    "migrations/0010_plugin_code_lifecycle.sql": "c7c087e1674674aaa9782adfed5fda89f154c243836664d87f6ede3f6aeabac5",
+    "migrations/0011_submission_status.sql": "ee7a117c8d5fa2f52cb3ec049f8be553c0a076ca06bd79699a153f39a64f2d79",
+    "migrations/0012_protocol_repair_evidence.sql": "0c46c1628c68a61c936ad315b263e8d3e7f523774ce79ee30244a6f35e1417f5",
+    "probes/coordination/cleanup.ts": "a045658f896610b8709fe9196aab8efab98d7171d3cf00014591dff5cd579827",
+    "probes/coordination/fail_polite.ts": "0c6092deddaa81b9dd0d320b6cd171665f46ef8bba90552d271e8fe62b994dca",
+    "probes/coordination/worker.ts": "15afcafbfd950b21297260c5d887e0684d2c3c1acc82354f8491209bc3a27d72",
+    "probes/coordination/schema.sql": "b411c3943ce9e4071fd0a8d228f566bc6ac164a762bc394dc93346d0db8d1ffb",
+    "probes/coordination/local.mjs": "c4c4c1ecb71b97d3e87fdb5e0fc80fe6c9045bf0335b22033b92b9a7269e531d",
+    "scripts/coordination_probe.py": "e015ca0ea6a3892e05c0318329792feda4ab36e98852a6ad304c40de73939e70",
+    "scripts/runtime_permissions_probe.py": "44b626f0ede03abd28d5c3e0cea9720046633e9f54fc3023db311867237ad8b0",
+    "scripts/coordination_backup.py": "508fa40c9904a36862c10274153f6770221ff21771f9e470ec2e4b6014e3c63a",
+    "scripts/fail_polite_cases.py": "5ec0340de7d5607c485a98301f37938c96af3a70e2a3e685f92e158c1409ee31",
+    "scripts/fail_polite_mutations.py": "f6b35f3dd2b4f11fb407e0e466462657dd76b3f1a9b7a67b88edc3020b006272",
+    "scripts/foundation_probe.py": "3e71ac7f601233d28d184a02c8f9f3e334832b7f561d26a5904f201500da961f",
+    "scripts/native_secret_probe.py": "6222ae7e4080e0b6a90531f182be0b80a0e392c1de61b1ddc9f4cf3bd6ca637a",
+    "package-lock.json": "c32c2906418013cd34b0a9a18e85f34756ed04c02e31d7df36a8fbc81694b930",
+    "tsconfig.json": "d6dd44f33ed662bf221137c3a172135d9da891f1ddf89cd8ce6e726ae62d668e"
+  },
+  "cases": [
+    {
+      "id": "FP-CRASH-001.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.hint.001",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.001",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-002.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.hint.002",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.002",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-003.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.hint.003",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.003",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-004.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.hint.004",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-005.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.hint.005",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-006.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.hint.006",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-007.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.hint.007",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-008.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "moderation_submitted",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.hint.008",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-009.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.hint.009",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.009",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-010.hint",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.hint.010",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.hint.010",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-001.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.001",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.001",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-002.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.002",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.002",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-003.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.003",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.003",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-004.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.004",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-005.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.005",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-006.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.006",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-007.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "delivery_uncertain",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.007",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-008.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 1,
+      "state": "moderation_submitted",
+      "blocks": 1
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.008",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-009.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.009",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.009",
+      "passed": true
+    },
+    {
+      "id": "FP-CRASH-010.sweep",
+      "passed": true,
+      "actorReset": true,
+      "actualPosts": 0,
+      "state": "retrying",
+      "blocks": 0
+    },
+    {
+      "id": "crash.fresh_attempt.sweep.010",
+      "passed": true
+    },
+    {
+      "id": "crash.permanent_suppression.sweep.010",
+      "passed": true
+    },
+    {
+      "id": "result.code_6",
+      "passed": true
+    },
+    {
+      "id": "result.code_7",
+      "passed": true
+    },
+    {
+      "id": "result.code_9001",
+      "passed": true
+    },
+    {
+      "id": "result.code_105",
+      "passed": true
+    },
+    {
+      "id": "result.fresh_retry_105",
+      "passed": true
+    },
+    {
+      "id": "result.code_106",
+      "passed": true
+    },
+    {
+      "id": "result.fresh_retry_106",
+      "passed": true
+    },
+    {
+      "id": "result.code_3",
+      "passed": true
+    },
+    {
+      "id": "result.code_0",
+      "passed": true
+    },
+    {
+      "id": "result.code_-1",
+      "passed": true
+    },
+    {
+      "id": "manual_clock.just_inside",
+      "passed": true
+    },
+    {
+      "id": "manual_clock.before_expiry",
+      "passed": true
+    },
+    {
+      "id": "manual_clock.after_expiry",
+      "passed": true
+    },
+    {
+      "id": "membership.already_present",
+      "passed": true
+    },
+    {
+      "id": "fence.gate_revision",
+      "passed": true
+    },
+    {
+      "id": "recovery.closed_gate_no_dispatch",
+      "passed": true
+    },
+    {
+      "id": "recovery.transaction_crash",
+      "passed": true
+    },
+    {
+      "id": "guards.submission_attempts.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.submission_attempts.update",
+      "passed": true
+    },
+    {
+      "id": "guards.submission_attempts.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_membership.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_membership.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_membership.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_preflights.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_preflights.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_preflights.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_dispatches.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_dispatches.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_dispatches.replace",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_resolutions.delete",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_resolutions.update",
+      "passed": true
+    },
+    {
+      "id": "guards.attempt_resolutions.replace",
+      "passed": true
+    },
+    {
+      "id": "entry.actual_cron_dispatch",
+      "passed": true,
+      "cronTicks": 2,
+      "state": "moderation_submitted",
+      "postCount": 1
+    },
+    {
+      "id": "fail-polite.archive_all_domain_rows_exact",
+      "passed": true
+    },
+    {
+      "id": "fail-polite.archive_all_schema_guards_restored",
+      "passed": true
+    },
+    {
+      "id": "fail-polite.archive_foreign_keys_valid",
+      "passed": true
+    },
+    {
+      "id": "fail-polite.archive_history_guard_active",
+      "passed": true
+    },
+    {
+      "id": "evidence.source_unchanged",
+      "passed": true
+    }
+  ],
+  "scope": {
+    "productionConformance": false,
+    "clock": "injected manual monotonic",
+    "reset": "real Durable Object abort/recreation",
+    "flickrTransport": "controlled fixture HTTP (local) / HTTPS (hosted)",
+    "productionFlickrEnabled": false
+  },
+  "completed": true,
+  "cleanupConfirmed": true,
+  "controlRetries": [
+    {
+      "action": "status",
+      "status": 404
+    },
+    {
+      "action": "status",
+      "status": 404
+    },
+    {
+      "action": "status",
+      "status": 404
+    },
+    {
+      "action": "status",
+      "status": 404
+    },
+    {
+      "action": "state",
+      "status": 404
+    },
+    {
+      "action": "state",
+      "status": 404
+    },
+    {
+      "action": "admit",
+      "status": 404
+    }
+  ],
+  "caseCount": 88
+}

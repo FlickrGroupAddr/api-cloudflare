@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "scope": "hosted-current-schema-restore",
+  "startedAt": "2026-09-14T14:58:39.914392+00:00",
+  "fullConformancePassed": false,
+  "liveFlickrCalls": 0,
+  "workerEverBound": false,
+  "integrityCheck": "quick_check",
+  "cases": [
+    {
+      "id": "current-schema-all-tables",
+      "passed": true
+    },
+    {
+      "id": "old-backup-refused-before-resume",
+      "passed": true
+    },
+    {
+      "id": "old-backup-lacks-later-blocks",
+      "passed": true
+    },
+    {
+      "id": "old-backup-resurrected-session-detected",
+      "passed": true
+    },
+    {
+      "id": "old-backup-still-paused",
+      "passed": true
+    },
+    {
+      "id": "hosted-exact-current-schema-roundtrip",
+      "passed": true
+    },
+    {
+      "id": "all-four-block-seeds-preserved",
+      "passed": true
+    },
+    {
+      "id": "session-revocation-preserved",
+      "passed": true
+    },
+    {
+      "id": "installation-revocation-preserved",
+      "passed": true
+    },
+    {
+      "id": "restored-guard-submission_blocks",
+      "passed": true
+    },
+    {
+      "id": "restored-guard-audit_events",
+      "passed": true
+    },
+    {
+      "id": "restored-write-gates-paused",
+      "passed": true
+    }
+  ],
+  "archive": {
+    "migrationHead": "0012_protocol_repair_evidence.sql",
+    "migrationSha2_256": "70225e608b1c8841070b6338ddfa25fd9df944ccdd7f9854b3b6dd440d21f960",
+    "archiveSha2_256": "5eb9e86c139144c153c47b501885ba49a7499840ab0c84649bcc6f33a8d1ea51",
+    "tableCount": 37,
+    "rowCounts": {
+      "admin_principals": 1,
+      "admin_sessions": 1,
+      "attempt_dispatches": 0,
+      "attempt_membership": 0,
+      "attempt_preflights": 0,
+      "attempt_resolutions": 0,
+      "audit_events": 1,
+      "auth_cost_events": 0,
+      "auth_source_buckets": 0,
+      "d1_migrations": 12,
+      "deployment_conformance": 0,
+      "fga_users": 1,
+      "flickr_connection_state": 1,
+      "flickr_lifecycle_operations": 0,
+      "flickr_links": 1,
+      "flickr_native_credentials": 0,
+      "flickr_oauth_transactions": 0,
+      "flickr_rate_reservations": 0,
+      "flickr_rate_window": 0,
+      "flickr_write_gate_events": 2,
+      "flickr_write_gates": 2,
+      "google_jwks_cache": 1,
+      "google_login_transactions": 0,
+      "group_partitions": 0,
+      "installation_credential_versions": 1,
+      "installation_lifecycle_events": 0,
+      "installations": 1,
+      "partition_lease_events": 0,
+      "photo_binding_events": 0,
+      "photo_bindings": 0,
+      "status_read_buckets": 0,
+      "status_read_events": 0,
+      "submission_attempts": 0,
+      "submission_blocks": 4,
+      "submission_intent_events": 0,
+      "submission_intents": 0,
+      "transaction_guards": 0
+    }
+  },
+  "cleanupConfirmed": true,
+  "completedAt": "2026-09-14T15:00:20.787393+00:00"
+}

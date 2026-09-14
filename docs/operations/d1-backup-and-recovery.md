@@ -25,11 +25,22 @@ but no independent recurring export job has been configured for this project.
 ## Implemented and tested
 
 `scripts/current_schema_archive.py` exports the exact current schema and rows
-from a stopped source and verifies a restored database. A hosted export of the
-current 37-table database has been restored and compared in local SQLite.
-Earlier isolated hosted foundation probes also exercised a smaller schema.
-Neither result is the full current-schema hosted restore/reconciliation proof.
-Private archive payloads remain outside Git and logs; public evidence is sanitized.
+from a stopped source and verifies a restored database. The earlier hosted-to-local
+SQLite check has now been supplemented by a disposable hosted D1-to-D1 restore
+at the current 37-table migration head. All 12 checks passed and cleanup was
+confirmed; see [the recorded evidence](../evidence/hosted-current-schema-restore-2026-09-14.json).
+
+The drill retained all four permanent-block seed reasons and later session and
+installation revocations, rejected the stale pre-revocation snapshot, checked
+restored SQL guards, and kept write gates paused. D1 rejects the generic SQLite
+`integrity_check`; the hosted checker explicitly selects D1's documented
+`quick_check`, plus exact schema/row equality and foreign-key validation.
+[Provider SQL surface](https://developers.cloudflare.com/d1/sql-api/sql-statements/#pragma-quick_check).
+
+This proves restoration of a complete frozen recovery snapshot. It does not
+merge missing facts from an unavailable newer source, verify live native-secret
+generations, or constitute the complete production conformance pass. Private
+archive payloads stay outside Git and logs; public evidence is sanitized.
 
 ## Accepted backup strategy
 
@@ -46,8 +57,9 @@ is restore validation, not an outstanding owner decision about backup frequency.
 
 ## Remaining restore validation
 
-The release gate still requires a disposable hosted restore drill. Stop runtime
-writers before restoration and keep writes paused afterward. Verify schema,
+The disposable hosted restore drill is complete. The release gate still requires
+its integration with the complete production path and native-secret reconciliation.
+Stop runtime writers before restoration and keep writes paused afterward. Verify schema,
 rows, guards and integrity; reconcile newer permanent exact-pair suppression,
 unresolved dispatches, revocations and live secret generations before resuming.
 An older database must not resurrect a revoked credential or make the worker

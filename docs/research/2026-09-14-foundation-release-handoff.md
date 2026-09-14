@@ -1,7 +1,8 @@
 # Foundation and release-gate decision handoff, 2026-09-14
 
-Terry approved ADR0058 on 2026-09-14; cards #0002 and #0018 have resumed
-implementation. The earlier decision handoff is resolved. This is not a full
+Terry approved ADR0058 on 2026-09-14; that decision handoff is resolved.
+The current handoff for #0002/#0018 is dedicated CI credential setup; see
+[the setup instructions](../operations/release-ci-setup.md). This is not a full
 release-conformance pass. All other foundation children are completed;
 #0018 remains the rollup's final acceptance dependency.
 
@@ -66,17 +67,21 @@ can reach Ready for Review with a full foundation acceptance claim:
    mutations, using the actual optimized production artifact, migrations,
    authentication, transport, allocator and retry paths. Existing bounded crash
    and mutation probes do not satisfy this entire inventory.
-2. Complete independent process-stop and deployment-restart adapters. An
-   in-process exception or a reset hook is not interchangeable with those tests.
-3. Prove a hosted restore of the current schema and reconcile facts newer than
-   the backup, including permanent suppression and credential/session revocation.
-   The earlier hosted archive to local SQLite roundtrip is not this proof.
+2. Extend the completed independent local process-kill proof (both entry paths
+   at POST handoff) to the full production artifact/transport and required stop
+   matrix, including deployment restart. An in-process exception or reset hook
+   is not interchangeable with an independent process termination.
+3. Integrate the completed 37-table hosted restore and stale-snapshot refusal
+   checks into the full production suite, including native-secret generations
+   and the required post-backup reconciliation paths. The earlier hosted-to-local
+   SQLite roundtrip alone was insufficient; the new hosted evidence is linked below.
 4. Complete global Flickr budget and production-path integration coverage,
    including calls outside dispatch where applicable. Use controlled HTTPS peers
    and synthetic identities; record zero live Flickr calls in conformance runs.
-5. Add the CI promotion workflow and publish the exact-artifact evidence and
-   receipts only after all required cases and mutation controls pass. Keep missing,
-   skipped and failing evidence release-blocking.
+5. Configure the dedicated Cloudflare CI token, run the prepared manual workflow,
+   then connect the complete runner and publish exact-artifact evidence/receipts
+   only after all required cases and mutation controls pass. Missing, skipped or
+   failing evidence continues to block release.
 
 These items remain engineering work after the accepted owner decision.
 Neither card is closed; there is no full production conformance pass and live
@@ -92,3 +97,57 @@ See the [accepted backup baseline](../operations/d1-backup-and-recovery.md).
 
 Terry subsequently confirmed upgrading to Workers Paid on 2026-09-14. The
 backup baseline now records the paid plan's 30-day Time Travel retention.
+
+## Completed in the handoff run
+
+- [Hosted current-schema restore](../evidence/hosted-current-schema-restore-2026-09-14.json):
+  12 checks passed, all 37 tables compared, stale snapshot rejected, later blocks
+  and revocations retained, restored guards enforced, write gates paused, and
+  disposable database cleanup confirmed.
+- [Independent process stop](../evidence/independent-process-stop-2026-09-14.json):
+  forcibly terminated the owned Node/workerd process tree after a simulated POST
+  handoff, then restarted from the same disk on both hint and sweep paths.
+  The committed marker survived, recovery created a permanent block, and each
+  case retained exactly one POST. This is local runtime evidence, not a claim
+  to have killed a Cloudflare host process.
+- Regression verification: 116 Python and 107 Node tests passed, plus native
+  TypeScript, Ruff and changed-file Pyright. No live Flickr call was used.
+- Prepared manual CI validation with pinned action commits and a fingerprint-
+  checked canonical contract mirror. The known account variable is configured;
+  the dedicated CI secret is absent. Component tests cannot satisfy its final
+  full-conformance check by themselves.
+
+The full production 56-case/28-mutation integration remains engineering work.
+No new architecture waiver or backup-frequency decision is requested. Live
+application writes remain disabled. All credential and data paths in the setup
+handoff remain private; the board contains pointers only.
+
+The first real GitHub validation run installed dependencies successfully and
+stopped at the missing dedicated CI token, as recorded in the
+[CI handoff receipt](../evidence/ci-credential-handoff-2026-09-14.json). All six
+existing bounded crash mutations were also rerun: every unmutated control passed
+and every mutant failed its intended behavioral assertion, with cleanup confirmed.
+[Mutation evidence](../evidence/bounded-crash-mutations-2026-09-14.json). These six
+mutants do not replace the complete required 28-class inventory.
+
+## Final hosted rerun
+
+The fresh hosted crash/restore probe completed **88 passing assertions**, including
+all ten crash boundaries on hint and sweep paths, result classification, strict
+manual-clock checks, SQL guards, a real Cron Trigger dispatch, and its bounded
+archive checks. Both databases, the test Worker and its coordinator namespace
+were cleaned up. [Sanitized hosted report](../evidence/hosted-crash-proof-2026-09-14.json).
+
+The initial attempt failed the cron assertion under a two-minute deadline;
+Cloudflare documents up to 15 minutes of Cron Trigger propagation. The harness
+now allows that infrastructure window and records cron witnesses. A subsequent
+attempt encountered an edge 404 after readiness. Ordinary exact-pair admission
+now uses bounded retries with the same request body; race/fault admissions stay
+single-shot. Both unsuccessful attempts were cleaned up. The final rerun passed.
+These fixture readiness changes do not relax the dispatch freshness deadline.
+[Provider cron propagation documentation](https://developers.cloudflare.com/workers/configuration/cron-triggers/).
+
+The two actionable cards are at Needs Terry for the dedicated CI token described
+in the setup handoff. #0019 remains at its existing registrar-date Blocked gate.
+All changes and sanitized results are committed; unrelated generated-route edits
+were preserved. No full conformance pass or live-write enablement is claimed.

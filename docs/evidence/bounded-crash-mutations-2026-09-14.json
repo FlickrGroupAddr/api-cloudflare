@@ -1,0 +1,121 @@
+{
+  "scope": "six bounded native crash-proof mutations; not complete production gate",
+  "environment": "local workerd/D1",
+  "records": [
+    {
+      "name": "marker_order",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "a37b2fa26d4aa12d0121196ca21b9317e48310d1d77400125bdd1d6b750f0e70",
+      "mutatedSha2_256": "a1b6ae2a1ea716c53128a5036490f5e8975772f714810b3ffbffc5131279a29c",
+      "cases": [
+        {
+          "id": "mutation.marker_order",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "unknown_retry",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/dispatch_policy.ts",
+      "originalSha2_256": "9754f97c6fd0eb49e126ed8169f6508ef20b5450d10a862d3842392a461cc064",
+      "mutatedSha2_256": "e254bde1074b6733610d146fc1f4a07b46ee3d09be73746e39895da57ee415f9",
+      "cases": [
+        {
+          "id": "mutation.unknown_retry",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "unresolved_retry",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "a37b2fa26d4aa12d0121196ca21b9317e48310d1d77400125bdd1d6b750f0e70",
+      "mutatedSha2_256": "c392b3d7ebcf0139f0f0adc8b462d9de2aebfe1f42504d4ebdb338a2327a5e29",
+      "cases": [
+        {
+          "id": "mutation.unresolved_retry",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "inclusive_clock",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/dispatch_freshness.ts",
+      "originalSha2_256": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+      "mutatedSha2_256": "1130390dda09b3077b21e28fbb5e6e2b457623d2741300f4fd37541d6cf2bfde",
+      "cases": [
+        {
+          "id": "mutation.inclusive_clock",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "split_block",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "src/fail_polite.ts",
+      "originalSha2_256": "a37b2fa26d4aa12d0121196ca21b9317e48310d1d77400125bdd1d6b750f0e70",
+      "mutatedSha2_256": "535ae0aaa29e2f05fdc11457f0071d8508b73257136958de0f6186dc218e7bab",
+      "cases": [
+        {
+          "id": "mutation.split_block",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "removed_guard",
+      "detected": true,
+      "unmutatedControlPassed": true,
+      "changedFile": "migrations/0004_fail_polite_attempts.sql",
+      "originalSha2_256": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+      "mutatedSha2_256": "8ec2aab85131a124f40a314bdee302f831fd9380387dcd3f04179bfde9d78880",
+      "cases": [
+        {
+          "id": "mutation.removed_guard",
+          "passed": false
+        },
+        {
+          "id": "network.no_external_calls",
+          "passed": true
+        }
+      ],
+      "cleanupConfirmed": true
+    }
+  ],
+  "workingSourcesUnchanged": true
+}
