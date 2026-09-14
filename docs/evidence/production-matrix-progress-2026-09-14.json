@@ -1,0 +1,660 @@
+{
+  "schemaVersion": 1,
+  "scope": "partial-production-matrix-progress",
+  "fullConformancePassed": false,
+  "contractSha2_256": "dd2d82c7580cd44a9bd9f8f6a00b853ce1e104134eb2b9890ec40e49d4460872",
+  "observedPassingCaseIds": [
+    "FP-BLOCK-001",
+    "FP-BLOCK-002",
+    "FP-BLOCK-004",
+    "FP-BLOCK-005",
+    "FP-BLOCK-006",
+    "FP-BLOCK-007",
+    "FP-BLOCK-008",
+    "FP-BLOCK-009",
+    "FP-BLOCK-010",
+    "FP-CRASH-001",
+    "FP-CRASH-002",
+    "FP-CRASH-003",
+    "FP-CRASH-004",
+    "FP-CRASH-005",
+    "FP-CRASH-006",
+    "FP-CRASH-007",
+    "FP-CRASH-008",
+    "FP-CRASH-009",
+    "FP-CRASH-010",
+    "FP-MEM-001",
+    "FP-MEM-002",
+    "FP-MEM-003",
+    "FP-MEM-004",
+    "FP-MEM-005",
+    "FP-MEM-006",
+    "FP-MEM-007",
+    "FP-MEM-008",
+    "FP-PRE-001",
+    "FP-PRE-002",
+    "FP-PRE-003",
+    "FP-PRE-004",
+    "FP-PRE-005",
+    "FP-PRE-006",
+    "FP-PRE-007",
+    "FP-PRE-008",
+    "FP-PRE-009",
+    "FP-PRE-010",
+    "FP-PRE-011",
+    "FP-PRE-012",
+    "FP-QUEUE-001",
+    "FP-QUEUE-002",
+    "FP-QUEUE-003",
+    "FP-QUEUE-004",
+    "FP-QUEUE-005",
+    "FP-QUEUE-006",
+    "FP-RES-001",
+    "FP-RES-002",
+    "FP-RES-003",
+    "FP-RES-004",
+    "FP-RES-005",
+    "FP-RES-006",
+    "FP-RES-007",
+    "FP-RES-008",
+    "FP-RES-009",
+    "FP-RES-010"
+  ],
+  "observedPassingCaseCount": 55,
+  "requiredCaseCount": 56,
+  "unexecutedIntegratedCases": [
+    "FP-BLOCK-003"
+  ],
+  "localCompatibilityDate": "2026-07-30",
+  "configuredProductionCompatibilityDate": "2026-09-11",
+  "localWorkerArtifactSha2_256": "26d11289f6c31cd6f23e7e6030752bd8b2afb89b83a1cfffa4d5ef35a538a657",
+  "qualification": "Component runs only. Not a full hosted, exact-candidate release receipt.",
+  "components": [
+    {
+      "label": "local-core",
+      "sourceReportSha2_256": "36716a1c19fb6ba2e1d109423caee2ef3a45f9b70427a6632f47f07895c891d6",
+      "artifactSha2_256": "26d11289f6c31cd6f23e7e6030752bd8b2afb89b83a1cfffa4d5ef35a538a657",
+      "caseCount": 30,
+      "cases": [
+        {
+          "id": "FP-MEM-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-007",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-006",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-008",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-006",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-007",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-008",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-009",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-010",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-011",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-012",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-006",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-007",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-008",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-009",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-010",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "label": "local-queue",
+      "sourceReportSha2_256": "7c5ca9c3bd3614929a2e061ed1b37cfc21576cfdd55ab5a5a30d94db884f298c",
+      "artifactSha2_256": "26d11289f6c31cd6f23e7e6030752bd8b2afb89b83a1cfffa4d5ef35a538a657",
+      "caseCount": 6,
+      "cases": [
+        {
+          "id": "FP-QUEUE-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-QUEUE-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-QUEUE-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-QUEUE-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-QUEUE-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-QUEUE-006",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "label": "local-crash",
+      "sourceReportSha2_256": "8585ad73f03b32f51dd46ddb8945fcbecfeba6884c1770d9ed8277a80629bfc0",
+      "artifactSha2_256": "26d11289f6c31cd6f23e7e6030752bd8b2afb89b83a1cfffa4d5ef35a538a657",
+      "caseCount": 10,
+      "cases": [
+        {
+          "id": "FP-CRASH-001",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-002",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-003",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-004",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-005",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-006",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-007",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-008",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-009",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        },
+        {
+          "id": "FP-CRASH-010",
+          "status": "passed",
+          "entryPaths": [
+            "hint",
+            "sweep"
+          ],
+          "witnessCount": 2
+        }
+      ]
+    },
+    {
+      "label": "local-blocks",
+      "sourceReportSha2_256": "a0e5f3a41f8266cb1ab1d78cc14586bf01121609effbc4df036f6e615267ebdb",
+      "artifactSha2_256": "26d11289f6c31cd6f23e7e6030752bd8b2afb89b83a1cfffa4d5ef35a538a657",
+      "caseCount": 9,
+      "cases": [
+        {
+          "id": "FP-BLOCK-001",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-002",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-004",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-005",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-006",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-007",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-008",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-009",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        },
+        {
+          "id": "FP-BLOCK-010",
+          "status": "passed",
+          "seedReasons": [
+            "code_6",
+            "code_7",
+            "unknown",
+            "unresolved_dispatch"
+          ],
+          "witnessCount": 4
+        }
+      ]
+    },
+    {
+      "label": "hosted-d1-core",
+      "sourceReportSha2_256": "c10dac4b3758ef4dbeb047fbf65f1b937f3987c18ff6ee35cf5234585934123f",
+      "artifactSha2_256": "74dda7a370aef8d5a2f5353969172ecfc0bf16a376723e388ab5c700e8223032",
+      "caseCount": 30,
+      "cases": [
+        {
+          "id": "FP-MEM-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-007",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-006",
+          "status": "passed"
+        },
+        {
+          "id": "FP-MEM-008",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-006",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-007",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-008",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-009",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-010",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-011",
+          "status": "passed"
+        },
+        {
+          "id": "FP-PRE-012",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-001",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-002",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-003",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-004",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-005",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-006",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-007",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-008",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-009",
+          "status": "passed"
+        },
+        {
+          "id": "FP-RES-010",
+          "status": "passed"
+        }
+      ],
+      "databaseCleanupConfirmed": true
+    },
+    {
+      "label": "hosted-native-lifecycle",
+      "sourceReportSha2_256": "5130fa10cc12c836aa4423d74a557534f046e7f2cb8f78e09d1e7f9152338cc9",
+      "artifactSha2_256": "26d11289f6c31cd6f23e7e6030752bd8b2afb89b83a1cfffa4d5ef35a538a657",
+      "caseCount": 1,
+      "cases": [
+        {
+          "id": "FP-BLOCK-005",
+          "status": "passed"
+        }
+      ],
+      "databaseCleanupConfirmed": true,
+      "cleanupConfirmed": true,
+      "existingWriterUnchanged": true
+    }
+  ],
+  "boundedMutations": {
+    "sourceReportSha2_256": "ed797bba3bc7b2f4d3d658c6131a22fc0b53af8c5227c14434ffffc29aba6144",
+    "workingSourcesUnchanged": true,
+    "records": [
+      {
+        "name": "marker_order",
+        "detected": true,
+        "unmutatedControlPassed": true,
+        "cleanupConfirmed": true,
+        "originalSha2_256": "da8a17839b0baf27fad3362be7b7cb2ace8a4a737f876946362d9e29804f7c02",
+        "mutatedSha2_256": "33cd9c6eed845d634a506e8d297d2fee4d995dba7fc505c78275cd53578231d6"
+      },
+      {
+        "name": "unknown_retry",
+        "detected": true,
+        "unmutatedControlPassed": true,
+        "cleanupConfirmed": true,
+        "originalSha2_256": "d6213d65e7bba70dd5ec02c573c390a3653292338ac4d14dd41b45d56eebc2d4",
+        "mutatedSha2_256": "2fe3bcb753698e4e8d652fc8efad43a7a4bd712dcc7a9667a760fb7ed6019d00"
+      },
+      {
+        "name": "unresolved_retry",
+        "detected": true,
+        "unmutatedControlPassed": true,
+        "cleanupConfirmed": true,
+        "originalSha2_256": "da8a17839b0baf27fad3362be7b7cb2ace8a4a737f876946362d9e29804f7c02",
+        "mutatedSha2_256": "039be99fdddd735caf97164d7c73e6f9af10ac96a091c2be0c8e42a81ed92c39"
+      },
+      {
+        "name": "inclusive_clock",
+        "detected": true,
+        "unmutatedControlPassed": true,
+        "cleanupConfirmed": true,
+        "originalSha2_256": "41d8d4080b07fe5a7d820d5cf71384d5cb21aa8d75aba0dcce0fd5d94381ef72",
+        "mutatedSha2_256": "1130390dda09b3077b21e28fbb5e6e2b457623d2741300f4fd37541d6cf2bfde"
+      },
+      {
+        "name": "split_block",
+        "detected": true,
+        "unmutatedControlPassed": true,
+        "cleanupConfirmed": true,
+        "originalSha2_256": "da8a17839b0baf27fad3362be7b7cb2ace8a4a737f876946362d9e29804f7c02",
+        "mutatedSha2_256": "47930a15d5309aa3162d4e94990bf19d3512d491f089a9a90f1a5e38313b1b5e"
+      },
+      {
+        "name": "removed_guard",
+        "detected": true,
+        "unmutatedControlPassed": true,
+        "cleanupConfirmed": true,
+        "originalSha2_256": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+        "mutatedSha2_256": "8ec2aab85131a124f40a314bdee302f831fd9380387dcd3f04179bfde9d78880"
+      }
+    ]
+  },
+  "requiredProductionMutationCount": 28,
+  "fullProductionMutationSuiteCompleted": false,
+  "validation": {
+    "pythonTestsPassed": 120,
+    "nodeTestsPassed": 112,
+    "nativeTypeScriptPassed": true,
+    "ruffPassed": true,
+    "pyrightPassed": true,
+    "generatedApiConsistent": true,
+    "directProductionModuleInitialized": true,
+    "releaseVerifierRejectedMissingFullEvidence": true
+  },
+  "blockingAction": "FP-BLOCK-003: import synthetic-only snapshots into newly created empty owned test D1 databases",
+  "blockingAuthority": "Automatic approval review rejected the hosted snapshot transfer/mutation for lack of specific authorization; no indirect execution through CI was attempted.",
+  "remainingEngineering": [
+    "integrated hosted restore",
+    "complete 28-class production mutations",
+    "one-candidate hosted/native provenance and complete evidence",
+    "CI evidence wiring and qualification"
+  ],
+  "productionDeployed": false,
+  "liveFlickrCalls": 0,
+  "rawCredentialsIncluded": false
+}

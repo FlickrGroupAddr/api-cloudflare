@@ -22,3 +22,9 @@ export function classifyAdd(result: "ok" | number): ResultPolicy {
 }
 
 export class FlickrFailure extends Error { readonly code:number; constructor(code:number) { super("flickr_application_failure"); this.code=code; } }
+
+export class DispatchTransportError extends Error {
+  constructor() { super("flickr_dispatch_transport_unavailable"); }
+}
+/** Only a prepared request that has never entered fetch may produce this proof. */
+export class ProvenNotDispatched extends DispatchTransportError {}

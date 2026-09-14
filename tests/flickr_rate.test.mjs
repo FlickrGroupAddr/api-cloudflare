@@ -4,7 +4,7 @@ import {mkdtempSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {sqlStore} from "./sql_store.mjs";
-import {reserveFlickrAttempt} from "../src/flickr_rate.ts";
+import {reserveFlickrAttempt,budgetedFlickrFetch} from "../src/flickr_rate.ts";
 
 function setup(t){
   const directory=mkdtempSync(join(tmpdir(),"fga-rate-")),db=sqlStore(join(directory,"db.sqlite"));
@@ -53,4 +53,27 @@ test("allocation transaction failure rolls back its window charge and reservatio
   assert.equal(await reserveFlickrAttempt(db,contexts[0]),null);
   assert.equal(db.raw.prepare("SELECT COUNT(*) n FROM flickr_rate_reservations").get().n,0);
   assert.equal(db.raw.prepare("SELECT COUNT(*) n FROM flickr_rate_window").get().n,0);
+});
+
+
+test("API reads and dispatcher reservations use the same global capacity",async t=>{
+ const {db,contexts}=setup(t);let calls=0;
+ const read=budgetedFlickrFetch(db,async()=>{calls++;return Response.json({stat:"ok"});});
+ await read(new Request("https://www.flickr.com/services/rest/?method=flickr.photos.getInfo"));
+ assert.equal(db.raw.prepare("SELECT reserved_slots FROM flickr_rate_window").get().reserved_slots,1);
+ const reservation=await reserveFlickrAttempt(db,contexts[0]);assert(reservation);
+ assert.equal(db.raw.prepare("SELECT reserved_slots FROM flickr_rate_window").get().reserved_slots,4);
+ db.raw.exec("UPDATE flickr_rate_window SET reserved_slots=59");
+ const outcomes=await Promise.allSettled([read(new Request("https://www.flickr.com/a")),read(new Request("https://www.flickr.com/b"))]);
+ assert.equal(outcomes.filter(x=>x.status==="fulfilled").length,1);
+ assert.equal(calls,2);assert.equal(db.raw.prepare("SELECT reserved_slots FROM flickr_rate_window").get().reserved_slots,60);
+ await read(new Request("https://api.cloudflare.com/client/v4/test"));
+ assert.equal(calls,3);assert.equal(db.raw.prepare("SELECT reserved_slots FROM flickr_rate_window").get().reserved_slots,60);
+});
+
+test("a failed global read allocation makes no provider request",async t=>{
+ const {db}=setup(t);let calls=0;db.fault=2;
+ const read=budgetedFlickrFetch(db,async()=>{calls++;return new Response();});
+ await assert.rejects(read(new Request("https://www.flickr.com/services/rest/")));
+ assert.equal(calls,0);assert.equal(db.raw.prepare("SELECT COUNT(*) n FROM flickr_rate_window").get().n,0);
 });

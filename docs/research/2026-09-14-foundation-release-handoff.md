@@ -1,10 +1,12 @@
 # Foundation and release-gate decision handoff, 2026-09-14
 
-Terry approved ADR0058 on 2026-09-14; that decision handoff is resolved.
-The CI credential handoff is also resolved. Both cards are back In Progress for
-the full release-suite integration. The [CI setup record](../operations/release-ci-setup.md)
-contains the authenticated validation result. This is not a full conformance pass. All other foundation children are completed;
-#0018 remains the rollup's final acceptance dependency.
+**Current handoff:** #0018 and its rollup #0002 need specific permission for the
+synthetic hosted restore test after automatic approval review rejected it. The CI
+token and ADR0058 decisions are already resolved. See the
+[production matrix checkpoint](2026-09-14-production-matrix-handoff.md) for current
+results, the exact blocked action, remaining engineering, and resume commands.
+Earlier sections below are chronological evidence; their In Progress/credential
+handoff statements describe earlier checkpoints, not the current stop point.
 
 ## Accepted decision
 

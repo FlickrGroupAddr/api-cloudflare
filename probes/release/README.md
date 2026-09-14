@@ -25,3 +25,39 @@ pinned Miniflare build. This proves the remote-binding boundary; it does not pro
 all release cases or parity with the newer hosted runtime date.
 
 [Cloudflare remote binding API](https://developers.cloudflare.com/workers/local-development/#api).
+
+## Production artifact matrix
+
+`scripts.production_matrix` builds the minified production Worker and imports those
+same bytes through the external `matrix-driver.mjs`. The driver provides private
+fixture controls and optional fault/clock hooks; it adds no production HTTP route.
+`matrix-runtime.mjs` supplies Miniflare, real native coordinator storage, D1, and a
+loopback HTTPS Flickr peer that verifies the actual OAuth signatures. Real Flickr
+requests are never sent. Driver/runtime bytes are frozen for every process restart.
+
+Local sections:
+
+```powershell
+uv run --frozen python -m scripts.production_matrix --environment local --section core
+uv run --frozen python -m scripts.production_matrix --environment local --section queue
+uv run --frozen python -m scripts.production_matrix --environment local --section crash
+uv run --frozen python -m scripts.production_matrix --environment local --section blocks --block-ids FP-BLOCK-001 FP-BLOCK-002 FP-BLOCK-004 FP-BLOCK-005 FP-BLOCK-006 FP-BLOCK-007 FP-BLOCK-008 FP-BLOCK-009 FP-BLOCK-010
+```
+
+`--environment hosted-db` uses Wrangler's supported remote D1 binding.
+`--native` additionally creates six synthetic Secrets Store slots and a private
+service-binding bridge, referencing the existing narrow writer binding. Broad
+operator credentials stay in the controller. Cleanup deletes only owned fixture
+resources. Local mode emulates provider PATCH using Miniflare native secrets;
+it is not evidence of the real Secrets Store API.
+
+All output remains explicitly `partial-production-matrix`, with
+`fullConformancePassed: false`. New reports retain case-specific recovery/seed
+witnesses plus artifact, driver and runtime-adapter hashes. Do not combine component
+reports from different runs into a full release claim. Miniflare's 2026-07-30
+compatibility date is distinct from production's 2026-09-11 date.
+
+FP-BLOCK-003 requires hosted snapshots and is not supported in local mode. Automatic
+approval review blocked its hosted execution on 2026-09-14. Do not run it indirectly
+through CI or another adapter before the specific owner approval described in the
+[current handoff](../../docs/research/2026-09-14-production-matrix-handoff.md).

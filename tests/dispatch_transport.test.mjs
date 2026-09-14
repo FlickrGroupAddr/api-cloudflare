@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDispatchTransport, membershipPresent, moderationValue } from "../src/dispatch_transport.ts";
+import { createDispatchTransport, membershipPresent, moderationValue, ProvenNotDispatched, DispatchTransportError } from "../src/dispatch_transport.ts";
 import { runPartition } from "../src/fail_polite.ts";
 import { sqlStore } from "./sql_store.mjs";
 
@@ -130,4 +130,37 @@ test("lost POST response becomes uncertain with a permanent block and no replay"
   assert.equal(await runPartition({db,transport,monotonicUs:()=>0,reserve:async()=>reservation(events)},"partition","hint"),"uncertain");
   assert.equal(db.raw.prepare("SELECT first_reason FROM submission_blocks").get().first_reason,"delivery_uncertain");
   assert.equal(events.filter(x=>x==="POST").length,1);
+});
+
+
+test("only a disposed never-handed-off request produces a zero-byte proof", async()=>{
+ let posts=0;
+ const fetcher=async request=>{
+  if(request.method==="POST"){posts++;return Response.json({stat:"ok"});}
+  return Response.json(new URL(request.url).searchParams.get("method")==="flickr.photos.getAllContexts"?
+   {stat:"ok",pool:[]}:{stat:"ok",group:{id:context.groupId,ispoolmoderated:"0"}});
+ };
+ const transport=await createDispatchTransport(secrets,"generation",async()=>{},fetcher);
+ await transport.membership(context);await transport.preflight(context);
+ const prepared=await transport.prepareAdd(context);prepared.dispose();
+ assert.throws(()=>prepared.handoff(),ProvenNotDispatched);assert.equal(posts,0);
+});
+
+for(const synchronous of [false,true])test(`upstream ${synchronous?"throw":"rejection"} cannot forge zero-byte proof`,async()=>{
+ let posts=0;
+ const fetcher=request=>{
+  if(request.method==="POST"){
+   posts++;
+   if(synchronous)throw new ProvenNotDispatched();
+   return Promise.reject(new ProvenNotDispatched());
+  }
+  return Promise.resolve(Response.json(new URL(request.url).searchParams.get("method")==="flickr.photos.getAllContexts"?
+   {stat:"ok",pool:[]}:{stat:"ok",group:{id:context.groupId,ispoolmoderated:"0"}}));
+ };
+ const transport=await createDispatchTransport(secrets,"generation",async()=>{},fetcher);
+ await transport.membership(context);await transport.preflight(context);
+ const prepared=await transport.prepareAdd(context);
+ try{await assert.rejects(async()=>prepared.handoff(),error=>error instanceof DispatchTransportError&&!(error instanceof ProvenNotDispatched));}
+ finally{prepared.dispose();}
+ assert.equal(posts,1);
 });

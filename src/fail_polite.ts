@@ -1,4 +1,4 @@
-import { classifyAdd, FlickrFailure, retryDelayMs, THROTTLE_DELAY_MS, type DispatchOutcome } from "./dispatch_policy.ts";
+import { classifyAdd, FlickrFailure, ProvenNotDispatched, retryDelayMs, THROTTLE_DELAY_MS, type DispatchOutcome } from "./dispatch_policy.ts";
 import { preflightIsFresh } from "./dispatch_freshness.ts";
 // Shared fenced attempt path. Deployment remains subject to the full release gate.
 import type { SqlStore } from "./admission.ts";
@@ -6,7 +6,7 @@ import { NOW_US_SQL } from "./installations.ts";
 import { claimPartition, type Lease, type LeasePolicy } from "./scheduling.ts";
 export type FaultPoint = "before_membership"|"after_membership"|"membership_committed"|"before_preflight"|"after_preflight"|"preflight_committed"|"marker_committed"|"response_received"|"result_committed";
 export type Outcome = DispatchOutcome;
-export interface Reservation { id?:string; check(context:AttemptContext):Promise<boolean>; consume(operation:"membership"|"preflight"|"add"):void; releaseUnused():void|Promise<void>; }
+export interface Reservation { id?:string; check(context:AttemptContext):Promise<boolean>; consume(operation:"membership"|"preflight"|"add"):void; releaseUnused():void|Promise<void>; proveAddNotSent?:(proof:ProvenNotDispatched)=>void; }
 export interface AttemptContext { attemptId:string;photoId:string;groupId:string; }
 export interface Transport {
  membership(context:AttemptContext):Promise<boolean>; // true means exact target present; invalid response must throw
@@ -126,7 +126,7 @@ export async function resolveAttempt(db:SqlStore,lease:Lease,attemptId:string,ou
  statements.push(sql("INSERT INTO attempt_resolutions(attempt_id,outcome,reason,flickr_code,observed_age_us) VALUES(?5,?7,?8,?10,?11)"));
  statements.push(sql(`UPDATE submission_intents SET state=?7,state_version=state_version+1,
   terminal_at_us=${terminal?NOW_US_SQL:"NULL"},next_attempt_not_before_us=${outcome==="retrying"?NOW_US_SQL+"+?9":"NULL"},
-  add_dispatch_count=add_dispatch_count-${reason==="not_dispatched_preflight_expired"?"(SELECT COUNT(*) FROM attempt_dispatches WHERE attempt_id=?5)":"0"},
+  add_dispatch_count=add_dispatch_count-${(reason==="not_dispatched_preflight_expired"||reason==="not_dispatched_transport_aborted")?"(SELECT COUNT(*) FROM attempt_dispatches WHERE attempt_id=?5)":"0"},
   safe_read_failure_count=${readFailure?"safe_read_failure_count+1":reason==="rate_capacity_unavailable"?"safe_read_failure_count":"0"} WHERE intent_id=?4`));
  statements.push(sql("INSERT INTO submission_intent_events(event_id,intent_id,kind,correlation_id) VALUES(lower(hex(randomblob(16))),?4,?8,?5)"));
  if(reason==="flickr_code_6")statements.push(sql(`INSERT INTO submission_intent_events(event_id,intent_id,kind,correlation_id)
@@ -197,7 +197,14 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
   let result:"ok"|number;
   try {result=await handoff();}
-  catch {await resolveAttempt(db,lease,attempt.attemptId,"delivery_uncertain","unresolved_dispatch");return "uncertain";}
+  catch(error) {
+   if(error instanceof ProvenNotDispatched) {
+    reservation.proveAddNotSent?.(error);
+    await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_transport_aborted");
+    return "not_dispatched";
+   }
+   await resolveAttempt(db,lease,attempt.attemptId,"delivery_uncertain","unresolved_dispatch");return "uncertain";
+  }
   await fault("response_received");
   const classified=classifyAdd(result);
   const outcome=await resolveAttempt(db,lease,attempt.attemptId,classified.outcome,classified.reason,

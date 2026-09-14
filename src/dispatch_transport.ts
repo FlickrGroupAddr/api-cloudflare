@@ -1,4 +1,5 @@
-import { FlickrFailure } from "./dispatch_policy.ts";
+import { FlickrFailure, DispatchTransportError, ProvenNotDispatched } from "./dispatch_policy.ts";
+export { DispatchTransportError, ProvenNotDispatched } from "./dispatch_policy.ts";
 import OAuth from "oauth-1.0a";
 import type { AttemptContext, PreparedAdd, Transport } from "./fail_polite.ts";
 import { applicationEnvelope, hmac, readJson, type Application, type FlickrFetch,
@@ -8,9 +9,6 @@ const REST = "https://www.flickr.com/services/rest/";
 const ID = /^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$/;
 type Method = "flickr.photos.getAllContexts" | "flickr.groups.getInfo" | "flickr.groups.pools.add";
 
-export class DispatchTransportError extends Error {
-  constructor() { super("flickr_dispatch_transport_unavailable"); }
-}
 
 function signed(method: Method, context: AttemptContext, pair: Pair, app: Application): Request {
   const post = method === "flickr.groups.pools.add";
@@ -157,10 +155,13 @@ export async function createDispatchTransport(
       let handedOff = false, disposed = false;
       return {
         handoff() {
-          if (handedOff || disposed) throw new DispatchTransportError();
+          if (handedOff) throw new DispatchTransportError();
+          if (disposed || abort.signal.aborted) throw new ProvenNotDispatched();
           handedOff = true;
           // No signing, request construction, body serialization or await here.
-          return fetcher(request).then(addResult).catch(() => { throw new DispatchTransportError(); });
+          let response: Promise<Response>;
+          try { response = fetcher(request); } catch { throw new DispatchTransportError(); }
+          return response.then(addResult).catch(() => { throw new DispatchTransportError(); });
         },
         dispose() { disposed = true; clearTimeout(deadline); abort.abort(); },
       };

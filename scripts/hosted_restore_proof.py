@@ -216,7 +216,9 @@ class Proof:
                 "d1_databases": [
                     {
                         "binding": "DB",
-                        "database_name": self.name + "-source",
+                        "database_name": next(
+                            name for name, owned in self.owned.items() if owned == database
+                        ),
                         "database_id": database,
                         "migrations_dir": str(ROOT / "migrations"),
                     }
@@ -242,10 +244,19 @@ class Proof:
         )
 
     def restore(self, database: str, saved: archive.Archive) -> None:
+        # Reconfirm the server-side identity immediately before importing. Only
+        # newly created test databases from this run can reach the empty check.
+        names = [name for name, value in self.owned.items() if value == database]
+        if len(names) != 1 or not names[0].startswith(self.name + "-"):
+            raise ValueError("restore_target_not_owned")
+        metadata = self.operator.call("GET", "d1/database/" + database)["result"]
+        if metadata.get("name") != names[0] or metadata.get("uuid") != database:
+            raise ValueError("restore_target_identity_changed")
         # Always a fresh, unbound target; never issue DROP against an existing database.
         objects = self.query(database, archive.SCHEMA_SQL)
         if any(row["tbl_name"] != "_cf_KV" for row in objects):
             raise ValueError("restore_target_not_empty")
+        print("Verified empty, owned restore target: " + names[0], flush=True)
         self.query(database, saved.sql())
         archive.verify_restored(
             lambda sql: self.query(database, sql),

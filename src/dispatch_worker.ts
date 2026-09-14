@@ -1,6 +1,6 @@
 import type { SqlStore, WakeHint } from "./admission.ts";
 import { runPartition } from "./fail_polite.ts";
-import type { Transport } from "./fail_polite.ts";
+import type { Transport, Dependencies, Reservation } from "./fail_polite.ts";
 import { createDispatchTransport } from "./dispatch_transport.ts";
 import { reserveFlickrAttempt, DEFAULT_FLICKR_RATE_POLICY } from "./flickr_rate.ts";
 import { sameGrant, type GrantSnapshot, type SecretReads, type FlickrFetch } from "./flickr_reads.ts";
@@ -50,9 +50,16 @@ async function rejectWorkerGrant(db: SqlStore, snapshot: GrantSnapshot): Promise
   } catch { /* A stale result cannot retire a successor; the already-paused gate remains safe. */ }
 }
 
+/** Optional infrastructure hooks are supplied by external test drivers, never HTTP input. */
+export interface DispatchHooks extends Pick<Dependencies,"fault"|"monotonicUs"> {
+  transport?:(value:Transport)=>Transport;
+  reservation?:(value:Reservation|null)=>Reservation|null;
+}
+
 export async function consumePartition(
   env: DispatchEnv, partitionId: string, revision: string | null, source: string,
   fetcher: FlickrFetch = request => fetch(request),
+  hooks?: DispatchHooks,
 ): Promise<string> {
   if(env.FGA_DISPATCH_ENABLED!=="1")return "disabled";
   const owner=await env.DB.prepare("SELECT user_id userId FROM group_partitions WHERE partition_id=?")
@@ -65,15 +72,16 @@ export async function consumePartition(
   };
   const transport=()=>selected??=(async()=>{
     await current();
-    return createDispatchTransport(env,snapshot!.generation,current,fetcher);
+    const value=await createDispatchTransport(env,snapshot!.generation,current,fetcher);
+    return hooks?.transport?hooks.transport(value):value;
   })();
-  return runPartition({db:env.DB,monotonicUs:()=>Date.now()*1000,artifactSha2_256:env.FGA_ARTIFACT_SHA2_256,
+  return runPartition({db:env.DB,monotonicUs:hooks?.monotonicUs??(()=>Date.now()*1000),fault:hooks?.fault,artifactSha2_256:env.FGA_ARTIFACT_SHA2_256,
     transport:{
       membership:async context=>(await transport()).membership(context),
       preflight:async context=>(await transport()).preflight(context),
       prepareAdd:async context=>(await transport()).prepareAdd(context),
     },
-    reserve:context=>reserveFlickrAttempt(env.DB,context,DEFAULT_FLICKR_RATE_POLICY),
+    reserve:async context=>{const value=await reserveFlickrAttempt(env.DB,context,DEFAULT_FLICKR_RATE_POLICY);return hooks?.reservation?hooks.reservation(value):value;},
     async rateRetryDelayMs(){
       const row=await env.DB.prepare(`SELECT CAST(MAX(1000,MIN(3600000,(expires_at_us-${NOW_US_SQL})/1000+1)) AS INTEGER) delay
         FROM flickr_rate_window WHERE singleton=1`).first<{delay:number}>();

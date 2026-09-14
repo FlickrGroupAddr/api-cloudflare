@@ -85,3 +85,20 @@ The first authenticated run exposed CRLF conversion of the reviewed contract
 mirror in a Windows checkout. `.gitattributes` now keeps detected text files as LF
 without altering binary files. A real Git checkout test with `core.autocrlf=true`
 proves the reviewed fingerprint survives; the fingerprint check was not relaxed.
+
+## Current execution hold (2026-09-14)
+
+The dedicated token still works. Automatic approval review rejected the integrated
+FP-BLOCK-003 snapshot import even after adding fresh-target identity/emptiness and
+synthetic-source checks. Do not dispatch this workflow as an indirect way to run
+that rejected operation. Obtain specific owner approval to copy synthetic snapshots
+between newly created empty test D1 databases, then resume the integrated proof.
+This is a tool execution authorization handoff, not a new Cloudflare permission,
+architecture decision, or request to restore production.
+
+The production matrix now exercises 55 stable IDs across component runs, including
+real hosted D1 core cases, native Secrets Store disconnect/relink/rotation, and the
+complete independent local process-stop boundaries. The full 28-class mutation
+runner, integrated restore, one-candidate provenance receipt and CI wiring remain
+incomplete. See [the current checkpoint](../research/2026-09-14-production-matrix-handoff.md).
+The final release verifier remains mandatory and cannot consume partial reports.
