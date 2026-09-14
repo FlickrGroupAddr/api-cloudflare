@@ -1,0 +1,26 @@
+{
+  "deployedAt": "2026-09-14T10:50:30.065085+00:00",
+  "sourceCommit": "00b8cb4",
+  "artifactSha2_256": "748ab9818a22ea1c8d7fd02254c9e3878f4d98a85d6b9b5afb3ad3e73fba22fa",
+  "featureFlags": {
+    "FGA_READ_ENABLED": "0",
+    "FGA_ADMIN_ENABLED": "1",
+    "FGA_INTAKE_ENABLED": "0",
+    "FGA_DISPATCH_ENABLED": "0"
+  },
+  "ownerBindingUnchanged": true,
+  "targetedOwnerDiscoveryEnabled": true,
+  "discoveryExpiresAt": "2026-09-14T11:35:17.608000+00:00",
+  "backendTestsPassed": 104,
+  "hostedCasesPassed": 13,
+  "hostedCleanupConfirmed": true,
+  "browserDiagnostic": {
+    "crossSitePostThen303": "cookie_missing",
+    "sameSiteLink": "cookie_present",
+    "crossSitePostThenDocument": "cookie_present"
+  },
+  "existingSessionObservation": "One session matched the configured subject; activity timestamps are coalesced and do not prove absence of all subsequent requests.",
+  "ownerSubjectChanged": false,
+  "ownerInteractionPending": true,
+  "hostedEvidence": "rp-efaf640c76a124ca99b74583/report.json"
+}

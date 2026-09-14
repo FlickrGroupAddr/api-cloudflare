@@ -89,3 +89,17 @@ preference, not an email-to-ID guess.
 [Google's identity claims documentation](https://developers.google.com/identity/openid-connect/openid-connect)
 supports using `sub` as the permanent identifier and verified email only for this
 bounded selection step.
+
+## Deployed owner handoff
+
+The callback fix and targeted discovery are deployed from `00b8cb4` in
+administration-only mode. The old owner subject is unchanged. The temporary
+check expires at `2026-09-14T11:35:17.608Z` (07:35 Eastern). Terry was asked to
+start a fresh personal-account sign-in and either report successful administration
+or provide only the Google-verified Account ID shown by the targeted page.
+No raw assertion or credential payload was requested.
+
+[Deployment and diagnostic evidence](../evidence/owner-login-recovery-2026-09-14.json)
+records the exact artifact. The continuation asset was verified live. All nine
+persistent native secret bindings survived the disposable hosted test cleanup.
+The loopback-only synthetic browser probe has been stopped.
