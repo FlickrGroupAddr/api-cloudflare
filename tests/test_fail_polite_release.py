@@ -224,6 +224,34 @@ class ReleaseGateTests(unittest.TestCase):
 
 
 class ReleaseInputTests(unittest.TestCase):
+    def test_windows_checkout_preserves_reviewed_contract_bytes(self):
+        with tempfile.TemporaryDirectory(prefix="fga-contract-checkout-") as directory:
+            root = Path(directory).resolve()
+            self.assertTrue(root.is_relative_to(Path(tempfile.gettempdir()).resolve()))
+            env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-c", "core.autocrlf=true", *args],
+                    cwd=root,
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                )
+
+            git("init")
+            (root / ".gitattributes").write_bytes((gate.ROOT / ".gitattributes").read_bytes())
+            name = "docs/contracts/fail-polite-worker-database-conformance.md"
+            source = root / name
+            source.parent.mkdir(parents=True)
+            source.write_bytes(gate.MIRRORED_CONTRACT.read_bytes())
+            git("add", ".gitattributes", name)
+            checkout = root / "fresh"
+            checkout.mkdir()
+            git("checkout-index", "--force", "--prefix=" + checkout.as_posix() + "/", "--", name)
+            self.assertEqual(gate.digest(checkout / name), gate.MUTATION_CONTRACT_SHA2_256)
+            self.assertNotIn(b"\r\n", (checkout / name).read_bytes())
+
     def test_real_git_detects_uncommitted_assets_harness_and_workflow(self):
         with tempfile.TemporaryDirectory(prefix="fga-release-input-") as directory:
             root = Path(directory).resolve()
