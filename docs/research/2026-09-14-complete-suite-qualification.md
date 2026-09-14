@@ -1,4 +1,4 @@
-# Complete suite qualification â€” 2026-09-14
+# Complete suite qualification - 2026-09-14
 
 Terry approved all recommendations following the explicit synthetic hosted restore
 request. That execution hold is resolved. #0018 and #0002 are In Progress for final
@@ -79,3 +79,19 @@ fingerprint, public mirror and runtime constant were synchronized together.
 Negative mutation controls run locally with production migrations and the same
 unmodified control module; the positive storage matrix uses managed D1. Those
 runtime scopes are explicit in the final receipt.
+
+## Combined managed-storage result
+
+CI run 34897090248 at 710a28b passed every stable case in one managed-storage run:
+all 56 IDs, including both process-recovery paths and four permanent-block seeds.
+The [sanitized matrix receipt](../evidence/native-matrix-56cases-2026-09-14.json)
+records that boundary. Overall qualification still failed afterward when the
+supplemental hosted runtime endpoint returned HTTP 404 after a single readiness
+success. No full pass is claimed.
+
+The supplement now requires consecutive readiness successes over at least 30
+seconds, including after redeployment, following the established clock-probe
+pattern. It runs before the long matrix so startup failures stop early. HTTP
+failure diagnostics retain only status, method, content type and body length.
+The separate partial diagnostic supports this supplement without changing the
+mandatory full release workflow.

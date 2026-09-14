@@ -7,8 +7,6 @@ import json
 import re
 import shutil
 import time
-import urllib.error
-import urllib.request
 from typing import TYPE_CHECKING
 
 from scripts import bootstrap_deployment as bootstrap
@@ -115,20 +113,36 @@ def hosted_runtime(matrix: Matrix):
                 if len(raw) > 65536:
                     raise ValueError("hosted_runtime_response_over_budget")
                 if response.status != 200:
+                    report.setdefault("httpFailures", []).append(
+                        {
+                            "status": response.status,
+                            "bodyBytes": len(raw),
+                            "contentType": response.getheader("Content-Type", "")[:100],
+                            "method": "GET" if body is None else "POST",
+                        }
+                    )
                     raise ValueError("hosted_runtime_http_" + str(response.status))
                 return json.loads(raw)
             finally:
                 connection.close()
 
-        deadline = time.monotonic() + 90
-        while True:
-            try:
-                if request().get("ready"):
-                    break
-            except urllib.error.URLError, ValueError:
-                if time.monotonic() > deadline:
-                    raise
-            time.sleep(1)
+        def ready():
+            started = time.monotonic()
+            deadline = started + 120
+            consecutive = 0
+            while time.monotonic() < deadline:
+                try:
+                    if request().get("ready") is not True:
+                        raise ValueError("hosted_runtime_not_ready")
+                    consecutive += 1
+                    if consecutive >= 5 and time.monotonic() - started >= 30:
+                        return
+                except OSError, ValueError, http.client.HTTPException:
+                    consecutive = 0
+                time.sleep(2)
+            raise RuntimeError("hosted_runtime_readiness_did_not_converge")
+
+        ready()
         case = matrix.seed("FP-PRE-008-hosted-runtime")
         fast = request({"partitionId": case.partition})
         ok = fast["state"]["state"] == "moderation_submitted" and len(fast["calls"]) == 3
@@ -136,6 +150,7 @@ def hosted_runtime(matrix: Matrix):
         if not ok:
             raise RuntimeError("hosted_normal_handoff_failed")
         runtime.wrangler(run, "redeploy", "deploy", "--config", str(config))
+        ready()
         repeated = request({"partitionId": case.partition})
         ok = repeated["state"]["state"] == "moderation_submitted" and not repeated["calls"]
         report["cases"].append(

@@ -1,0 +1,802 @@
+{
+  "scope": "managed-storage-matrix-only",
+  "fullConformancePassed": false,
+  "sourceCiRun": 34897090248,
+  "testedCommit": "710a28b",
+  "caseCount": 56,
+  "cases": [
+    {
+      "id": "FP-MEM-001",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-002",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-007",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-003",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-004",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-005",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-006",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-MEM-008",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-001",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-002",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-003",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-004",
+      "status": "passed",
+      "skipped": false,
+      "firstAttempt": {
+        "result": {
+          "result": "deferred",
+          "seen": [
+            "before_membership",
+            "after_membership",
+            "membership_committed",
+            "before_preflight"
+          ],
+          "postMarkerAuthorityReads": 0,
+          "nativeReadFailures": 0,
+          "providerFailures": 0
+        },
+        "state": {
+          "state": "retrying",
+          "active_fifo_member": 1,
+          "add_dispatch_count": 0
+        },
+        "methods": [
+          "flickr.photos.getAllContexts",
+          "flickr.groups.getInfo"
+        ]
+      },
+      "secondAttempt": {
+        "result": {
+          "result": "moderation_submitted",
+          "seen": [
+            "before_membership",
+            "after_membership",
+            "membership_committed",
+            "before_preflight",
+            "after_preflight",
+            "preflight_committed",
+            "marker_committed",
+            "response_received",
+            "result_committed"
+          ],
+          "postMarkerAuthorityReads": 0,
+          "nativeReadFailures": 0,
+          "providerFailures": 0
+        },
+        "state": {
+          "state": "moderation_submitted",
+          "active_fifo_member": 0,
+          "add_dispatch_count": 1
+        },
+        "methods": [
+          "flickr.photos.getAllContexts",
+          "flickr.groups.getInfo",
+          "flickr.groups.pools.add"
+        ]
+      }
+    },
+    {
+      "id": "FP-PRE-006",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-005",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-007",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-008",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-009",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-010",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-011",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-PRE-012",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-001",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-002",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-003",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-004",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-005",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-006",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-007",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-008",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-009",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-RES-010",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-CRASH-001",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-002",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-003",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-004",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-005",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 1,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 1,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-006",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 1,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 1,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-007",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 1,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "delivery_uncertain",
+          "priorPosts": 1,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-008",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "moderation_submitted",
+          "priorPosts": 1,
+          "initialState": "moderation_submitted"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "moderation_submitted",
+          "priorPosts": 1,
+          "initialState": "moderation_submitted"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-009",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-CRASH-010",
+      "status": "passed",
+      "skipped": false,
+      "entryPaths": [
+        "hint",
+        "sweep"
+      ],
+      "witnesses": [
+        {
+          "entryPath": "hint",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        },
+        {
+          "entryPath": "sweep",
+          "passed": true,
+          "actualProcessStopped": true,
+          "recoveredState": "retrying",
+          "priorPosts": 0,
+          "initialState": "attempting"
+        }
+      ]
+    },
+    {
+      "id": "FP-QUEUE-001",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-QUEUE-002",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-QUEUE-003",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-QUEUE-004",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-QUEUE-005",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-QUEUE-006",
+      "status": "passed",
+      "skipped": false
+    },
+    {
+      "id": "FP-BLOCK-001",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-002",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-003",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-004",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-005",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-006",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-007",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-008",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-009",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "FP-BLOCK-010",
+      "status": "passed",
+      "skipped": false,
+      "seedReasons": [
+        "code_6",
+        "code_7",
+        "unknown",
+        "unresolved_dispatch"
+      ],
+      "witnesses": [
+        {
+          "seedReason": "code_6",
+          "passed": true
+        },
+        {
+          "seedReason": "code_7",
+          "passed": true
+        },
+        {
+          "seedReason": "unknown",
+          "passed": true
+        },
+        {
+          "seedReason": "unresolved_dispatch",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "remainingQualification": "Hosted runtime supplement and mutation evidence in the complete CI gate."
+}

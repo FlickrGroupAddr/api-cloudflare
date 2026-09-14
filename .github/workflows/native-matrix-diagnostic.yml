@@ -8,6 +8,7 @@ on:
         options:
           - FP-MEM-001
           - FP-PRE-004
+          - hosted-runtime
         default: FP-MEM-001
 permissions:
   contents: read
@@ -43,7 +44,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
           FGA_DIAGNOSTIC_CASE: ${{ inputs.case }}
-        run: uv run --frozen python -m scripts.production_matrix --environment hosted-db --native --provenance --section core --stop-after $env:FGA_DIAGNOSTIC_CASE
+        run: |
+          if ($env:FGA_DIAGNOSTIC_CASE -eq 'hosted-runtime') {
+            uv run --frozen python -m scripts.production_matrix --environment hosted-db --native --provenance --section hosted-runtime
+          } else {
+            uv run --frozen python -m scripts.production_matrix --environment hosted-db --native --provenance --section core --stop-after $env:FGA_DIAGNOSTIC_CASE
+          }
       - name: Retain sanitized partial diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -51,4 +57,6 @@ jobs:
           name: native-matrix-diagnostic
           include-hidden-files: true
           if-no-files-found: ignore
-          path: .coordination-runs/**/matrix-report.json
+          path: |
+            .coordination-runs/**/matrix-report.json
+            .coordination-runs/*/hosted-runtime/report.json

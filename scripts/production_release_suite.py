@@ -48,11 +48,11 @@ def qualify(token_file: Path | None = None):
             json.loads(Path(matrix.settings["wrangler"]).read_text()),
             matrix.proof.operator.operator,
         )
+        hosted = hosted_runtime(matrix)
         core_cases(matrix)
         crash_cases(matrix)
         queue_cases(matrix)
         block_cases(matrix)
-        hosted = hosted_runtime(matrix)
         records = matrix.records
         artifact_hash = gate.digest(matrix.artifact)
         shutil.copyfile(matrix.artifact, output / "worker.js")
