@@ -97,6 +97,16 @@ dependencies and ordinary tooling. If a newer tool release requires a prerelease
 dependency, prefer the newest stable dependency combination and document the
 version tradeoff. Keep npm on a compatible stable release.
 
+## UI typography and loading preference
+
+Terry specified on 2026-09-14 that he likes **Inter** for the FGA UI and values
+avoiding visible font-swap/redraw flicker during initial loading. The desired
+result is the preference; he explicitly did not prescribe the implementation
+suggested by another model in the ItineraryWatch example. Choose an appropriate
+loading strategy during UI work rather than copying that implementation by
+rote. Keep the existing CSP and private credential-transfer boundaries intact.
+See [the typography note](docs/ui-preferences.md) for the reference and findings.
+
 ## Git workflow
 
 Terry reaffirmed the standing order on 2026-09-12: "all commits and pushes are
