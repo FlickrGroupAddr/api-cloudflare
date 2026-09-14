@@ -9,7 +9,7 @@ concurrency:
 jobs:
   validate:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     defaults:
       run:
         shell: pwsh
@@ -51,7 +51,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
         run: uv run --frozen python -m scripts.hosted_restore_proof --run
+      - name: Run the complete native production suite
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.production_release_suite
       - name: Require complete exact-artifact release evidence
-        # Intentionally fails until the full case/mutation runner supplies evidence.
+        # Missing or failing full-suite evidence still prevents qualification.
         # Component proofs above cannot turn into a release pass by omission.
-        run: uv run --frozen python -m scripts.fail_polite_release
+        run: uv run --frozen python -m scripts.fail_polite_release --evidence .coordination-runs/production-release/evidence.json --artifact .coordination-runs/production-release/worker.js --config .coordination-runs/production-release/configuration.json
+      - name: Retain sanitized qualification receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fail-polite-production-evidence
+          if-no-files-found: ignore
+          include-hidden-files: true
+          path: .coordination-runs/production-release/evidence.json

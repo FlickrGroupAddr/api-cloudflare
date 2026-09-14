@@ -3,6 +3,13 @@
 import production, {consumePartition, PartitionWorker, ROUTES} from "./production.mjs";
 export {PartitionWorker};
 const phases=new Map();
+let protectedWrites=0;
+function observeDatabase(db) {
+ return {prepare(sql){
+  if(/\b(?:DELETE\s+FROM|UPDATE)\s+submission_blocks\b/i.test(sql))protectedWrites++;
+  return db.prepare(sql);
+ },batch(statements){return db.batch(statements);}};
+}
 export default {
  async fetch(request, env) {
   if(env.MATRIX_NATIVE_PROXY==="1"){
@@ -25,6 +32,20 @@ export default {
   if(input.action==="guard-sql"){
    try{await env.DB.prepare(input.sql).bind(...(input.params??[])).run();return Response.json({denied:false});}
    catch(error){const text=String(error);return Response.json({denied:/immutable|retained|FOREIGN KEY constraint/i.test(text)});}
+  }
+  if(input.action==="protected-writes")return Response.json({count:protectedWrites});
+  if(["api","native-maintenance","scheduled","run"].includes(input.action))env={...env,DB:observeDatabase(env.DB)};
+  if(input.action==="migration-proof"){
+   const create="CREATE INDEX matrix_rollback_probe ON submission_blocks(group_id,photo_id)";
+   let rejected=false;
+   try{await env.DB.batch([env.DB.prepare(create),env.DB.prepare("DELETE FROM submission_blocks WHERE photo_id=?").bind(input.photoId)]);}
+   catch(error){rejected=/immutable|retained/i.test(String(error));}
+   const rolledBack=!(await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE name='matrix_rollback_probe'").first());
+   if(!rejected||!rolledBack)return Response.json({passed:false});
+   await env.DB.prepare(create).run();
+   await env.DB.prepare("DROP INDEX matrix_rollback_probe").run();
+   const restored=!(await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE name='matrix_rollback_probe'").first());
+   return Response.json({passed:restored,failedMigrationRolledBack:rolledBack});
   }
   if(input.action==="routes")return Response.json({routes:ROUTES.map(x=>({path:x.pathPattern,method:x.method}))});
   if(input.action==="fixture-reset-grant"){
@@ -63,7 +84,11 @@ export default {
   if(input.action==="phases")return Response.json({phases:Object.fromEntries(phases)});
   if(input.action==="sql")return Response.json(await env.DB.batch(input.statements.map(x=>env.DB.prepare(x.sql).bind(...(x.params??[])))));
   if(input.action==="run"){
-   let clock=0;const seen=[];const original=env.DB;
+   let clock=0,postMarkerAuthorityReads=0;const seen=[];const underlying=env.DB;
+   const original={prepare(sql){
+    if(phases.get(input.partitionId)==="marker_committed"&&sql.includes("FROM flickr_links l JOIN flickr_native_credentials"))postMarkerAuthorityReads++;
+    return underlying.prepare(sql);
+   },batch(statements){return underlying.batch(statements);}};
    const prepared=new WeakMap();
    const database=input.rollbackResult?{prepare(sql){const s=original.prepare(sql);prepared.set(s,sql);const bind=s.bind.bind(s);s.bind=(...args)=>{const r=bind(...args);prepared.set(r,sql);return r;};return s;},
     batch(statements){if(statements.some(s=>prepared.get(s)?.includes("INSERT INTO attempt_resolutions")))
@@ -79,15 +104,15 @@ export default {
    };
    try{
     const result=await consumePartition({...env,DB:database,FGA_DISPATCH_ENABLED:"1"},input.partitionId,input.revision??null,input.source??"hint",
-      req=>fetch(req),{fault,monotonicUs:()=>clock,
+      req=>{phases.set(input.partitionId,"provider_handoff");return fetch(req);},{fault,monotonicUs:()=>clock,
        transport:original=>({...original,
         async preflight(context){const value=await original.preflight(context);if(input.intervene)await original.membership(context);return value;},
         async prepareAdd(context){const prepared=await original.prepareAdd(context);if(input.proveNotSent)prepared.dispose();return prepared;}}),
        reservation:original=>{let checks=0;return !original?null:{...original,
         check(context){checks++;return original.check(input.scopeMismatch&&checks===2?{...context,groupId:"wrong-scope"}:context);}}}
       });
-    return Response.json({result,seen});
-   }catch{return Response.json({result:"boundary_stopped",seen},{status:409});}
+    return Response.json({result,seen,postMarkerAuthorityReads});
+   }catch{return Response.json({result:"boundary_stopped",seen,postMarkerAuthorityReads},{status:409});}
   }
   if(input.action==="scheduled"){
    await production.scheduled({scheduledTime:Date.now(),cron:"* * * * *"},env);

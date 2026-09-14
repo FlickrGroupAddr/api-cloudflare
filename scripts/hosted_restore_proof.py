@@ -189,7 +189,11 @@ class Proof:
         if database not in self.owned.values() or not database:
             raise ValueError("database_not_owned_by_this_run")
         status, value = provenance.request(
-            self.operator.account_id, database, self.operator.operator, sql
+            self.operator.account_id,
+            database,
+            self.operator.operator,
+            sql,
+            max_response_bytes=4 * 1024 * 1024,
         )
         if status != 200 or value.get("success") is not True:
             bootstrap.save(

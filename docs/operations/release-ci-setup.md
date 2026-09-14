@@ -1,5 +1,10 @@
 # Release CI credential handoff
 
+**Current integration:** The token and restore approval are resolved. The manual
+workflow now includes the full suite and retains only its sanitized receipt.
+See [complete qualification](../research/2026-09-14-complete-suite-qualification.md).
+The remaining sections are historical setup evidence.
+
 Status: Credential setup resolved and verified in GitHub Actions, 2026-09-14.
 The full conformance runner remains incomplete; there is no release pass.
 
@@ -86,7 +91,7 @@ mirror in a Windows checkout. `.gitattributes` now keeps detected text files as 
 without altering binary files. A real Git checkout test with `core.autocrlf=true`
 proves the reviewed fingerprint survives; the fingerprint check was not relaxed.
 
-## Current execution hold (2026-09-14)
+## Earlier execution hold (resolved by owner approval)
 
 The dedicated token still works. Automatic approval review rejected the integrated
 FP-BLOCK-003 snapshot import even after adding fresh-target identity/emptiness and

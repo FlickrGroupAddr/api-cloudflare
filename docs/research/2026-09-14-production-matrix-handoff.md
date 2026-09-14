@@ -1,6 +1,10 @@
-# Production matrix handoff — 2026-09-14
+# Production matrix handoff â€” 2026-09-14
 
-## Current gate
+**Current status:** The owner approved the synthetic restore and continuation.
+The old hold is resolved. See [complete suite qualification](2026-09-14-complete-suite-qualification.md)
+for current results, the complete command and CI acceptance. Sections below record earlier checkpoints.
+
+## Earlier handoff (resolved)
 
 Cards **#0018 Complete the production fail-polite conformance gate** and **#0002
 Prove the Cloudflare-native hosted foundation** are handed off to **Needs Terry**.

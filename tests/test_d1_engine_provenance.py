@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import io
+import json
 import unittest
 from unittest.mock import patch
 
@@ -86,6 +88,32 @@ class EngineObservationTests(unittest.TestCase):
             calls[2].args[3], "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1"
         )
         self.assertNotIn("synthetic-test-token", str(engine))
+
+
+class ResponseBudgetTests(unittest.TestCase):
+    def test_restore_metadata_can_use_explicit_bounded_budget(self):
+        class Reply(io.BytesIO):
+            status = 200
+
+        payload = {"success": True, "result": [{"metadata": "x" * 70000}]}
+        raw = json.dumps(payload).encode()
+        args = ("a" * 32, "00000000-0000-0000-0000-000000000001", "synthetic-token")
+        with patch.object(provenance.urllib.request, "build_opener") as opener:
+            opener.return_value.open.return_value = Reply(raw)
+            with self.assertRaisesRegex(ValueError, "over_budget"):
+                provenance.request(*args)
+            opener.return_value.open.return_value = Reply(raw)
+            self.assertEqual(provenance.request(*args, max_response_bytes=131072), (200, payload))
+            opener.return_value.open.return_value = Reply(b"x" * 131073)
+            with self.assertRaisesRegex(ValueError, "over_budget"):
+                provenance.request(*args, max_response_bytes=131072)
+
+    def test_invalid_or_unbounded_budget_never_opens_a_connection(self):
+        with patch.object(provenance.urllib.request, "build_opener") as opener:
+            for value in (True, 0, 65535, 4 * 1024 * 1024 + 1):
+                with self.assertRaisesRegex(ValueError, "invalid_provider_response_budget"):
+                    provenance.request("a" * 32, "unused", "synthetic", max_response_bytes=value)
+            opener.assert_not_called()
 
 
 if __name__ == "__main__":

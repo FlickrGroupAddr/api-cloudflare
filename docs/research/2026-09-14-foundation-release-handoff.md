@@ -1,5 +1,9 @@
 # Foundation and release-gate decision handoff, 2026-09-14
 
+**Current status:** The owner approved the synthetic restore and continuation.
+The old hold is resolved. See [complete suite qualification](2026-09-14-complete-suite-qualification.md)
+for current results, the complete command and CI acceptance. Sections below record earlier checkpoints.
+
 **Current handoff:** #0018 and its rollup #0002 need specific permission for the
 synthetic hosted restore test after automatic approval review rejected it. The CI
 token and ADR0058 decisions are already resolved. See the

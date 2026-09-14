@@ -332,6 +332,7 @@ def block_cases(matrix: Matrix, selected: list[str] | None = None):
             original = make_block(
                 matrix, case, reason, historical=label in ("FP-BLOCK-004", "FP-BLOCK-006")
             )
+            writes_before = matrix.control(action="protected-writes")["count"]
             ok = True
             if label == "FP-BLOCK-001":
                 ok = matrix.submit(case)["status"] == 202
@@ -471,6 +472,23 @@ def block_cases(matrix: Matrix, selected: list[str] | None = None):
                                 "denied"
                             ]
                         )
+                # Create an actual audit entry through the ordinary detail route,
+                # then exercise its append-only guards and a controlled DDL rollback.
+                detail = matrix.api(case, "/api/v001/plugin-codes/" + case.user)
+                ok = ok and detail["status"] == 200
+                for statement in (
+                    "DELETE FROM audit_events WHERE user_id=?",
+                    "UPDATE audit_events SET action=action WHERE user_id=?",
+                    "INSERT OR REPLACE INTO audit_events SELECT * FROM audit_events "
+                    "WHERE user_id=?",
+                ):
+                    ok = (
+                        ok
+                        and matrix.control(action="guard-sql", sql=statement, params=[case.user])[
+                            "denied"
+                        ]
+                    )
+                ok = ok and matrix.control(action="migration-proof", photoId=case.photo)["passed"]
             elif label == "FP-BLOCK-010":
                 for pool in ([{"id": case.group, "title": "present"}], []):
                     matrix.peer.mode = {"membership": {"stat": "ok", "pool": pool}}
@@ -480,6 +498,7 @@ def block_cases(matrix: Matrix, selected: list[str] | None = None):
                 raise ValueError("unknown_block_case")
             ok = (
                 ok
+                and matrix.control(action="protected-writes")["count"] == writes_before
                 and original == block_row(matrix, case)
                 and not any(
                     call["method"] == "flickr.groups.pools.add" for call in matrix.peer.calls
@@ -488,7 +507,7 @@ def block_cases(matrix: Matrix, selected: list[str] | None = None):
             witnesses.append({"seedReason": reason, "passed": ok})
             print(label + "." + reason + (": passed" if ok else ": FAILED"), flush=True)
             if not ok:
-                raise RuntimeError("permanent_block_assertion_failed_" + label)
+                matrix.check(label, False, seedReasons=[reason])
         matrix.check(
             label,
             all(row["passed"] for row in witnesses),

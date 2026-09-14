@@ -27,6 +27,8 @@ class NativeFixtures:
         self.ids: dict[str, str] = {}
         self.names = {
             "GRANT": self.name + "-grant",
+            "APPLICATION": self.name + "-application",
+            "LIMITER": self.name + "-limiter",
             **{f"TEMP_{i}": self.name + f"-temp-{i}" for i in range(5)},
         }
         self.attempted = False
@@ -117,6 +119,14 @@ class NativeFixtures:
                 if binding == "GRANT"
                 else {"schemaVersion": 1, "generation": "matrix-initial", "retired": True}
             )
+            if binding == "APPLICATION":
+                value = {
+                    "schemaVersion": 1,
+                    "consumerKey": "matrix-key",
+                    "consumerSecret": "matrix-secret",
+                }
+            if binding == "LIMITER":
+                value = "matrix-auth-limiter-key-with-at-least-32-characters"
             payload.append(
                 {
                     "name": name,

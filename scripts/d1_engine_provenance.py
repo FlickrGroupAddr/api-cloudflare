@@ -156,7 +156,16 @@ def source_identities(root: Path = ROOT) -> dict[str, Any]:
     }
 
 
-def request(account: str, database: str, token: str, sql: str | None = None) -> tuple[int, Any]:
+def request(
+    account: str,
+    database: str,
+    token: str,
+    sql: str | None = None,
+    *,
+    max_response_bytes: int = 65536,
+) -> tuple[int, Any]:
+    if type(max_response_bytes) is not int or not 65536 <= max_response_bytes <= 4 * 1024 * 1024:
+        raise ValueError("invalid_provider_response_budget")
     if (
         re.fullmatch(r"[a-f0-9]{32}", account) is None
         or re.fullmatch(r"[a-f0-9-]{36}", database) is None
@@ -182,8 +191,8 @@ def request(account: str, database: str, token: str, sql: str | None = None) -> 
     except urllib.error.HTTPError as error:
         response = error
     with response:
-        raw = response.read(65537)
-        if len(raw) > 65536:
+        raw = response.read(max_response_bytes + 1)
+        if len(raw) > max_response_bytes:
             raise ValueError("provider_response_over_budget")
         status = response.status
         payload = json.loads(raw)

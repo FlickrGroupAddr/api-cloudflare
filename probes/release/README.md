@@ -57,7 +57,12 @@ witnesses plus artifact, driver and runtime-adapter hashes. Do not combine compo
 reports from different runs into a full release claim. Miniflare's 2026-07-30
 compatibility date is distinct from production's 2026-09-11 date.
 
-FP-BLOCK-003 requires hosted snapshots and is not supported in local mode. Automatic
-approval review blocked its hosted execution on 2026-09-14. Do not run it indirectly
-through CI or another adapter before the specific owner approval described in the
-[current handoff](../../docs/research/2026-09-14-production-matrix-handoff.md).
+FP-BLOCK-003 requires hosted snapshots and is not supported locally. Terry approved
+that operation; all four integrated restore seeds passed. The old hold is resolved.
+
+The complete command is `uv run --frozen python -m scripts.production_release_suite`.
+It combines all 56 cases, all 28 mutations, fresh engine provenance, native cleanup
+and the exact-module hosted runtime/redeployment supplement. The latter imports
+the unchanged optimized module and uses synthetic provider responses. Its endpoint
+has an expiring bearer guard and is removed after the run. Ordinary section runs
+remain partial. See [the qualification checkpoint](../../docs/research/2026-09-14-complete-suite-qualification.md).

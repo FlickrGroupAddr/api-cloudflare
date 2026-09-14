@@ -48,6 +48,19 @@ class ReleaseGateTests(unittest.TestCase):
                 },
                 "migrationHead": "migration.sql",
             },
+            "hostedRuntime": {
+                "workerArtifactSha2_256": "b" * 64,
+                "workersCompatibilityDate": "2026-09-11",
+                "cleanupConfirmed": True,
+                "cases": [
+                    {"id": name, "passed": True}
+                    for name in [
+                        "hosted-prepared-handoff",
+                        "hosted-deployment-restart",
+                        "hosted-io-refreshed-expiry",
+                    ]
+                ],
+            },
             "adapters": dict.fromkeys(gate.REQUIRED_ADAPTERS, True),
             "cases": [
                 {
@@ -100,6 +113,20 @@ class ReleaseGateTests(unittest.TestCase):
             {"restorePreservesPostBackupProtection": False},
         ):
             self.assertTrue(self.check({**self.report, **change}))
+
+    def test_local_matrix_cannot_substitute_for_hosted_candidate_runtime(self):
+        for patch in (
+            {"workerArtifactSha2_256": "other"},
+            {"workersCompatibilityDate": "2026-07-30"},
+            {"cleanupConfirmed": False},
+            {"cases": []},
+        ):
+            report = copy.deepcopy(self.report)
+            report["hostedRuntime"].update(patch)
+            self.assertIn("exact_artifact_hosted_runtime_evidence_required", self.check(report))
+        report = copy.deepcopy(self.report)
+        report["hostedRuntime"]["cases"][0]["passed"] = False
+        self.assertIn("exact_artifact_hosted_runtime_evidence_required", self.check(report))
 
     def test_provider_generation_and_tool_versions_are_not_engine_provenance(self):
         for patch in (

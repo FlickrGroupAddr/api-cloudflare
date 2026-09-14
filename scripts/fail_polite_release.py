@@ -146,6 +146,27 @@ def validate(report: dict[str, Any], expected: dict[str, Any], ids: list[str]) -
         adapters.get(name) is not True for name in REQUIRED_ADAPTERS
     ):
         failures.append("required_infrastructure_missing")
+    hosted = report.get("hostedRuntime")
+    required_hosted = {
+        "hosted-prepared-handoff",
+        "hosted-deployment-restart",
+        "hosted-io-refreshed-expiry",
+    }
+    if (
+        not isinstance(hosted, dict)
+        or hosted.get("workerArtifactSha2_256") != expected.get("workerArtifactSha2_256")
+        or hosted.get("workersCompatibilityDate") != expected.get("workersCompatibilityDate")
+        or hosted.get("cleanupConfirmed") is not True
+        or not isinstance(hosted.get("cases"), list)
+        or {row.get("id") for row in hosted.get("cases", []) if isinstance(row, dict)}
+        != required_hosted
+        or len(hosted.get("cases", [])) != len(required_hosted)
+        or any(
+            not isinstance(row, dict) or row.get("passed") is not True
+            for row in hosted.get("cases", [])
+        )
+    ):
+        failures.append("exact_artifact_hosted_runtime_evidence_required")
     cases = report.get("cases", [])
     if not isinstance(cases, list) or any(not isinstance(row, dict) for row in cases):
         failures.append("invalid_cases")

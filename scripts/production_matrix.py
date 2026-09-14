@@ -257,13 +257,22 @@ class Peer:
         self.thread.join(timeout=5)
 
 
+class SelectedCaseComplete(Exception):
+    """The requested positive control reached its assertion."""
+
+
 class Matrix:
     def __init__(self, environment: str, native: bool = False):
         self.proof = Proof() if environment == "hosted-db" else None
+        # Isolated mutation source copies can otherwise exceed Windows path limits
+        # inside native storage. State stays in the enclosing private run root.
+        parent = Path(
+            os.environ.get("FGA_MATRIX_RUN_PARENT", ROOT / ".coordination-runs")
+        ).resolve()
+        if parent.name != ".coordination-runs" or not ROOT.resolve().is_relative_to(parent.parent):
+            raise ValueError("matrix_run_parent_outside_private_workspace")
         self.directory = (
-            self.proof.directory
-            if self.proof
-            else ROOT / ".coordination-runs" / ("matrix-" + secrets.token_hex(12))
+            self.proof.directory if self.proof else parent / ("matrix-" + secrets.token_hex(12))
         )
         self.directory.mkdir(parents=True, exist_ok=True)
         self.native_bridge = NativeFixtures(self.proof) if native and self.proof else None
@@ -276,6 +285,7 @@ class Matrix:
         self.counter = 0
         self.records: list[dict[str, Any]] = []
         self.environment = environment
+        self.stop_after: str | None = None
         self.url = ""
 
     def start(self):
@@ -742,6 +752,8 @@ class Matrix:
         print(case_id + (": passed" if condition else ": FAILED"), flush=True)
         if not condition:
             raise RuntimeError("matrix_assertion_failed_" + case_id)
+        if self.stop_after == case_id:
+            raise SelectedCaseComplete()
 
     def close(self):
         try:
@@ -849,7 +861,13 @@ def core_cases(matrix: Matrix) -> None:
         {"membershipStatus": 503},
     ):
         case, _, state, calls = execute("FP-MEM-003", mode)
-        ok = ok and state["state"] == "retrying" and len(calls) == 1 and no_post(case, calls)
+        ok = (
+            ok
+            and state["state"] == "retrying"
+            and len(calls) == 1
+            and no_post(case, calls)
+            and count(case, "attempt_membership") == 0
+        )
     matrix.check("FP-MEM-003", ok)
 
     ok = True
@@ -871,7 +889,13 @@ def core_cases(matrix: Matrix) -> None:
     ]
     for body in bodies:
         case, _, state, calls = execute("FP-MEM-004", {"membership": body})
-        ok = ok and state["state"] == "retrying" and len(calls) == 1 and no_post(case, calls)
+        ok = (
+            ok
+            and state["state"] == "retrying"
+            and len(calls) == 1
+            and no_post(case, calls)
+            and count(case, "attempt_membership") == 0
+        )
     case, _, state, calls = execute("FP-MEM-004", {"membershipType": "text/plain"})
     matrix.check("FP-MEM-004", ok and state["state"] == "retrying" and no_post(case, calls))
 
@@ -911,13 +935,14 @@ def core_cases(matrix: Matrix) -> None:
         state["state"] == "added" and len(calls) == 3 and count(case, "submission_blocks") == 0,
     )
 
-    case, _, state, calls = execute("FP-PRE-001")
+    case, result, state, calls = execute("FP-PRE-001")
     matrix.check(
         "FP-PRE-001",
         state["state"] == "moderation_submitted"
         and calls[-2]["group"] == case.group
         and calls[-1]["markerVisible"]
-        and count(case, "attempt_preflights") == 1,
+        and count(case, "attempt_preflights") == 1
+        and result.get("postMarkerAuthorityReads") == 0,
     )
 
     ok = True
@@ -930,7 +955,14 @@ def core_cases(matrix: Matrix) -> None:
     ):
         case, _, state, calls = execute("FP-PRE-002", mode)
         ok = ok and state["state"] == "retrying" and no_post(case, calls) and len(calls) == 2
-    matrix.check("FP-PRE-002", ok)
+    case = matrix.seed("FP-PRE-002-missing-field")
+    matrix.peer.calls = []
+    matrix.peer.mode = {"preflight": {"stat": "ok", "group": {"id": case.group}}}
+    matrix.run(case)
+    matrix.check(
+        "FP-PRE-002",
+        ok and matrix.state(case)["state"] == "retrying" and no_post(case, trace(case)),
+    )
 
     case, _, _, _ = execute("FP-PRE-003", {"add": {"stat": "fail", "code": 105}})
     due(case)
@@ -967,7 +999,11 @@ def core_cases(matrix: Matrix) -> None:
 
     case, _, state, calls = execute("FP-PRE-006", scopeMismatch=True)
     matrix.check(
-        "FP-PRE-006", state["state"] == "retrying" and len(calls) == 1 and no_post(case, calls)
+        "FP-PRE-006",
+        state["state"] == "retrying"
+        and len(calls) == 1
+        and no_post(case, calls)
+        and count(case, "attempt_membership") == 1,
     )
 
     first = matrix.seed("FP-PRE-005-a")
@@ -1590,16 +1626,24 @@ def main() -> int:
     parser.add_argument("--token-file", type=Path)
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--block-ids", nargs="*")
+    parser.add_argument("--stop-after")
     parser.add_argument(
-        "--section", choices=["core", "crash", "queue", "blocks", "smoke", "all"], default="all"
+        "--section",
+        choices=["core", "crash", "queue", "blocks", "smoke", "hosted-runtime", "all"],
+        default="all",
     )
     args = parser.parse_args()
     if args.token_file:
         os.environ["CLOUDFLARE_API_TOKEN"] = bootstrap.file_token(str(args.token_file))
     matrix = Matrix(args.environment, args.native)
+    matrix.stop_after = args.stop_after
     print("Private matrix run: " + str(matrix.directory), flush=True)
     try:
         matrix.start()
+        if args.section == "hosted-runtime":
+            from scripts.hosted_matrix_runtime import hosted_runtime
+
+            hosted_runtime(matrix)
         if args.section == "smoke":
             case = matrix.seed("native-smoke")
             result = matrix.run(case)
@@ -1622,6 +1666,8 @@ def main() -> int:
             from scripts.production_matrix_blocks import block_cases
 
             block_cases(matrix, args.block_ids)
+    except SelectedCaseComplete:
+        pass
     except Exception as error:
         try:
             bootstrap.save(
