@@ -1,0 +1,57 @@
+name: Release validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fga-release-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.20.0'
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.5'
+      - name: Install locked dependencies
+        run: |
+          npm install --global npm@12.0.2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv sync --frozen
+      - name: Require dedicated hosted-test credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.ci_release_preflight
+      - name: Compile and verify generated API
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run --frozen python scripts/generate_api.py --check
+      - name: Python regression suite
+        run: uv run --frozen python -m unittest discover -s tests
+      - name: Runtime regression suite
+        run: node --test tests/*.test.mjs probes/foundation/*.test.mjs
+      - name: Independent local process-stop proof
+        run: uv run --frozen python -m scripts.independent_process_stop_proof
+      - name: Disposable hosted current-schema restore
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.hosted_restore_proof --run
+      - name: Require complete exact-artifact release evidence
+        # Intentionally fails until the full case/mutation runner supplies evidence.
+        # Component proofs above cannot turn into a release pass by omission.
+        run: uv run --frozen python -m scripts.fail_polite_release

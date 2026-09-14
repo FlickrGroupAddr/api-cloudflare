@@ -18,9 +18,11 @@ from typing import Any
 from scripts.current_schema_archive import ROOT, schema_contract
 from scripts.d1_engine_provenance import source_identities, valid_engine
 
-DEFAULT_CONTRACT = (
+CANONICAL_CONTRACT = (
     ROOT.parent / "architecture-design/docs/testing/fail-polite-worker-database-conformance.md"
 )
+MIRRORED_CONTRACT = ROOT / "docs/contracts/fail-polite-worker-database-conformance.md"
+DEFAULT_CONTRACT = CANONICAL_CONTRACT if CANONICAL_CONTRACT.is_file() else MIRRORED_CONTRACT
 DEFAULT_EVIDENCE = ROOT / ".coordination-runs/production-release/evidence.json"
 MUTATIONS = (
     "cached_preflight",

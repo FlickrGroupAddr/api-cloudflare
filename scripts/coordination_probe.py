@@ -283,6 +283,15 @@ class Client:
             "probe-events",
             "object-status",
         }
+        # Ordinary admission is exact-pair idempotent. A transient edge response
+        # after readiness may be retried with the same body; injected race/fault
+        # admissions remain single-shot so the harness cannot hide their result.
+        safe = safe or (
+            action == "admit"
+            and expected == 200
+            and "faultStage" not in data
+            and not data.get("raceBinding")
+        )
         url = urlsplit(self.run.state["url"])
         if self.run.state["environment"] == "cloudflare":
             if (

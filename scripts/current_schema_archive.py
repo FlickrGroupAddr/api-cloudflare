@@ -16,7 +16,7 @@ import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from scripts.foundation_probe import sql_literal
 
@@ -147,7 +147,13 @@ def capture(query: Query, contract: SchemaContract, *, source_stopped: bool) -> 
     return Archive(contract.migration_head, contract.migration_sha2_256, objects, rows)
 
 
-def verify_restored(query: Query, expected: Archive, contract: SchemaContract) -> dict[str, Any]:
+def verify_restored(
+    query: Query,
+    expected: Archive,
+    contract: SchemaContract,
+    *,
+    integrity_pragma: Literal["integrity_check", "quick_check"] = "integrity_check",
+) -> dict[str, Any]:
     if expected.migration_sha2_256 != contract.migration_sha2_256:
         raise ValueError("Archive is not from the selected migration head")
     actual = capture(query, contract, source_stopped=True)
@@ -155,7 +161,11 @@ def verify_restored(query: Query, expected: Archive, contract: SchemaContract) -
         raise ValueError("Restored rows or schema do not match the exact archive")
     if query("PRAGMA foreign_key_check"):
         raise ValueError("Restored foreign keys are invalid")
-    result = query("PRAGMA integrity_check")
+    if integrity_pragma not in {"integrity_check", "quick_check"}:
+        raise ValueError("Unsupported integrity check")
+    # D1 documents quick_check; generic SQLite callers retain the deeper default.
+    # This is explicit provider selection, never a fallback after a failed check.
+    result = query("PRAGMA " + integrity_pragma)
     if len(result) != 1 or list(result[0].values()) != ["ok"]:
         raise ValueError("Restored integrity check failed")
     return actual.summary()

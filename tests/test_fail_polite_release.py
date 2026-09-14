@@ -77,6 +77,12 @@ class ReleaseGateTests(unittest.TestCase):
     def check(self, report):
         return gate.validate(report, self.expected, self.ids)
 
+    def test_committed_contract_mirror_matches_canonical_inventory(self):
+        mirrored = gate.inventory(gate.MIRRORED_CONTRACT)
+        self.assertEqual(mirrored, (self.ids, self.expected["contractSha2_256"]))
+        if gate.CANONICAL_CONTRACT.is_file():
+            self.assertEqual(mirrored, gate.inventory(gate.CANONICAL_CONTRACT))
+
     def test_complete_shape_and_each_identity_field(self):
         self.assertEqual(self.check(self.report), [])
         for field in self.expected:

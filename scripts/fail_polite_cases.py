@@ -279,11 +279,18 @@ def cases(client: Any, report: Any) -> None:
     if client.run.state["environment"] == "cloudflare":
         partition, intent = setup("cron-dispatch")
         client.request("cron-enable", value=1)
-        deadline = time.monotonic() + 120
+        # Newly configured Cron Triggers may take 15 minutes to propagate.
+        # This infrastructure deadline does not relax any preflight/dispatch clock.
+        # https://developers.cloudflare.com/workers/configuration/cron-triggers/
+        deadline = time.monotonic() + 900
+        next_progress = time.monotonic() + 30
         while (
             time.monotonic() < deadline
             and rows(intent)["intent"]["state"] != "moderation_submitted"
         ):
+            if time.monotonic() >= next_progress:
+                print("Waiting for the real Cloudflare cron delivery", flush=True)
+                next_progress = time.monotonic() + 30
             time.sleep(2)
         client.request("cron-enable", value=0)
         state = rows(intent)
@@ -292,6 +299,9 @@ def cases(client: Any, report: Any) -> None:
             posts(state) == 1
             and len(state["blocks"]) == 1
             and state["intent"]["state"] == "moderation_submitted",
+            cronTicks=sum(event["kind"] == "cron_tick" for event in client.request("probe-events")),
+            state=state["intent"]["state"],
+            postCount=posts(state),
         )
 
     report.data["scope"] = {
