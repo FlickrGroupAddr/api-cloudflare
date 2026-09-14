@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "2026-09-14",
+  "runUrl": "https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/34861968320",
+  "commit": "e4bf83d6a64fce86ea032aac4e0f229fa914314c",
+  "tokenInstalled": true,
+  "accountApiReadChecks": {
+    "D1": true,
+    "Workers": true,
+    "SecretsStore": true
+  },
+  "workflowConclusion": "failure",
+  "steps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff",
+      "conclusion": "success"
+    },
+    {
+      "name": "Install locked dependencies",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require dedicated hosted-test credentials",
+      "conclusion": "success"
+    },
+    {
+      "name": "Compile and verify generated API",
+      "conclusion": "success"
+    },
+    {
+      "name": "Python regression suite",
+      "conclusion": "success"
+    },
+    {
+      "name": "Runtime regression suite",
+      "conclusion": "success"
+    },
+    {
+      "name": "Independent local process-stop proof",
+      "conclusion": "success"
+    },
+    {
+      "name": "Disposable hosted current-schema restore",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require complete exact-artifact release evidence",
+      "conclusion": "failure"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success"
+    }
+  ],
+  "releaseGate": {
+    "releaseEligible": false,
+    "failures": [
+      "production_evidence_or_infrastructure_unavailable"
+    ]
+  },
+  "fullConformancePassed": false
+}

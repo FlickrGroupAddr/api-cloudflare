@@ -1,7 +1,7 @@
 # Release CI credential handoff
 
-Status: Needs Terry setup, 2026-09-14. The workflow is reviewable; it is not a
-complete conformance runner or a release pass.
+Status: Credential setup resolved and verified in GitHub Actions, 2026-09-14.
+The full conformance runner remains incomplete; there is no release pass.
 
 ## Prepared
 
@@ -17,11 +17,12 @@ account. A byte-for-byte, fingerprint-checked public contract mirror removes any
 need to grant CI access to the private architecture repository. Private run
 folders and provider/credential logs are never uploaded as public artifacts.
 
-## Required owner input
+## Configured credential
 
-Provide a dedicated Cloudflare API token for unattended FGA CI tests, restricted
-to the FGA account. Use the name **FGA CI tests**. The complete planned native
-release tests need these account permissions:
+Terry supplied the dedicated **FGA CI tests** token locally on 2026-09-14. It
+was verified active, checked against the intended account APIs, and installed as
+**FGA_CLOUDFLARE_CI_TOKEN** through encrypted GitHub secret storage. No value was
+printed or committed. The planned native release tests use these account permissions:
 
 | Permission | Purpose |
 | --- | --- |
@@ -35,11 +36,10 @@ editing permission is unnecessary. Existing project token files supply only
 Secrets Store editing or zone reads; they cannot provide this combined CI scope.
 The local Wrangler operator login is not installed as a CI credential.
 
-Save the token in a local text file, for example `C:\Temp\FGACICreds.txt`, and
-provide its path. Do not paste it into a board comment or source file. On receipt,
-install it as repository secret **FGA_CLOUDFLARE_CI_TOKEN**, verify the scoped
-resource operations on disposable fixtures, and dispatch the prepared workflow.
-The owner's existing preference permits a token without an expiration date.
+The account variable and dedicated token are configured. The authenticated CI
+run successfully created, migrated, restored and deleted disposable D1 databases.
+No further credential action is currently required from Terry. The owner's
+existing preference permits a token without an expiration date.
 
 ## Work remaining after credential setup
 
@@ -70,3 +70,18 @@ No hosted resource operation or release verification ran in that failed CI job.
 The [sanitized receipt](../evidence/ci-credential-handoff-2026-09-14.json) records
 that concrete boundary. Workflow syntax and dependency installation have therefore
 been exercised on the actual GitHub runner, not only inspected locally.
+
+## Authenticated validation result
+
+[Run 34861968320](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/34861968320)
+at `e4bf83d` passed credential preflight, compilation/generated API checks,
+Python and Node regression suites, independent process-stop checks, and the
+hosted current-schema restore with cleanup. The overall run is intentionally
+**failed** at the final complete-evidence check: the 56-case/28-mutation release
+runner is still unfinished. That is implementation work, not a credential issue.
+[Sanitized result](../evidence/authenticated-ci-2026-09-14.json).
+
+The first authenticated run exposed CRLF conversion of the reviewed contract
+mirror in a Windows checkout. `.gitattributes` now keeps detected text files as LF
+without altering binary files. A real Git checkout test with `core.autocrlf=true`
+proves the reviewed fingerprint survives; the fingerprint check was not relaxed.

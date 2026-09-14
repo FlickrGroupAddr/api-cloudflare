@@ -1,9 +1,9 @@
 # Foundation and release-gate decision handoff, 2026-09-14
 
 Terry approved ADR0058 on 2026-09-14; that decision handoff is resolved.
-The current handoff for #0002/#0018 is dedicated CI credential setup; see
-[the setup instructions](../operations/release-ci-setup.md). This is not a full
-release-conformance pass. All other foundation children are completed;
+The CI credential handoff is also resolved. Both cards are back In Progress for
+the full release-suite integration. The [CI setup record](../operations/release-ci-setup.md)
+contains the authenticated validation result. This is not a full conformance pass. All other foundation children are completed;
 #0018 remains the rollup's final acceptance dependency.
 
 ## Accepted decision
@@ -78,8 +78,8 @@ can reach Ready for Review with a full foundation acceptance claim:
 4. Complete global Flickr budget and production-path integration coverage,
    including calls outside dispatch where applicable. Use controlled HTTPS peers
    and synthetic identities; record zero live Flickr calls in conformance runs.
-5. Configure the dedicated Cloudflare CI token, run the prepared manual workflow,
-   then connect the complete runner and publish exact-artifact evidence/receipts
+5. The dedicated token and manual workflow are verified. Connect the complete
+   runner and publish exact-artifact evidence/receipts
    only after all required cases and mutation controls pass. Missing, skipped or
    failing evidence continues to block release.
 
@@ -147,7 +147,29 @@ single-shot. Both unsuccessful attempts were cleaned up. The final rerun passed.
 These fixture readiness changes do not relax the dispatch freshness deadline.
 [Provider cron propagation documentation](https://developers.cloudflare.com/workers/configuration/cron-triggers/).
 
-The two actionable cards are at Needs Terry for the dedicated CI token described
-in the setup handoff. #0019 remains at its existing registrar-date Blocked gate.
+At that checkpoint the two actionable cards reached Needs Terry for the CI token.
+That credential handoff has since been resolved, as recorded below. #0019 remains at its existing registrar-date Blocked gate.
 All changes and sanitized results are committed; unrelated generated-route edits
 were preserved. No full conformance pass or live-write enablement is claimed.
+
+## Credential handoff resolved; current resume point
+
+Terry supplied the CI token on 2026-09-14. It was securely installed and verified.
+After correcting Windows checkout line endings, the authenticated GitHub run
+passed every implemented check and stopped at the still-missing complete release
+evidence. The CI token is no longer a blocker; both cards are In Progress.
+See [the authenticated CI receipt](../evidence/authenticated-ci-2026-09-14.json).
+
+A separate disposable proof also verified Wrangler's supported remote D1 bindings:
+a local Miniflare Worker wrote to real hosted D1, and an independent REST read
+confirmed the value. Cleanup completed. This supplies a supported path for
+independently killable workers against real D1 without requesting a new crash-
+semantics exception. The local runtime date is explicitly 2026-07-30; it is not
+being relabeled as the hosted 2026-09-11 runtime. Reproduction and boundaries are
+in `probes/release/README.md` and `scripts/remote_d1_binding_proof.py`.
+
+Next implementation: integrate the exact production artifact and real adapters
+into the complete 56-case/28-mutation runner, then supply its evidence to the
+last CI step. All previously listed native-generation, restore/reconciliation,
+stop/restart and rate-budget requirements remain. No full release pass or live
+Flickr write enablement has occurred.
