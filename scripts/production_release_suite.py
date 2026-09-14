@@ -22,6 +22,30 @@ from scripts.production_matrix_blocks import block_cases
 ROOT = gate.ROOT
 
 
+def mutation_evidence(directory: Path):
+    error_log = (directory / "mutations.private.log").open("w", encoding="utf-8")
+    mutation_path = None
+    try:
+        child = subprocess.Popen(
+            [sys.executable, "-m", "scripts.production_mutations"],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=error_log,
+            text=True,
+            encoding="utf-8",
+        )
+        assert child.stdout is not None
+        for line in child.stdout:
+            print(line.rstrip(), flush=True)
+            if line.startswith("Mutation evidence: "):
+                mutation_path = Path(line.removeprefix("Mutation evidence: ").strip())
+        if child.wait() != 0 or mutation_path is None:
+            raise ValueError("complete_mutation_evidence_required")
+    finally:
+        error_log.close()
+    return json.loads(mutation_path.read_text(encoding="utf-8"))
+
+
 def qualify(token_file: Path | None = None):
     if gate.release_input_changes().strip():
         raise ValueError("commit_release_inputs_before_qualification")
@@ -32,8 +56,6 @@ def qualify(token_file: Path | None = None):
         ["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, capture_output=True, text=True
     ).stdout.strip()
     identities = provenance.source_identities()
-    matrix = Matrix("hosted-db", True)
-    print("Private complete release run: " + str(matrix.directory), flush=True)
     output = ROOT / ".coordination-runs/production-release"
     output.mkdir(parents=True, exist_ok=True)
     # A failed run must not leave a previously successful receipt at the fixed path.
@@ -41,6 +63,22 @@ def qualify(token_file: Path | None = None):
         output / "evidence.json",
         {"scope": "incomplete-run", "fullConformancePassed": False, "runStartedAt": started},
     )
+    try:
+        mutations = mutation_evidence(output)
+    except Exception as error:
+        bootstrap.save(
+            output / "evidence.json",
+            {
+                "scope": "incomplete-run",
+                "fullConformancePassed": False,
+                "runStartedAt": started,
+                "phase": "mutations",
+                "failureType": type(error).__name__,
+            },
+        )
+        raise
+    matrix = Matrix("hosted-db", True)
+    print("Private complete release run: " + str(matrix.directory), flush=True)
     try:
         matrix.start()
         assert matrix.proof is not None
@@ -76,27 +114,6 @@ def qualify(token_file: Path | None = None):
         matrix.close()
     if matrix.proof.report.get("cleanupConfirmed") is not True:
         raise ValueError("database_cleanup_required")
-    error_log = (matrix.directory / "mutations.private.log").open("w", encoding="utf-8")
-    mutation_path = None
-    try:
-        child = subprocess.Popen(
-            [sys.executable, "-m", "scripts.production_mutations"],
-            cwd=ROOT,
-            stdout=subprocess.PIPE,
-            stderr=error_log,
-            text=True,
-            encoding="utf-8",
-        )
-        assert child.stdout is not None
-        for line in child.stdout:
-            print(line.rstrip(), flush=True)
-            if line.startswith("Mutation evidence: "):
-                mutation_path = Path(line.removeprefix("Mutation evidence: ").strip())
-        if child.wait() != 0 or mutation_path is None:
-            raise ValueError("complete_mutation_evidence_required")
-    finally:
-        error_log.close()
-    mutations = json.loads(mutation_path.read_text())
     if mutations.get("controlArtifactSha2_256") != [artifact_hash]:
         raise ValueError("mutation_control_artifact_mismatch")
     if gate.release_input_changes().strip() or provenance.source_identities() != identities:

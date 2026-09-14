@@ -109,3 +109,10 @@ requests. The same artifact and storage are resumed; no timed-out request is
 replayed. Protected-write observations and block contents are checked before
 every renewal, so restarting an observation counter cannot conceal a forbidden
 write. The complete required route/method grid remains unchanged.
+
+
+The bounded-proxy route diagnostic (34905012918) passed all four block scenarios.
+The complete command now runs local mutation adequacy before provisioning its
+hosted matrix. Every check remains mandatory, and the mutation control artifact
+must still equal the subsequently tested hosted artifact. This ordering catches
+CI-specific mutation harness failures before the expensive managed-storage run.
