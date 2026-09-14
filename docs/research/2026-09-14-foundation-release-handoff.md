@@ -1,5 +1,13 @@
 # Foundation and release-gate decision handoff, 2026-09-14
 
+**Final qualification: PASSED.** [CI run 34906117856](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/34906117856)
+passed the complete suite and exact-artifact verifier for implementation commit
+`d5973ecb934a2ac5906cba12e47d3c7f57c62eda`: 56 unique passing cases and 28 detected
+production mutations with passing controls. The sanitized full receipt is retained
+in that run's `fail-polite-production-evidence` artifact. This documentation-only
+checkpoint does not relabel the tested implementation commit. Earlier sections
+below are historical checkpoints; their pending-qualification statements are superseded.
+
 **Current status:** The owner approved the synthetic restore and continuation.
 The old hold is resolved. See [complete suite qualification](2026-09-14-complete-suite-qualification.md)
 for current results, the complete command and CI acceptance. Sections below record earlier checkpoints.
