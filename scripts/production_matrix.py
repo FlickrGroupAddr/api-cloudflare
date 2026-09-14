@@ -285,6 +285,7 @@ class Matrix:
         self.counter = 0
         self.records: list[dict[str, Any]] = []
         self.invocations: list[tuple[Case, dict[str, Any]]] = []
+        self.last_operation: dict[str, Any] = {}
         self.environment = environment
         self.stop_after: str | None = None
         self.url = ""
@@ -645,7 +646,13 @@ class Matrix:
         self.batch(statements)
 
     def api(self, case: Case, path: str, method: str = "GET", body: Any = None, extra=None):
+        self.last_operation = {
+            "action": "admin-fixture",
+            "method": method,
+            "route": path.split("?", 1)[0],
+        }
         self.admin(case)
+        self.last_operation["action"] = "api"
         headers = {
             "Cookie": "__Host-fga_admin=" + case.admin_token,
             "CF-Connecting-IP": "192.0.2." + str(self.counter % 250 + 1),
@@ -1724,6 +1731,16 @@ def main() -> int:
     except SelectedCaseComplete:
         pass
     except Exception as error:
+        bootstrap.save(
+            matrix.directory / "diagnostic.json",
+            {
+                "scope": "diagnostic-only",
+                "fullConformancePassed": False,
+                "failureType": type(error).__name__,
+                "lastOperation": matrix.last_operation,
+                "cases": matrix.records,
+            },
+        )
         try:
             bootstrap.save(
                 matrix.directory / "failure-state.json",

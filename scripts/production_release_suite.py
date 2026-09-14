@@ -67,6 +67,7 @@ def qualify(token_file: Path | None = None):
                 "fullConformancePassed": False,
                 "runStartedAt": started,
                 "failureType": type(error).__name__,
+                "lastOperation": matrix.last_operation,
                 "cases": matrix.records,
             },
         )

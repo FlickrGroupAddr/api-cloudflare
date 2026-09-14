@@ -412,6 +412,7 @@ def block_cases(matrix: Matrix, selected: list[str] | None = None):
                     "/api/v001/admin/submission-blocks/" + case.intent + "/" + action
                     for action in ("delete", "update", "clear", "force")
                 )
+                completed = 0
                 for path in sorted(paths):
                     for method in ("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"):
                         # Each route gets current authority even when a previous route logged out.
@@ -420,6 +421,17 @@ def block_cases(matrix: Matrix, selected: list[str] | None = None):
                             case, path, method, None if method in ("GET", "HEAD") else {}
                         )
                         ok = ok and response["status"] < 500
+                        completed += 1
+                        if matrix.proof is not None and completed % 50 == 0:
+                            # Bound the development proxy's lifetime between completed
+                            # requests. No request is replayed and D1 facts are retained.
+                            unchanged = (
+                                matrix.control(action="protected-writes")["count"] == writes_before
+                            )
+                            if not ok or not unchanged or original != block_row(matrix, case):
+                                matrix.check(label, False, seedReasons=[reason])
+                            matrix.stop_process()
+                            matrix.launch(resume=True)
             elif label == "FP-BLOCK-009":
                 statements = [
                     ("DELETE FROM submission_blocks WHERE photo_id=?", [case.photo]),

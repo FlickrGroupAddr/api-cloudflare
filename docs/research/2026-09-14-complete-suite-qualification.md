@@ -95,3 +95,17 @@ pattern. It runs before the long matrix so startup failures stop early. HTTP
 failure diagnostics retain only status, method, content type and body length.
 The separate partial diagnostic supports this supplement without changing the
 mandatory full release workflow.
+
+## Bounded proxy sessions for the route matrix
+
+The next combined run passed the hosted supplement and progressed through the
+restore/lifecycle cases, then a route-matrix control request timed out. This was
+not a passing response or a failed permanent-block assertion. Diagnostics now
+record the exact method/route and whether the timeout occurred during fixture
+setup or application handling, without headers, bodies or query credentials.
+
+The remote development proxy is renewed between groups of 50 completed route
+requests. The same artifact and storage are resumed; no timed-out request is
+replayed. Protected-write observations and block contents are checked before
+every renewal, so restarting an observation counter cannot conceal a forbidden
+write. The complete required route/method grid remains unchanged.

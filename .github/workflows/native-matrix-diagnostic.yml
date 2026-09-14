@@ -9,6 +9,7 @@ on:
           - FP-MEM-001
           - FP-PRE-004
           - hosted-runtime
+          - FP-BLOCK-008
         default: FP-MEM-001
 permissions:
   contents: read
@@ -47,6 +48,8 @@ jobs:
         run: |
           if ($env:FGA_DIAGNOSTIC_CASE -eq 'hosted-runtime') {
             uv run --frozen python -m scripts.production_matrix --environment hosted-db --native --provenance --section hosted-runtime
+          } elseif ($env:FGA_DIAGNOSTIC_CASE -eq 'FP-BLOCK-008') {
+            uv run --frozen python -m scripts.production_matrix --environment hosted-db --native --provenance --section blocks --block-ids FP-BLOCK-008
           } else {
             uv run --frozen python -m scripts.production_matrix --environment hosted-db --native --provenance --section core --stop-after $env:FGA_DIAGNOSTIC_CASE
           }
@@ -60,3 +63,4 @@ jobs:
           path: |
             .coordination-runs/**/matrix-report.json
             .coordination-runs/*/hosted-runtime/report.json
+            .coordination-runs/*/diagnostic.json
