@@ -139,3 +139,12 @@ requested personal account. See the
 [current recovery handoff](2026-09-14-owner-login-recovery.md) before changing an
 identity or asking for another sign-in. Existing principal identity guards and
 history must be preserved. The owner subject has not yet been changed.
+
+## Owner binding completion - 2026-09-14
+
+The targeted Google verification result was supplied and the personal-account
+subject is now the sole deployed owner. The previous session was revoked with
+an audit record; its immutable principal/history remain. Temporary discovery is
+off. Resume with the final fresh owner sign-in and Flickr connection validation,
+following the [current recovery record](2026-09-14-owner-login-recovery.md).
+The original setup subject is superseded and must not be restored.

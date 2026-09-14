@@ -103,3 +103,32 @@ No raw assertion or credential payload was requested.
 records the exact artifact. The continuation asset was verified live. All nine
 persistent native secret bindings survived the disposable hosted test cleanup.
 The loopback-only synthetic browser probe has been stopped.
+
+## Verified owner binding applied
+
+Terry supplied the targeted verification page showing the Google-verified subject
+for the requested personal account. The sole configured owner is now that
+verified subject. The exact identity stays in private configuration; it is not
+published here. The temporary email/deadline discovery variables were removed,
+and the deployed configuration was read back successfully.
+
+Before the change, the previous principal had no installations, photo bindings,
+submissions, partitions, native Flickr credentials or pending Flickr operations.
+Its Flickr connection was unlinked with absent local credentials. An operator
+D1 batch checked the principal revision and session count, appended the owner
+revocation audit, incremented the session-set revision and revoked its one
+session. The immutable principal and all historical records remain intact; no
+identity trigger was removed and no user/domain data was deleted. The new
+identity will receive its own principal through normal verified login.
+
+The exact revocation statements were checked against the current schema with
+synthetic data, including stale-revision rejection. The real operation was read
+back and the old session was confirmed revoked. This is operational validation,
+not a replacement for the production release suite.
+
+[Sanitized binding evidence](../evidence/verified-owner-binding-2026-09-14.json)
+records completion and unchanged administration-only flags. No application-code
+change was needed for this binding update. The pending step is a fresh personal
+Google sign-in to verify the final browser experience, followed by Flickr
+connection validation. Do not re-enable discovery or restore the superseded
+owner configuration merely because the old verification page still shows 401.

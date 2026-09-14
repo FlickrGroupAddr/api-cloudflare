@@ -1,0 +1,21 @@
+{
+  "changedAt": "2026-09-14T11:01:44.319579+00:00",
+  "verifiedPersonalOwnerConfigured": true,
+  "oldSessionsRevoked": 1,
+  "oldPrincipalAndHistoryRetained": true,
+  "temporaryDiscoveryRemoved": true,
+  "featureFlags": {
+    "FGA_READ_ENABLED": "0",
+    "FGA_ADMIN_ENABLED": "1",
+    "FGA_INTAKE_ENABLED": "0",
+    "FGA_DISPATCH_ENABLED": "0"
+  },
+  "artifactSha2_256": "748ab9818a22ea1c8d7fd02254c9e3878f4d98a85d6b9b5afb3ad3e73fba22fa",
+  "ownerSignInPending": true,
+  "revocationChecks": {
+    "revokedCount": 1,
+    "auditRecorded": true,
+    "priorPrincipalRetained": true,
+    "localGuardAndRollbackChecksPassed": true
+  }
+}
