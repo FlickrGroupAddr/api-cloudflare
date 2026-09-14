@@ -1,2 +1,2 @@
 // Reviewed fail-polite contract identity; changing it changes the deployable artifact.
-export const FGA_FAIL_POLITE_CONTRACT_SHA2_256 = "8b0f65212f10f3e29ac310abdd62a81d93af45438d1fbaa901e40aaed6b3b7f6";
+export const FGA_FAIL_POLITE_CONTRACT_SHA2_256 = "dd2d82c7580cd44a9bd9f8f6a00b853ce1e104134eb2b9890ec40e49d4460872";

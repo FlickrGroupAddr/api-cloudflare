@@ -76,6 +76,27 @@ Localswim state-store repository remains private because its board content is
 sensitive. Third-party components and separately licensed materials retain
 their own terms and notices.
 
+## Approved managed D1 engine provenance
+
+Terry accepted architecture ADR0058 on 2026-09-14. For the private single-owner
+D1 deployment, record an explicitly undisclosed SQLite-library version with a
+fresh remote query refusal when the provider does not expose it. Keep the
+provider generation tag separate, record schema/artifact/configuration and
+pinned tooling/adapter provenance, and retain the full behavioral, mutation,
+stop/restart, restore/reconciliation and CI gates. This is a metadata exception;
+it does not pass conformance, enable group additions, or justify an AWS move.
+The canonical details are in the accepted architecture test contract and
+`docs/decisions/0058-record-managed-d1-engine-provenance.md`.
+
+## Accepted backup baseline
+
+Terry resolved the backup investigation on 2026-09-14: daily backup coverage is
+sufficient for this private project. Use D1 automatic Time Travel to meet that
+frequency requirement; a separate scheduled daily export is not required. The
+current-schema hosted restore and post-backup reconciliation checks remain
+release requirements. See `docs/operations/d1-backup-and-recovery.md` for the
+implemented baseline, provider retention and outstanding validation.
+
 ## TypeScript compiler
 
 Terry made the TypeScript compiler requirement explicit on 2026-09-06: all

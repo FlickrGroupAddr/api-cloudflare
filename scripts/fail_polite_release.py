@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.current_schema_archive import ROOT, schema_contract
+from scripts.d1_engine_provenance import source_identities, valid_engine
 
 DEFAULT_CONTRACT = (
     ROOT.parent / "architecture-design/docs/testing/fail-polite-worker-database-conformance.md"
@@ -51,7 +52,7 @@ MUTATIONS = (
     "allow_block_deletion",
     "missing_sql_guard",
 )
-MUTATION_CONTRACT_SHA2_256 = "8b0f65212f10f3e29ac310abdd62a81d93af45438d1fbaa901e40aaed6b3b7f6"
+MUTATION_CONTRACT_SHA2_256 = "dd2d82c7580cd44a9bd9f8f6a00b853ce1e104134eb2b9890ec40e49d4460872"
 PROFILE = "adr-0056-private-workers-observed-time"
 RELEASE_INPUTS = (
     "src",
@@ -67,6 +68,7 @@ RELEASE_INPUTS = (
     "wrangler.example.jsonc",
     "pyproject.toml",
     "uv.lock",
+    ".python-version",
 )
 REQUIRED_ADAPTERS = (
     "production_worker",
@@ -122,7 +124,7 @@ def validate(report: dict[str, Any], expected: dict[str, Any], ids: list[str]) -
     failures = []
     if (
         type(report.get("schemaVersion")) is not int
-        or report.get("schemaVersion") != 1
+        or report.get("schemaVersion") != 2
         or report.get("scope") != "full-production"
     ):
         failures.append("full_production_evidence_required")
@@ -132,17 +134,7 @@ def validate(report: dict[str, Any], expected: dict[str, Any], ids: list[str]) -
     if report.get("clockProfile") != PROFILE:
         failures.append("accepted_clock_profile_required")
     engine = report.get("databaseEngine")
-    if (
-        not isinstance(engine, dict)
-        or engine.get("provider") != "cloudflare-d1"
-        or engine.get("versionKind") != "sqlite-library"
-        or not isinstance(engine.get("version"), str)
-        or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?", engine["version"]) is None
-        or not all(
-            isinstance(engine.get(key), str) and engine[key] not in {"", "unknown", "unavailable"}
-            for key in ("version", "runtime", "migrationHead")
-        )
-    ):
+    if not valid_engine(engine, report):
         failures.append("real_database_provenance_required")
     if isinstance(engine, dict) and engine.get("migrationHead") != expected.get("migrationHead"):
         failures.append("database_migration_head_mismatch")
@@ -234,7 +226,10 @@ def main() -> int:
                 "before release verification"
             )
         contract = schema_contract()
+        config = json.loads(args.config.read_text(encoding="utf-8"))
         expected = {
+            **source_identities(),
+            "workersCompatibilityDate": config["compatibility_date"],
             "releaseCommit": source,
             "workerArtifactSha2_256": digest(args.artifact),
             "configurationSha2_256": digest(args.config),
@@ -258,7 +253,7 @@ def main() -> int:
             )
         )
         return int(bool(failures))
-    except OSError, ValueError, TypeError, subprocess.SubprocessError:
+    except OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError:
         # Do not print raw config/report/command output that might contain secrets.
         print(
             json.dumps(

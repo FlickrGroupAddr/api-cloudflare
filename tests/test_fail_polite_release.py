@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts import d1_engine_provenance as provenance
 from scripts import fail_polite_release as gate
 
 
@@ -15,6 +16,9 @@ class ReleaseGateTests(unittest.TestCase):
         self.ids, contract = gate.inventory(gate.DEFAULT_CONTRACT)
         self.expected = {
             "releaseCommit": "a" * 40,
+            "workersCompatibilityDate": "2026-09-11",
+            "tooling": {"wrangler": "test-pinned"},
+            "testAdapterSha2_256": "e" * 64,
             "workerArtifactSha2_256": "b" * 64,
             "configurationSha2_256": "c" * 64,
             "migrationSha2_256": "d" * 64,
@@ -22,7 +26,10 @@ class ReleaseGateTests(unittest.TestCase):
             "contractSha2_256": contract,
         }
         self.report = {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
+            "deploymentProfile": provenance.PRIVATE_PROFILE,
+            "runStartedAt": "2026-09-14T11:00:00Z",
+            "runCompletedAt": "2026-09-14T11:01:00Z",
             "scope": "full-production",
             **self.expected,
             "clockProfile": gate.PROFILE,
@@ -30,7 +37,15 @@ class ReleaseGateTests(unittest.TestCase):
                 "provider": "cloudflare-d1",
                 "version": "3.50.0",
                 "versionKind": "sqlite-library",
-                "runtime": "test-runtime",
+                "runtime": "cloudflare-d1",
+                "providerGeneration": "production",
+                "versionSource": "remote-sqlite-version-query",
+                "versionDisclosure": "disclosed",
+                "observation": {
+                    "query": provenance.QUERY,
+                    "checkedAt": "2026-09-14T11:00:30Z",
+                    "httpStatus": 200,
+                },
                 "migrationHead": "migration.sql",
             },
             "adapters": dict.fromkeys(gate.REQUIRED_ADAPTERS, True),
@@ -72,6 +87,7 @@ class ReleaseGateTests(unittest.TestCase):
     def test_historical_probe_and_missing_infrastructure_cannot_pass(self):
         for change in (
             {"scope": "bounded-native"},
+            {"scope": "provenance-only"},
             {"adapters": {}},
             {"databaseEngine": {}},
             {"clockProfile": "monotonic-claim"},
@@ -91,6 +107,79 @@ class ReleaseGateTests(unittest.TestCase):
             report = copy.deepcopy(self.report)
             report["databaseEngine"].update(patch)
             self.assertIn("real_database_provenance_required", self.check(report))
+
+    def undisclosed_report(self):
+        report = copy.deepcopy(self.report)
+        report["databaseEngine"].update(
+            provenance.query_observation(
+                400,
+                {"success": False, "errors": [{"code": 7500, "message": provenance.DENIAL}]},
+                "2026-09-14T11:00:30Z",
+            )
+        )
+        return report
+
+    def test_approved_undisclosed_engine_keeps_behavioral_gates(self):
+        report = self.undisclosed_report()
+        self.assertEqual(self.check(report), [])
+        for patch in (
+            {"cases": []},
+            {"mutations": []},
+            {"adapters": {}},
+            {"restorePreservesPostBackupProtection": False},
+            {"liveFlickrCalls": 1},
+            {"rawCredentialsCaptured": True},
+            {"schemaVersion": 1},
+            {"deploymentProfile": "public"},
+        ):
+            self.assertTrue(self.check({**report, **patch}))
+
+    def test_undisclosed_is_explicit_and_requires_exact_refusal(self):
+        for key, value in (
+            ("version", "production"),
+            ("version", ""),
+            ("versionDisclosure", "unknown"),
+            ("runtime", "miniflare"),
+            ("provider", "other"),
+            ("versionSource", "local-query"),
+            ("providerGeneration", None),
+            ("rawResponse", "must not be accepted"),
+        ):
+            report = self.undisclosed_report()
+            report["databaseEngine"][key] = value
+            self.assertIn("real_database_provenance_required", self.check(report))
+        report = self.undisclosed_report()
+        del report["databaseEngine"]["version"]
+        self.assertIn("real_database_provenance_required", self.check(report))
+        for patch in (
+            {"httpStatus": 403},
+            {"httpStatus": 200},
+            {"errorCode": 10000},
+            {"message": "unauthorized"},
+            {"rawResponse": "private data"},
+            {"query": "local version"},
+        ):
+            report = self.undisclosed_report()
+            report["databaseEngine"]["observation"].update(patch)
+            self.assertIn("real_database_provenance_required", self.check(report))
+
+    def test_both_engine_states_require_observation_during_run(self):
+        for baseline in (self.report, self.undisclosed_report()):
+            for instant in (
+                None,
+                "",
+                "invalid",
+                "2026-09-14T11:00:30",
+                "2026-09-13T11:00:30Z",
+                "2026-09-15T11:00:30Z",
+            ):
+                report = copy.deepcopy(baseline)
+                report["databaseEngine"]["observation"]["checkedAt"] = instant
+                self.assertIn("real_database_provenance_required", self.check(report))
+            for field in ("runStartedAt", "runCompletedAt"):
+                report = copy.deepcopy(baseline)
+                del report[field]
+                self.assertIn("real_database_provenance_required", self.check(report))
 
     def test_missing_duplicate_skipped_extra_and_failed_cases(self):
         for cases in (
