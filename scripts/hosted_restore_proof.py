@@ -148,7 +148,7 @@ class Proof:
         self.operator = D1Operator()
         self.name = "fga-restore-" + secrets.token_hex(12)
         self.directory = ROOT / ".coordination-runs" / self.name
-        self.directory.mkdir()
+        self.directory.mkdir(parents=True)
         self.owned: dict[str, str] = {}
         self.report: dict[str, Any] = {
             "schemaVersion": 1,
