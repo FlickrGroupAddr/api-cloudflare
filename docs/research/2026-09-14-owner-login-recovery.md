@@ -132,3 +132,14 @@ change was needed for this binding update. The pending step is a fresh personal
 Google sign-in to verify the final browser experience, followed by Flickr
 connection validation. Do not re-enable discovery or restore the superseded
 owner configuration merely because the old verification page still shows 401.
+
+## Real owner login verified
+
+Terry completed personal-account Google sign-in and supplied the live
+administration screenshot with a clean console. A read-only database check
+confirmed one principal for the configured subject and an unrevoked session.
+The owner-binding and browser-cookie handoffs are complete. The Flickr connection
+is currently unlinked; the next owner action is **Link Flickr**, complete the
+provider's authorization, and return to administration. Both write gates and
+actual group dispatch remain paused/disabled. See the
+[login confirmation](../evidence/personal-owner-login-2026-09-14.json).

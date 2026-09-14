@@ -148,3 +148,11 @@ an audit record; its immutable principal/history remain. Temporary discovery is
 off. Resume with the final fresh owner sign-in and Flickr connection validation,
 following the [current recovery record](2026-09-14-owner-login-recovery.md).
 The original setup subject is superseded and must not be restored.
+
+## Current next step after verified owner login
+
+The personal Google owner sign-in is now verified on the live administration
+screen. Do not repeat identity discovery or switch Google accounts. The current
+owner handoff is Flickr authorization through **Link Flickr**, followed by
+connection validation. Follow the latest
+[recovery record](2026-09-14-owner-login-recovery.md). Group adds remain disabled.
