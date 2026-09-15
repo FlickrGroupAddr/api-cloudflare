@@ -1,5 +1,10 @@
 # Initial disabled deployment
 
+This document records the original deployment sequence. The current production
+state is the later [read-only promotion](read-only-production-promotion.md):
+administration and authenticated reads are enabled, while intake, dispatch and
+both durable write gates remain paused.
+
 The bootstrap implements the approved first persistent deployment after the
 sixbucks domain move. It is an operator action, not a release-conformance pass.
 The production dispatcher and all other application features remain disabled.

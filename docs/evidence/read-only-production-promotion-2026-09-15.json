@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "scope": "production-read-only-promotion",
+  "qualifiedCommit": "d5973ecb934a2ac5906cba12e47d3c7f57c62eda",
+  "qualificationRun": 34906117856,
+  "artifactSha2_256": "5127101077a294008f657c28bcf6df27e75739a112ec4d59d3c6c8c113d23ddf",
+  "previousVersion": "1cc91432-c29b-49db-a160-770319a2a803",
+  "deployedVersion": "0b6772c2-cba5-4f00-a977-47ffbc206b85",
+  "deployedAt": "2026-09-15T16:55:23Z",
+  "migrationHead": "0012_protocol_repair_evidence.sql",
+  "featureFlags": {
+    "admin": true,
+    "read": true,
+    "intake": false,
+    "dispatch": false
+  },
+  "durableState": {
+    "allWriteGatesPaused": true,
+    "dispatchAttempts": 0,
+    "pluginInstallations": 0,
+    "linkedConnections": 1,
+    "activeAdminSessionsAtCheck": 0
+  },
+  "httpsChecks": [
+    {
+      "path": "/admin/",
+      "status": 303,
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "/admin/login",
+      "status": 200,
+      "cacheControl": "no-store, no-transform"
+    },
+    {
+      "path": "/api/v001/installations/current",
+      "method": "GET",
+      "credential": "synthetic-invalid",
+      "status": 401,
+      "errorCode": "invalid_token",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "/api/v001/group-submission-batches",
+      "method": "POST",
+      "credential": "synthetic-invalid",
+      "status": 503,
+      "errorCode": "service_unavailable",
+      "cacheControl": "no-store"
+    },
+    {
+      "path": "/api/v001/does-not-exist",
+      "status": 404,
+      "errorCode": "not_found",
+      "cacheControl": "no-store"
+    }
+  ],
+  "rollbackReady": true,
+  "productionDatabaseWritesByPromotion": 0,
+  "liveFlickrCalls": 0,
+  "rawCredentialsCaptured": false,
+  "realClientReadPassed": false,
+  "ownerActionRequired": "Create the first Plugin Code in the signed-in administration UI, transfer it directly into the real Lightroom Classic plug-in, and run its installation read check."
+}
