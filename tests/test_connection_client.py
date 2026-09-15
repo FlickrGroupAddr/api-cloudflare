@@ -11,7 +11,7 @@ from lupa.lua51 import LuaRuntime, lua_type
 
 SOURCE = (
     Path(__file__).resolve().parents[1]
-    / "clients/lightroom/FlickrGroupAddr.lrplugin/ConnectionCore.lua"
+    / "clients/lightroom/FGA-LrC15.lrplugin/ConnectionCore.lua"
 )
 PLUGIN_ROOT = SOURCE.parent
 CREDENTIAL = "ABCD-" * 12 + "ABC0"
@@ -85,9 +85,10 @@ class ConnectionClientTests(unittest.TestCase):
             self.lua.execute((PLUGIN_ROOT / "Info.lua").read_text(encoding="utf-8"))
         )
         self.assertEqual(
-            manifest["LrToolkitIdentifier"], "com.sixbuckssolutions.flickrgroupaddr"
+            manifest["LrToolkitIdentifier"],
+            "com.sixbuckssolutions.flickrgroupaddr.lrc15",
         )
-        self.assertEqual(manifest["LrPluginName"], "FlickrGroupAddr")
+        self.assertEqual(manifest["LrPluginName"], "FGA-LrC15")
         self.assertEqual(manifest["LrPluginInfoProvider"], "PluginInfoProvider.lua")
         self.assertEqual(
             manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 1}
@@ -340,7 +341,7 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertIsNone(globals_.mockStores[1]["salt"])
         self.assertEqual(
             globals_.mockStores[1]["pluginId"],
-            "com.sixbuckssolutions.flickrgroupaddr",
+            "com.sixbuckssolutions.flickrgroupaddr.lrc15",
         )
         self.assertEqual(globals_.mockPrefs["installationId"], INSTALLATION_ID)
 

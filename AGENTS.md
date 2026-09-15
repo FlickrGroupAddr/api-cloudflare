@@ -128,6 +128,19 @@ loading strategy during UI work rather than copying that implementation by
 rote. Keep the existing CSP and private credential-transfer boundaries intact.
 See [the typography note](docs/ui-preferences.md) for the reference and findings.
 
+## Lightroom Classic client versioning
+
+Terry directed on 2026-09-15 that production Lightroom client builds are tied
+to the Lightroom Classic major version against which they are qualified. Name
+the Lightroom 15 client and bundle `FGA-LrC15` / `FGA-LrC15.lrplugin`, and use a
+major-specific toolkit identifier so separately qualified clients do not
+silently replace one another. A build may happen to load under a later major,
+but do not claim or assume support across Lightroom Classic 16, 17, 18, or any
+other major until that combination has its own review and test evidence. Each
+major qualification must include a fresh review of the documented Lightroom
+SDK capabilities because they may materially change, including security-
+relevant facilities such as a cryptographic random-number generator.
+
 ## Git workflow
 
 Terry reaffirmed the standing order on 2026-09-12: "all commits and pushes are

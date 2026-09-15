@@ -3,7 +3,7 @@
 -- can be exercised under the same Lua 5.1 language version used by Lightroom.
 local Core = {}
 
-Core.PLUGIN_ID = "com.sixbuckssolutions.flickrgroupaddr"
+Core.PLUGIN_ID = "com.sixbuckssolutions.flickrgroupaddr.lrc15"
 Core.CURRENT_KEY = "fga.installation.current"
 Core.CANDIDATE_KEY = "fga.installation.rotation_candidate"
 Core.PLUGIN_CODE_URL = "https://flickrgroupaddr.com/admin/"

@@ -12,12 +12,20 @@ paused. The next owner step is to create the first Plugin Code in the signed-in
 administration UI and use it from the real Lightroom Classic plug-in so the
 production read-only client slice can be completed.
 
-The production-named Lightroom release bundle is
-[`clients/lightroom/FlickrGroupAddr.lrplugin`](clients/lightroom/FlickrGroupAddr.lrplugin).
-Add that directory in Lightroom Classic's Plug-in Manager. Version 0.1.0 stores
+The Lightroom Classic 15 release bundle is
+[`clients/lightroom/FGA-LrC15.lrplugin`](clients/lightroom/FGA-LrC15.lrplugin).
+Add that directory in Lightroom Classic 15's Plug-in Manager. Version 0.1.0 stores
 the one-time Plugin Code in `LrPasswords` and performs only the qualified
 current-installation read; it has no publishing or Flickr group-write entry
 point.
+
+FGA client builds are tied to the Lightroom Classic major version they were
+qualified against. `FGA-LrC15` supports Lightroom Classic 15.x. It may happen to
+load in versions 16, 17 or 18 through compatibility, but support for any later
+major requires a separately named, tested and qualified client build. Each
+major qualification includes a fresh review of the Lightroom SDK because a new
+major can materially change available capabilities, including security-relevant
+facilities such as a documented cryptographic random-number generator.
 
 See the [read-only promotion record](docs/operations/read-only-production-promotion.md)
 and [complete qualification result](docs/research/2026-09-14-complete-suite-qualification.md).

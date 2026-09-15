@@ -11,7 +11,7 @@ local function sectionsForTopOfDialog(factory, properties)
 
     return {
         {
-            title = "FlickrGroupAddr connection",
+            title = "FGA-LrC15 connection",
             synopsis = bind "status",
             factory:column {
                 spacing = factory:control_spacing(),

@@ -1,19 +1,26 @@
-# FlickrGroupAddr Lightroom plug-in 0.1.0
+# FGA-LrC15 Lightroom plug-in 0.1.0
 
-This `.lrplugin` directory is the production-named release bundle for FGA's
-first read-only client slice. It stores one installation Plugin Code in
-Lightroom Classic's encrypted `LrPasswords` store and verifies it through:
+This `.lrplugin` directory is the production release bundle for Lightroom
+Classic 15 and FGA's first read-only client slice. It stores one installation
+Plugin Code in Lightroom Classic's encrypted `LrPasswords` store and verifies
+it through:
 
 `GET https://flickrgroupaddr.com/api/v001/installations/current`
 
 This release cannot publish, upload, submit a photo to a group, or call Flickr.
+It is qualified only for Lightroom Classic 15.x. A later Lightroom major may
+load it through backward compatibility, but that does not make the combination
+supported; each Lightroom major requires its own qualified FGA client build.
+That qualification includes a fresh SDK capability review so later facilities,
+such as a documented cryptographic random-number generator, are evaluated
+explicitly instead of being assumed present or absent.
 
 ## Install and connect
 
 1. In Lightroom Classic, open **File > Plug-in Manager**.
-2. Choose **Add**, select this `FlickrGroupAddr.lrplugin` directory, and confirm
+2. Choose **Add**, select this `FGA-LrC15.lrplugin` directory, and confirm
    that Lightroom reports the plug-in as installed and running.
-3. In the FlickrGroupAddr section, use the displayed FGA URL in a private
+3. In the FGA-LrC15 section, use the displayed FGA URL in a private
    browser window and complete the on-screen transfer checklist.
 4. Paste the one-time Plugin Code into Lightroom. Compare the complete
    clear-text value in both windows, then choose **Store and verify**.
