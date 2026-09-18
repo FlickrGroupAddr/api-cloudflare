@@ -1,4 +1,5 @@
 import {budgetedFlickrFetch} from "./flickr_rate.ts";
+import {groupsRequest,refreshGroups} from "./group_discovery.ts";
 import {readSubmissionStatus,statusFailure,cleanupStatusReads} from "./submission_status.ts";
 import {expirePluginCodeCandidates} from "./plugin_codes.ts";
 // Module exports permit adapter-boundary tests of this exact optimized artifact; no new routes.
@@ -11,7 +12,7 @@ import { ROUTES } from "./registry.ts";
 export {ROUTES};
 import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
 import {duePartitions} from "./scheduling.ts";
-export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; }
+export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -37,10 +38,13 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
         const reply=errorResponse(405,"method_not_allowed","Method not allowed."); reply.headers.set("Allow",[...new Set(candidates.map(r=>r.method))].sort().join(", ")); return reply;
       }
       if(route.handler==="admin"||route.handler==="plugin_code"||route.handler==="status_admin")return createAdmin(providerFetch).fetch(request,env);
-      if ((route.handler==="current"||route.handler==="status") ? env.FGA_READ_ENABLED !== "1" : !configured(env)) return errorResponse(503,"service_unavailable","Service unavailable.");
-      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,route.handler==="current"?"empty":route.handler==="status"?"query":"json");
+      if (route.handler==="groups" ? env.FGA_READ_ENABLED!=="1"||env.FGA_GROUPS_ENABLED!=="1" :
+        (route.handler==="current"||route.handler==="status") ? env.FGA_READ_ENABLED !== "1" : !configured(env)) return errorResponse(503,"service_unavailable","Service unavailable.");
+      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,route.handler==="current"?"empty":["status","groups"].includes(route.handler)?"query":"json");
       if(result instanceof Response)return result;
       if(route.handler==="current")return jsonCurrent(result);
+      if(route.handler==="groups")return groupsRequest(env.DB,{installationId:result.installationId,
+        credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},new URL(request.url));
       if(route.handler==="status"){
         try{
           const owner=await env.DB.prepare("SELECT user_id userId FROM installations WHERE installation_id=?").bind(result.installationId).first<{userId:string}>();
@@ -64,6 +68,10 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
     if(env.FGA_READ_ENABLED==="1"||env.FGA_ADMIN_ENABLED==="1")maintenance.push(()=>cleanupStatusReads(env.DB));
     if(env.FGA_ADMIN_ENABLED==="1")maintenance.push(()=>refreshGoogleKeys(env.DB,providerFetch),()=>cleanupAuthentication(env.DB),()=>expirePluginCodeCandidates(env.DB),()=>maintainNativeCredentials(env,providerFetch));
     for(const job of maintenance){try{await job();}catch{console.warn("fga_maintenance_unavailable");}}
+
+    if(env.FGA_READ_ENABLED==="1"&&env.FGA_GROUPS_ENABLED==="1"){
+      try{await refreshGroups(env.DB,env,providerFetch);}catch{console.warn("fga_group_refresh_unavailable");}
+    }
 
     if(!configured(env)||!env.COORD)return;
     for(const hint of await duePartitions(env.DB)){try{await publishNativeHint(env,hint,"sweep");}catch{/* Durable due work remains authoritative. */}}

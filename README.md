@@ -12,6 +12,10 @@ paused. On 2026-09-18, the FGA-LrC15 client in Lightroom Classic 15.5.1
 successfully verified its first production installation through the read-only
 API. This slice is ready for review; write activation remains separate.
 
+The [group discovery API](docs/operations/group-discovery.md) is implemented and
+passed local and isolated hosted synthetic checks. Its production flag remains
+off pending the scoped refresh-clock decision and deployment checks.
+
 The Lightroom Classic 15 release bundle is
 [`clients/lightroom/FGA-LrC15.lrplugin`](clients/lightroom/FGA-LrC15.lrplugin).
 Add that directory in Lightroom Classic 15's Plug-in Manager. Version 0.1.0 stores

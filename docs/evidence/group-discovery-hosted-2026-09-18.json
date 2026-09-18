@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "scope": "group-discovery-synthetic-hosted",
+  "startedAt": "2026-09-18T11:27:39.826513+00:00",
+  "compatibilityDate": "2026-09-11",
+  "productionModified": false,
+  "liveFlickrCalls": 0,
+  "passed": true,
+  "artifactSha2_256": "57966abbb4ca96be1cc01c7310d9780e03d8b47431e1555f8837280ae2ddb1d1",
+  "preflightStatuses": [
+    404,
+    401
+  ],
+  "checks": [
+    "missing_authentication",
+    "first_snapshot_pending",
+    "whole_refresh",
+    "binary_order",
+    "continuation",
+    "revision_conflict"
+  ],
+  "cleanupConfirmed": true,
+  "completedAt": "2026-09-18T11:27:52.809690+00:00"
+}

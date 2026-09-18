@@ -25,7 +25,13 @@ from scripts.secret_store_probe import private_process
 
 ROOT = runtime.ROOT
 DIRECTORY = ROOT / ".coordination-runs/production"
-FLAGS = ("FGA_READ_ENABLED", "FGA_ADMIN_ENABLED", "FGA_INTAKE_ENABLED", "FGA_DISPATCH_ENABLED")
+FLAGS = (
+    "FGA_READ_ENABLED",
+    "FGA_ADMIN_ENABLED",
+    "FGA_INTAKE_ENABLED",
+    "FGA_DISPATCH_ENABLED",
+    "FGA_GROUPS_ENABLED",
+)
 WORKER = "fga-api"
 DATABASE = "fga-production"
 STORE = "fga-managed"

@@ -1,5 +1,6 @@
 // Node imports the executable TypeScript registry; Python owns artifact writing/checking.
 import { ROUTES, GUARDS, ERROR_SCHEMA } from "../src/registry.ts";
+import { GROUP_PENDING_SCHEMA } from "../src/group_registry.ts";
 const paths={};
 for(const route of ROUTES){
  const method=route.method.toLowerCase();if(paths[route.pathPattern]?.[method])throw new Error("Duplicate route");
@@ -19,6 +20,16 @@ for(const route of ROUTES){
   if(method!=="get"&&route.pathPattern.includes("{"))parameters.push({name:"If-Match",in:"header",required:true,schema:{type:"string"},description:"One strong current parent validator; no wildcard or weak tag."});
   if(responses[200]&&route.pathPattern.includes("{"))responses[200].headers.ETag={description:"Strong current parent validator",schema:{type:"string"}};
  }
+ if(route.handler==="groups"){
+  responses[200].description="One complete snapshot keyset page with explicit freshness state.";
+  responses[202].description="First snapshot is refreshing; no group data is available yet.";
+  responses[202].content["application/json"].schema=GROUP_PENDING_SCHEMA;
+  responses[202].headers["Retry-After"]={schema:{type:"string",const:"60"}};
+  parameters.push({name:"page_size",in:"query",required:true,schema:{type:"integer",minimum:1,maximum:100}},
+   {name:"snapshot_revision",in:"query",required:false,schema:{type:"integer",minimum:1,maximum:Number.MAX_SAFE_INTEGER},description:"Required together with after_group_id on continuation."},
+   {name:"after_group_id",in:"query",required:false,schema:{type:"string",minLength:1,maxLength:128},description:"Exact group ID boundary; required together with snapshot_revision."});
+ }
  (paths[route.pathPattern]??={})[method]={operationId:route.id,description:["status","status_admin"].includes(route.handler)?"Read-only owner-scoped status snapshot. No Flickr or identity-provider request, worker wake, or domain mutation. Continuation fields are paired and bounded.":description,parameters,security:[route.auth==="browser_session"?{browserSessionCookie:[]}:{installationBearer:[]}],...(route.request?{requestBody:{required:true,content:{[route.requestMediaType??"application/json"]:{schema:route.request}}}}:{}),responses};
+ if(route.handler==="groups")paths[route.pathPattern][method].description="Current installation credential only. Initial reads admit or join one bounded group refresh. Continuations require paired revision and exact keyset boundary; revision change returns 409 snapshot_changed. No request body. Flickr group additions remain disabled independently.";
 }
 console.log(JSON.stringify({inventory:{schemaVersion:1,scope:"installation-read-and-photo-admission",routes:ROUTES,guards:GUARDS,proofEndpointsExcluded:true},openapi:{openapi:"3.2.0",info:{title:"FGA API backend",version:"0.0.0"},paths,components:{securitySchemes:{installationBearer:{type:"http",scheme:"bearer"},browserSessionCookie:{type:"apiKey",in:"cookie",name:"__Host-fga_admin"}}}}}));

@@ -1,4 +1,5 @@
 import { STATUS_ROUTES } from "./status_registry.ts";
+import { GROUP_ROUTES } from "./group_registry.ts";
 import { PLUGIN_CODE_ROUTES } from "./plugin_code_registry.ts";
 import { ADMIN_ROUTES } from "./admin_registry.ts";
 import { MAX_GROUP_IDS } from "./admission.ts";
@@ -29,6 +30,7 @@ export const BATCH_RESPONSE_SCHEMA={type:"object",additionalProperties:false,req
 export const BINDING_REQUEST_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","flickrPhotoId","expectedLinkedFlickrRevision"],properties:{schemaVersion:{const:1},flickrPhotoId:ID_SCHEMA,expectedLinkedFlickrRevision:REV_SCHEMA}} as const;
 export const BINDING_RESPONSE_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","fgaPhotoBindingId","sourceKind","flickrPhotoId","linkedFlickrRevision","verificationRevision","verifiedAt"],properties:{schemaVersion:{const:1},fgaPhotoBindingId:ID_SCHEMA,sourceKind:{enum:["fga_direct_upload","existing_public_flickr_photo","photographer_reconciled_ambiguous_upload"]},flickrPhotoId:ID_SCHEMA,linkedFlickrRevision:REV_SCHEMA,verificationRevision:REV_SCHEMA,verifiedAt:TIMESTAMP_SCHEMA}} as const;
 export const ROUTES = [
+ ...GROUP_ROUTES,
  ...ADMIN_ROUTES,
  ...STATUS_ROUTES,
  ...PLUGIN_CODE_ROUTES,

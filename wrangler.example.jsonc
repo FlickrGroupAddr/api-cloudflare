@@ -14,6 +14,7 @@
   "vars": {
     // Keep disabled until provisioning, restoration checks and release gates are complete.
     "FGA_READ_ENABLED": "0", "FGA_INTAKE_ENABLED": "0", "FGA_ADMIN_ENABLED": "0", "FGA_DISPATCH_ENABLED": "0",
+    "FGA_GROUPS_ENABLED": "0",
     "FGA_MAX_GROUP_IDS_PER_BATCH": "60",
     // Release tooling supplies the validated optimized artifact digest.
     "FGA_ARTIFACT_SHA2_256": "",
