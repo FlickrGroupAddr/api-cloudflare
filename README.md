@@ -8,9 +8,9 @@ The Cloudflare-native foundation and complete fail-polite release gate passed on
 2026-09-14. The exact qualified Worker artifact was promoted to production on
 2026-09-15 with administration and authenticated reads enabled. Submission
 intake and Flickr dispatch remain disabled, and both durable write gates remain
-paused. The next owner step is to create the first Plugin Code in the signed-in
-administration UI and use it from the real Lightroom Classic plug-in so the
-production read-only client slice can be completed.
+paused. On 2026-09-18, the FGA-LrC15 client in Lightroom Classic 15.5.1
+successfully verified its first production installation through the read-only
+API. This slice is ready for review; write activation remains separate.
 
 The Lightroom Classic 15 release bundle is
 [`clients/lightroom/FGA-LrC15.lrplugin`](clients/lightroom/FGA-LrC15.lrplugin).

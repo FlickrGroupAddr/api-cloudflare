@@ -59,6 +59,27 @@
   "productionDatabaseWritesByPromotion": 0,
   "liveFlickrCalls": 0,
   "rawCredentialsCaptured": false,
-  "realClientReadPassed": false,
-  "ownerActionRequired": "Create the first Plugin Code in the signed-in administration UI, transfer it directly into the real Lightroom Classic plug-in, and run its installation read check."
+  "realClientReadPassed": true,
+  "realClientCheck": {
+    "observedAt": "2026-09-18T11:01:16Z",
+    "lightroomClassicVersion": "15.5.1",
+    "plugin": "FGA-LrC15",
+    "pluginVersion": "0.1.0.4",
+    "installationId": "5446176d-911f-4157-8a22-cac3013969dd",
+    "installationRevision": 1,
+    "clientStatus": "Connected",
+    "localDiagnosticSequence": ["request_started", "connected"],
+    "browserTransferViewAndClipboardCleared": true,
+    "privateBrowserWindowClosed": true,
+    "rawCredentialCaptured": false
+  },
+  "postClientD1Read": {
+    "observedAt": "2026-09-18T11:03:09Z",
+    "installationCount": 1,
+    "dispatchAttemptCount": 0,
+    "deploymentWriteGatesEnabled": 0,
+    "userWriteGatesEnabled": 0,
+    "queryRowsWritten": 0
+  },
+  "ownerActionRequired": null
 }

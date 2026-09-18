@@ -1,6 +1,6 @@
 # Read-only production promotion
 
-Status: deployed; owner client validation required.
+Status: deployed; real Lightroom Classic read-only validation passed; ready for review.
 
 On 2026-09-15, the Worker artifact qualified by CI run 34906117856 was
 promoted to the existing `fga-api` production service. Executable inputs after
@@ -18,8 +18,8 @@ The active production flags are:
 | Submission intake | disabled |
 | Flickr dispatch | disabled |
 
-The deployment and every user write gate remain paused in D1. Production has
-zero dispatch attempts and zero Plugin Code installations. One Flickr
+At promotion time, the deployment and every user write gate were paused in D1.
+Production had zero dispatch attempts and zero Plugin Code installations. One Flickr
 connection is linked with verified write permission; the promotion made no
 Flickr call. The custom domain remains active. Anonymous installation reads now
 reach the authentication boundary and return JSON `401 invalid_token` with
@@ -37,19 +37,23 @@ The ignored promotion directory contains the prior configuration, exact
 qualified bundle, active configuration, deployment record and private Wrangler
 logs. Its values must not be copied into public evidence.
 
-## Owner handoff
+## Real-client validation
 
-Open [the FGA administration UI](https://flickrgroupaddr.com/admin/) in the
-regular browser profile used for the verified owner account. Sign in, open
-**Plugin Codes**, and create the first current Plugin Code for the Lightroom
-Classic installation. Transfer that one-time value directly into the real
-plug-in; do not paste it into chat.
+On 2026-09-18, Terry loaded `FGA-LrC15.lrplugin` 0.1.0.4 in Lightroom Classic
+15.5.1. He created the first Plugin Code in the signed-in FGA administration
+UI, transferred it directly into Lightroom, and used **Verify stored credential**
+after the initial client error was fixed. The plug-in displayed **Connected**
+for installation `5446176d-911f-4157-8a22-cac3013969dd`, revision 1.
+The bounded local log recorded `request_started` followed by `connected`, with
+no credential or HTTP payload. Terry confirmed the browser transfer view and
+clipboard were cleared and the private window closed.
 
-Then run the plug-in's connection/read check. It must call
-`GET /api/v001/installations/current` over HTTPS and show the returned current
-installation. Report success or the exact client-visible error. No submission
-or Flickr group add is part of this handoff. Intake, dispatch and both write
-gates stay paused afterward.
+Fresh read-only D1 checks after the client connection found one installation,
+zero dispatch attempts, and zero enabled deployment or user write gates. They
+wrote no rows. The plug-in has no publication or group-add entry point. No
+submission or live Flickr group-add was part of this validation; intake and
+dispatch remain disabled. The initial promotion's zero-installation count above
+is a dated snapshot, not the current production count.
 
-The backend portion is ready for review. The real client check cannot be
-completed without the owner's browser session and Lightroom host.
+The real-client read-only vertical slice is ready for review. Enabling intake,
+dispatch, or either write gate remains a separate future decision.
