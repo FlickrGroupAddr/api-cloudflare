@@ -333,6 +333,7 @@ class Matrix:
                 "FGA_DISPATCH_ENABLED": "1",
                 "FGA_ADMIN_ENABLED": "0",
                 "FGA_READ_ENABLED": "1",
+                "FGA_GROUPS_ENABLED": "1",
                 "FGA_INTAKE_ENABLED": "1",
                 "FGA_MAX_GROUP_IDS_PER_BATCH": "60",
                 "CF_ACCOUNT_ID": "a" * 32,
