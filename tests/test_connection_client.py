@@ -91,7 +91,7 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(manifest["LrPluginName"], "FGA-LrC15")
         self.assertEqual(manifest["LrPluginInfoProvider"], "PluginInfoProvider.lua")
         self.assertEqual(
-            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 2}
+            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 3}
         )
 
     def test_store_precedes_clear_and_confirms_exact_retrieval(self):
@@ -225,6 +225,44 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(transport["state"], "retryable")
         self.assertEqual(server["state"], "retryable")
 
+    def test_lightroom_transport_diagnostic_is_bounded_and_secret_free(self):
+        def sdk_error(*_):
+            info = self.headers(0)
+            info["error"] = self.lua.table_from(
+                {"errorCode": "cannotConnectToHost", "name": CREDENTIAL}, recursive=True
+            )
+            return None, info
+
+        outcome = self.plain(
+            self.core.verifyCredential(CREDENTIAL, sdk_error, self.decode, None)
+        )
+        self.assertEqual(outcome["state"], "retryable")
+        self.assertEqual(outcome["message"], "Lightroom network error: cannotConnectToHost.")
+        self.assertEqual(outcome["diagnostic"], "cannotConnectToHost")
+        self.assertNotIn(CREDENTIAL, repr(outcome))
+
+        def unknown_error(*_):
+            info = self.headers(0)
+            info["error"] = self.lua.table_from(
+                {"errorCode": CREDENTIAL}, recursive=True
+            )
+            return None, info
+
+        unknown = self.plain(
+            self.core.verifyCredential(CREDENTIAL, unknown_error, self.decode, None)
+        )
+        self.assertNotIn(CREDENTIAL, repr(unknown))
+
+        empty_401 = self.plain(
+            self.core.verifyCredential(
+                CREDENTIAL, lambda *_: (None, self.headers(401)), self.decode, None
+            )
+        )
+        self.assertEqual(empty_401["state"], "retryable")
+        self.assertEqual(
+            empty_401["message"], "Lightroom received HTTP 401 without a response body."
+        )
+
     def test_candidate_blocks_current_fallback_and_all_http(self):
         reads = []
 
@@ -279,8 +317,19 @@ class ConnectionClientTests(unittest.TestCase):
             mockLastUrl = nil
             mockLastHeaders = nil
             mockLastTimeout = nil
+            mockLog = {}
 
             local modules = {}
+            modules.LrLogger = function(name)
+                return {
+                    enable = function(self, action)
+                        mockLog[#mockLog + 1] = "enabled:" .. name .. ":" .. action
+                    end,
+                    info = function(self, message)
+                        mockLog[#mockLog + 1] = message
+                    end,
+                }
+            end
             modules.LrPasswords = {
                 store = function(key, value, salt, pluginId)
                     mockStorage[key] = value
@@ -344,6 +393,10 @@ class ConnectionClientTests(unittest.TestCase):
             "com.sixbuckssolutions.flickrgroupaddr.lrc15",
         )
         self.assertEqual(globals_.mockPrefs["installationId"], INSTALLATION_ID)
+        log = self.plain(globals_.mockLog)
+        self.assertEqual(log[0], "enabled:FGA-LrC15:logfile")
+        self.assertIn("connection state=connected diagnostic=none", log)
+        self.assertNotIn(CREDENTIAL, repr(log))
 
     def test_controller_clears_rejected_current_code(self):
         error = json.dumps(
@@ -423,6 +476,16 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(column[2]["value"], "pluginCodeUrl")
         self.assertEqual(column[4]["value"], "pluginCode")
         self.assertEqual(globals_.properties["observedKey"], "pluginCodeUrl")
+
+    def test_diagnostic_log_rejects_untrusted_error_data(self):
+        lua, controller = self.controller("", 503)
+        properties = lua.table_from({"busy": False}, recursive=True)
+        globals_ = lua.globals()
+        globals_.mockStorage["fga.installation.current"] = CREDENTIAL
+        controller.verifyStored(properties)
+        log = self.plain(globals_.mockLog)
+        self.assertIn("connection state=retryable diagnostic=none", log)
+        self.assertNotIn(CREDENTIAL, repr(log))
 
 
 if __name__ == "__main__":

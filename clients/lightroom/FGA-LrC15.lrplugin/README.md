@@ -32,6 +32,12 @@ If a transport or server failure interrupts the safe read, leave the code in
 code as invalid, the plug-in clears its local current-code slot; revoke that
 installation in the browser and create a new one.
 
+The plug-in writes a bounded local diagnostic log through Lightroom's
+`LrLogger` at `%LOCALAPPDATA%\Adobe\Lightroom\Logs\LrClassicLogs\FGA-LrC15.log`
+on Windows. Entries contain only fixed connection-state names and allowlisted
+SDK network error codes or numeric HTTP statuses. They never contain a Plugin
+Code, request/response body, header, installation ID, or account identity.
+
 Rotation is intentionally fail-closed in this slice. A nonempty rotation
 candidate blocks fallback to the prior current code and requires completion or
 cancellation through the accepted browser workflow.

@@ -18,12 +18,31 @@ local expectedFields = {
     presentedCredentialState = true,
 }
 
-local function result(state, message, installationId, installationRevision)
+-- Only SDK-defined identifiers may be shown; never surface raw native error
+-- text, HTTP bodies, headers, URLs, or exceptions beside a bearer credential.
+local safeTransportCodes = {
+    cancelled = true,
+    badURL = true,
+    timedOut = true,
+    cannotFindHost = true,
+    cannotConnectToHost = true,
+    resourceUnavailable = true,
+    networkConnectionLost = true,
+    redirectError = true,
+    badServerResponse = true,
+    authenticationError = true,
+    securityError = true,
+    serverCertificateHasBadDate = true,
+    serverCertificateHasUnknownRoot = true,
+}
+
+local function result(state, message, installationId, installationRevision, diagnostic)
     return {
         state = state,
         message = message,
         installationId = installationId,
         installationRevision = installationRevision,
+        diagnostic = diagnostic,
     }
 end
 
@@ -125,8 +144,26 @@ function Core.verifyCredential(credential, httpGet, decode, expectedInstallation
         httpGet, Core.CURRENT_URL, requestHeaders, Core.TIMEOUT_SECONDS)
     requestHeaders = nil
     credential = nil
-    if not called or body == nil or type(responseHeaders) ~= "table" then
-        return result("retryable", "The FGA service could not be reached. Try verification again.")
+    if not called then
+        return result("retryable", "Lightroom could not start the FGA read request. Try again.")
+    end
+    if type(responseHeaders) ~= "table" then
+        return result("retryable", "Lightroom returned no HTTP response details. Try again.")
+    end
+    if body == nil then
+        local transport = responseHeaders.error
+        local code = type(transport) == "table" and transport.errorCode or nil
+        if safeTransportCodes[code] then
+            return result("retryable", "Lightroom network error: " .. code .. ".",
+                nil, nil, code)
+        end
+        local status = responseHeaders.status
+        if type(status) == "number" and status >= 100 and status <= 599
+            and status == math.floor(status) then
+            return result("retryable", "Lightroom received HTTP " .. tostring(status)
+                .. " without a response body.", nil, nil, "http_" .. tostring(status))
+        end
+        return result("retryable", "Lightroom returned no HTTP response body. Try again.")
     end
 
     local status = responseHeaders.status

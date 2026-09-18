@@ -1,4 +1,5 @@
 local LrHttp = import "LrHttp"
+local LrLogger = import "LrLogger"
 local LrPasswords = import "LrPasswords"
 local LrPrefs = import "LrPrefs"
 local LrTasks = import "LrTasks"
@@ -8,6 +9,54 @@ local json = require "dkjson"
 
 local Controller = {}
 local prefs = LrPrefs.prefsForPlugin()
+local logger = LrLogger("FGA-LrC15")
+local loggingEnabled = pcall(function() logger:enable("logfile") end)
+
+local logStates = {
+    client_loaded = true,
+    request_started = true,
+    connected = true,
+    retryable = true,
+    invalid_token = true,
+    authentication_unconfirmed = true,
+    administrative_repair = true,
+    service_response_invalid = true,
+    rotation_incomplete = true,
+    stored_invalid = true,
+    local_identity_invalid = true,
+    secure_store_failed = true,
+    disconnected = true,
+    internal_error = true,
+}
+local logDiagnostics = {
+    cancelled = true,
+    badURL = true,
+    timedOut = true,
+    cannotFindHost = true,
+    cannotConnectToHost = true,
+    resourceUnavailable = true,
+    networkConnectionLost = true,
+    redirectError = true,
+    badServerResponse = true,
+    authenticationError = true,
+    securityError = true,
+    serverCertificateHasBadDate = true,
+    serverCertificateHasUnknownRoot = true,
+}
+
+local function logSafe(state, diagnostic)
+    if not loggingEnabled then return end
+    local safeState = logStates[state] and state or "unknown"
+    local safeDiagnostic = logDiagnostics[diagnostic] and diagnostic or "none"
+    if type(diagnostic) == "string" and string.match(diagnostic, "^http_[1-5]%d%d$") then
+        safeDiagnostic = diagnostic
+    end
+    pcall(function()
+        logger:info("connection state=" .. safeState .. " diagnostic=" .. safeDiagnostic)
+    end)
+end
+
+logSafe("client_loaded", nil)
 
 local function retrieve(key)
     return LrPasswords.retrieve(key, nil, Core.PLUGIN_ID)
@@ -80,6 +129,7 @@ local function beginVerification(properties)
     if properties.busy then return end
     properties.busy = true
     properties.status = "Verifying the stored Plugin Code..."
+    logSafe("request_started", nil)
     LrTasks.startAsyncTask(function()
         local ok, verification = pcall(Core.verifyStored, retrieve, LrHttp.get, decode,
             prefs.installationId)
@@ -89,6 +139,7 @@ local function beginVerification(properties)
                 message = "Verification could not be completed. Try again.",
             }
         end
+        logSafe(verification.state, verification.diagnostic)
         applyResult(properties, verification)
         properties.busy = false
     end)
