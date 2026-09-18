@@ -140,13 +140,12 @@ function Core.verifyCredential(credential, httpGet, decode, expectedInstallation
     local requestHeaders = {
         { field = "Authorization", value = "Bearer " .. credential },
     }
-    local called, body, responseHeaders = pcall(
-        httpGet, Core.CURRENT_URL, requestHeaders, Core.TIMEOUT_SECONDS)
+    -- LrHttp.get can yield. Lua 5.1's built-in pcall cannot enclose a yield;
+    -- the owning Lightroom task uses LrTasks.pcall for yield-safe protection.
+    local body, responseHeaders = httpGet(
+        Core.CURRENT_URL, requestHeaders, Core.TIMEOUT_SECONDS)
     requestHeaders = nil
     credential = nil
-    if not called then
-        return result("retryable", "Lightroom could not start the FGA read request. Try again.")
-    end
     if type(responseHeaders) ~= "table" then
         return result("retryable", "Lightroom returned no HTTP response details. Try again.")
     end

@@ -91,7 +91,7 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(manifest["LrPluginName"], "FGA-LrC15")
         self.assertEqual(manifest["LrPluginInfoProvider"], "PluginInfoProvider.lua")
         self.assertEqual(
-            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 3}
+            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 4}
         )
 
     def test_store_precedes_clear_and_confirms_exact_retrieval(self):
@@ -151,6 +151,34 @@ class ConnectionClientTests(unittest.TestCase):
             [{"field": "Authorization", "value": "Bearer " + CREDENTIAL}],
         )
         self.assertEqual(timeout, 30)
+
+    def test_safe_get_can_yield_inside_a_lightroom_task(self):
+        self.lua.globals()["core"] = self.core
+        self.lua.globals()["credential"] = CREDENTIAL
+        self.lua.globals()["body"] = self.response()
+        self.lua.globals()["response_headers"] = self.headers(200)
+        self.lua.globals()["decode_body"] = self.decode
+        first_ok, marker, second_ok, state = self.lua.execute(
+            """
+            local task = coroutine.create(function()
+                local outcome = core.verifyCredential(
+                    credential,
+                    function()
+                        coroutine.yield("waiting_for_http")
+                        return body, response_headers
+                    end,
+                    decode_body,
+                    nil
+                )
+                return outcome.state
+            end)
+            local first_ok, marker = coroutine.resume(task)
+            local second_ok, state = coroutine.resume(task)
+            return first_ok, marker, second_ok, state
+            """
+        )
+        self.assertEqual((first_ok, marker, second_ok, state),
+                         (True, "waiting_for_http", True, "connected"))
 
     def test_success_shape_and_expected_identity_are_exhaustive(self):
         cases = (
@@ -342,7 +370,13 @@ class ConnectionClientTests(unittest.TestCase):
                 end,
             }
             modules.LrPrefs = { prefsForPlugin = function() return mockPrefs end }
-            modules.LrTasks = { startAsyncTask = function(task) task() end }
+            modules.LrTasks = {
+                startAsyncTask = function(task) task() end,
+                pcall = function(func, ...)
+                    mockTaskPcalls = (mockTaskPcalls or 0) + 1
+                    return pcall(func, ...)
+                end,
+            }
             modules.LrHttp = {
                 get = function(url, headers, timeout)
                     mockCalls = mockCalls + 1
@@ -393,6 +427,7 @@ class ConnectionClientTests(unittest.TestCase):
             "com.sixbuckssolutions.flickrgroupaddr.lrc15",
         )
         self.assertEqual(globals_.mockPrefs["installationId"], INSTALLATION_ID)
+        self.assertEqual(globals_.mockTaskPcalls, 1)
         log = self.plain(globals_.mockLog)
         self.assertEqual(log[0], "enabled:FGA-LrC15:logfile")
         self.assertIn("connection state=connected diagnostic=none", log)

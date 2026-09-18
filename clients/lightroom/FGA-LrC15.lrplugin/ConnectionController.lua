@@ -131,7 +131,7 @@ local function beginVerification(properties)
     properties.status = "Verifying the stored Plugin Code..."
     logSafe("request_started", nil)
     LrTasks.startAsyncTask(function()
-        local ok, verification = pcall(Core.verifyStored, retrieve, LrHttp.get, decode,
+        local ok, verification = LrTasks.pcall(Core.verifyStored, retrieve, LrHttp.get, decode,
             prefs.installationId)
         if not ok or type(verification) ~= "table" then
             verification = {

@@ -4,5 +4,5 @@ return {
     LrToolkitIdentifier = "com.sixbuckssolutions.flickrgroupaddr.lrc15",
     LrPluginName = "FGA-LrC15",
     LrPluginInfoProvider = "PluginInfoProvider.lua",
-    VERSION = { major = 0, minor = 1, revision = 0, build = 3 },
+    VERSION = { major = 0, minor = 1, revision = 0, build = 4 },
 }
