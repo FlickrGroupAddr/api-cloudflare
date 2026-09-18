@@ -12,9 +12,13 @@ paused. On 2026-09-18, the FGA-LrC15 client in Lightroom Classic 15.5.1
 successfully verified its first production installation through the read-only
 API. This slice is ready for review; write activation remains separate.
 
-The [group discovery API](docs/operations/group-discovery.md) is implemented and
-passed local and isolated hosted synthetic checks. Its production flag remains
-off pending the scoped refresh-clock decision and deployment checks.
+The [group discovery API](docs/operations/group-discovery.md) passed full
+2026-09-18 qualification and was activated in production on 2026-09-18. A
+read-only refresh of the linked Flickr account succeeded with 373 writable
+groups. Submission intake, dispatch, and both durable write gates remain
+paused. The [sanitized production record](docs/evidence/group-discovery-production-2026-09-18.json)
+retains the exact artifact and live check results. The Lightroom group browser
+is separate follow-on work.
 
 The Lightroom Classic 15 release bundle is
 [`clients/lightroom/FGA-LrC15.lrplugin`](clients/lightroom/FGA-LrC15.lrplugin).

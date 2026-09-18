@@ -1,11 +1,11 @@
 # Workers compatibility date: 2026-09-18
 
-Status: production candidate under qualification on 2026-09-18.
+Status: qualified and active in production on 2026-09-18.
 
 The repository uses `wrangler.example.jsonc`, not `wrangler.toml`, as its
 deployment template. Private `wrangler.json` files under ignored coordination
-directories are generated for production and tests. The deployed production
-version remains at its earlier date until a qualified new version is activated.
+directories are generated for production and tests. The current production
+version uses 2026-09-18.
 
 Cloudflare [recommends the current date](https://developers.cloudflare.com/workers/configuration/compatibility-dates/)
 for new Workers and review on updates. The current date is 2026-09-18. The
@@ -26,7 +26,10 @@ not proof of the later hosted runtime.
 
 Wrangler 4.116.0 accepts a 2026-09-18 template in a dry run. Native TypeScript,
 affected Python unit checks, Ruff, and Pyright passed. Isolated hosted group
-discovery passed at 2026-09-18 with cleanup confirmed. Fresh full exact-artifact
-qualification is required before
-production activation. The previously passed run 35345742207 qualified the
-2026-09-11 candidate and cannot be relabeled as a 2026-09-18 pass.
+discovery passed at 2026-09-18 with cleanup confirmed. The
+[full exact-artifact qualification](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/35381025422)
+passed 56 conformance cases and 28 mutations with cleanup confirmed. The
+[production activation record](../evidence/group-discovery-production-2026-09-18.json)
+ties that receipt to the active Worker version and successful real Flickr
+read-only refresh. The previously passed run 35345742207 qualified the
+2026-09-11 candidate and is retained only as historical evidence.

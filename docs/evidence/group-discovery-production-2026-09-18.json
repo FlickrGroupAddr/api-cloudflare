@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "scope": "production read-only writable-group discovery activation",
+  "qualifiedRun": 35381025422,
+  "releaseCommit": "bdffc772e641691dda55718e170477b0bb4ce0af",
+  "workersCompatibilityDate": "2026-09-18",
+  "workerArtifactSha2_256": "f1cef97fe6e1e62b5ff2b57f7e11516423974e756011750feb1aebe3abb13e6d",
+  "migrationHead": "0013_group_discovery.sql",
+  "migrationSha2_256": "53bb0805052d4ada197879892cb62651e0ab62ca04d292866ef56d755d3d80a6",
+  "qualification": {
+    "fullConformancePassed": true,
+    "cases": 56,
+    "mutations": 28,
+    "cleanupConfirmed": true,
+    "liveFlickrCalls": 0,
+    "rawCredentialsCaptured": false
+  },
+  "production": {
+    "activatedAt": "2026-09-18T19:18:54.191782+00:00",
+    "activeVersion": "66e353ae-6f58-4ff6-8b69-02c3c45561ec",
+    "rollbackVersion": "0b6772c2-cba5-4f00-a977-47ffbc206b85",
+    "flags": {
+      "FGA_ADMIN_ENABLED": "1",
+      "FGA_READ_ENABLED": "1",
+      "FGA_GROUPS_ENABLED": "1",
+      "FGA_INTAKE_ENABLED": "0",
+      "FGA_DISPATCH_ENABLED": "0"
+    },
+    "allWriteGatesPaused": true,
+    "dispatchAttempts": 0,
+    "realFlickrRefresh": {
+      "state": "succeeded",
+      "snapshotRevision": 1,
+      "refreshedAtUs": 1789759199642000,
+      "writableGroupCount": 373,
+      "groupNamesCaptured": false
+    },
+    "publicChecks": [
+      { "path": "/api/v001/groups?page_size=100", "status": 401, "errorCode": "invalid_token", "cacheControl": "no-store" },
+      { "path": "/api/v001/installations/current", "status": 401, "errorCode": "invalid_token", "cacheControl": "no-store" },
+      { "path": "/api/v001/group-submission-batches", "status": 503, "errorCode": "service_unavailable", "cacheControl": "no-store" }
+    ]
+  },
+  "limits": [
+    "The real Flickr cache refresh proves provider integration but does not itself exercise the authenticated production groups read from the Lightroom client.",
+    "The accepted practical native refresh clock is not a hard monotonic elapsed-time guarantee."
+  ]
+}

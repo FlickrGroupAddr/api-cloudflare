@@ -1,7 +1,8 @@
 # Writable-group discovery
 
-Status (2026-09-18): implementation and isolated synthetic validation complete;
-refresh-clock decision approved; production qualification and activation in progress.
+Status (2026-09-18): qualified and active in production. The linked Flickr
+account's first read-only refresh succeeded with 373 writable groups. Submission
+intake, dispatch, and durable write gates remain paused.
 
 ## Behavior
 
@@ -51,7 +52,7 @@ previous hosted clock investigation proved that Workers' performance and Node
 clocks can remain fixed across CPU-only work. Accepted ADR 0056 applies to the
 group-add preflight window; its exact scope does not amend group-refresh time.
 
-The implemented, currently disabled refresh path checks the native observed
+The implemented refresh path checks the native observed
 clock before and after page work, rejects backwards time and elapsed values of
 60 seconds or more, aborts fetch/body waits on a 60-second timer, and requires
 an unexpired D1 deadline before every staging/publication transaction. Page,
@@ -65,7 +66,7 @@ A delayed cache refresh cannot add a photo to a group. The implementation
 continues to disclose the clock limitation rather than claiming a hard
 monotonic guarantee.
 
-## Validation and remaining activation work
+## Validation and production activation
 
 - Fifteen Node/SQLite tests cover query grammar, signatures, complete page
   walks, exact 25-page/10,000-row boundary, failures retaining the old snapshot,
@@ -83,12 +84,18 @@ monotonic guarantee.
 - Affected authentication, status and rate-budget tests and current-schema
   archive/restore checks pass. Local workerd supports 2026-07-30, so its runtime
   result is recorded separately from the hosted compatibility date.
-
-After exact-artifact qualification, apply migration 0013 to the proposed
-production artifact/configuration. Enable only discovery and perform the
-bounded owner-authorized real Flickr read. Record the result and keep all
-submission/write controls paused. Ticket #0022 then consumes this endpoint in
-the FGA-LrC15 browser.
+- [Full release qualification run 35381025422](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/35381025422)
+  passed 56 conformance cases and 28 mutations with cleanup confirmed. The
+  receipt identifies commit `bdffc77`, the exact deployed artifact hash, migration
+  0013, and Workers compatibility date 2026-09-18.
+- The [sanitized production record](../evidence/group-discovery-production-2026-09-18.json)
+  identifies active version `66e353ae-6f58-4ff6-8b69-02c3c45561ec`, live
+  invalid-token/write-closed checks, a successful real Flickr refresh of 373
+  writable groups at snapshot revision 1, all write gates paused, and zero
+  dispatch attempts. No group names or credential bytes are in the record.
+  The live refresh proves provider integration; the authenticated production
+  groups read still awaits a client check. Ticket #0022 consumes this endpoint
+  in the FGA-LrC15 browser.
 
 Operational stop: set `FGA_GROUPS_ENABLED=0`. Existing current-installation
 reads and administration continue independently. Rollback to the prior Worker
