@@ -112,7 +112,7 @@ def main() -> int:
         "schemaVersion": 1,
         "scope": "group-discovery-synthetic-hosted",
         "startedAt": datetime.now(UTC).isoformat(),
-        "compatibilityDate": "2026-09-11",
+        "compatibilityDate": "2026-09-18",
         "productionModified": False,
         "liveFlickrCalls": 0,
         "passed": False,
@@ -127,7 +127,7 @@ def main() -> int:
             "name": name,
             "account_id": account,
             "main": str(ROOT / "probes/groups/worker.ts"),
-            "compatibility_date": "2026-09-11",
+            "compatibility_date": "2026-09-18",
             "compatibility_flags": ["nodejs_compat"],
             "workers_dev": True,
             "preview_urls": False,
@@ -180,16 +180,23 @@ def main() -> int:
         base = found.group(0)
         run.state["url"] = base
         run.save()
-        # Account routing propagation can lag upload. Retry only the pre-seed read.
+        # Account routing propagation can lag upload across Cloudflare locations.
+        # Match the hosted-runtime proof's stable, bounded readiness boundary.
         report["preflightStatuses"] = []
-        for _ in range(8):
+        started = time.monotonic()
+        consecutive = 0
+        while time.monotonic() - started < 120:
             try:
                 status, _ = request(base, "/api/v001/groups?page_size=2", "invalid")
                 report["preflightStatuses"].append(status)
                 if status == 401:
-                    break
+                    consecutive += 1
+                    if consecutive >= 5 and time.monotonic() - started >= 30:
+                        break
+                else:
+                    consecutive = 0
             except OSError, ValueError:
-                pass
+                consecutive = 0
             time.sleep(2)
         else:
             raise RuntimeError("probe_not_reachable")

@@ -16,7 +16,7 @@ class ReleaseGateTests(unittest.TestCase):
         self.ids, contract = gate.inventory(gate.DEFAULT_CONTRACT)
         self.expected = {
             "releaseCommit": "a" * 40,
-            "workersCompatibilityDate": "2026-09-11",
+            "workersCompatibilityDate": "2026-09-18",
             "tooling": {"wrangler": "test-pinned"},
             "testAdapterSha2_256": "e" * 64,
             "workerArtifactSha2_256": "b" * 64,
@@ -50,7 +50,7 @@ class ReleaseGateTests(unittest.TestCase):
             },
             "hostedRuntime": {
                 "workerArtifactSha2_256": "b" * 64,
-                "workersCompatibilityDate": "2026-09-11",
+                "workersCompatibilityDate": "2026-09-18",
                 "cleanupConfirmed": True,
                 "cases": [
                     {"id": name, "passed": True}

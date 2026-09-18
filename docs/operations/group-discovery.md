@@ -75,7 +75,8 @@ monotonic guarantee.
 - One compiled workerd/native D1 test covers concurrent admission, ordering,
   continuation, revision rejection, and absence of dispatch attempts.
 - The [hosted synthetic record](../evidence/group-discovery-hosted-2026-09-18.json)
-  covers a disposable Worker/D1 deployment at compatibility date 2026-09-11.
+  covers a disposable Worker/D1 deployment at compatibility date 2026-09-18.
+  Earlier 2026-09-11 checks remain historical and do not qualify this date.
   Its temporary resources were deleted. No production resource or real Flickr
   credential was used. This proves the hosted SQL/API path, not real Flickr
   account integration or a strict clock guarantee.

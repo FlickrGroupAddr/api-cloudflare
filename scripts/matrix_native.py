@@ -167,7 +167,7 @@ class NativeFixtures:
                 "name": self.name,
                 "account_id": self.proof.operator.account_id,
                 "main": str(bridge_source),
-                "compatibility_date": "2026-09-11",
+                "compatibility_date": "2026-09-18",
                 "workers_dev": False,
                 "preview_urls": False,
                 "observability": {"enabled": False},

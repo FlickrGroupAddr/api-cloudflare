@@ -3,7 +3,7 @@
   // The flickrgroupaddr.com zone must be active in that same account first.
   "name": "fga-api",
   "main": "src/worker.ts",
-  "compatibility_date": "2026-09-11",
+  "compatibility_date": "2026-09-18",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,

@@ -149,7 +149,7 @@ def qualify(token_file: Path | None = None):
             "mutationRuntime": "local-workerd/D1; production migrations; same control artifact",
             "localCompatibilityDate": "2026-07-30",
             "storage": "hosted D1 and native Secrets Store",
-            "hostedSupplementCompatibilityDate": "2026-09-11",
+            "hostedSupplementCompatibilityDate": "2026-09-18",
         },
         "restorePreservesPostBackupProtection": True,
         "liveFlickrCalls": 0,

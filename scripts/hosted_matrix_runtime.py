@@ -47,7 +47,7 @@ def hosted_runtime(matrix: Matrix):
             "no_bundle": True,
             "find_additional_modules": True,
             "rules": [{"type": "ESModule", "globs": ["**/*.mjs"], "fallthrough": True}],
-            "compatibility_date": "2026-09-11",
+            "compatibility_date": "2026-09-18",
             "compatibility_flags": ["nodejs_compat"],
             "workers_dev": True,
             "preview_urls": False,
@@ -78,7 +78,7 @@ def hosted_runtime(matrix: Matrix):
         "scope": "hosted-production-runtime-supplement",
         "fullConformancePassed": False,
         "workerArtifactSha2_256": gate.digest(matrix.artifact),
-        "workersCompatibilityDate": "2026-09-11",
+        "workersCompatibilityDate": "2026-09-18",
         "liveFlickrCalls": 0,
         "cases": [],
     }

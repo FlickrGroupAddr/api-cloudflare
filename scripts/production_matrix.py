@@ -297,7 +297,7 @@ class Matrix:
             {
                 "name": "fga-matrix",
                 "main": str(ROOT / "src/worker.ts"),
-                "compatibility_date": "2026-09-11",
+                "compatibility_date": "2026-09-18",
                 "compatibility_flags": ["nodejs_compat"],
                 "workers_dev": False,
             },
@@ -362,7 +362,7 @@ class Matrix:
                 {
                     "name": self.proof.name,
                     "account_id": self.proof.operator.account_id,
-                    "compatibility_date": "2026-09-11",
+                    "compatibility_date": "2026-09-18",
                     "d1_databases": [
                         {
                             "binding": "DB",
