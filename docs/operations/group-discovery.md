@@ -1,7 +1,7 @@
 # Writable-group discovery
 
 Status (2026-09-18): implementation and isolated synthetic validation complete;
-production activation pending owner decision on the refresh-clock contract.
+refresh-clock decision approved; production qualification and activation in progress.
 
 ## Behavior
 
@@ -44,9 +44,9 @@ raw provider payloads. Limits are 25 pages, 10,000 rows, 2 MiB per response and
 60 seconds of observed elapsed time. Empty validated snapshots remain distinct
 from failed or incomplete discovery.
 
-## Clock decision required before production
+## Accepted private refresh clock
 
-The accepted group snapshot contract says **monotonic** elapsed time. The
+The original group snapshot contract required **monotonic** elapsed time. The
 previous hosted clock investigation proved that Workers' performance and Node
 clocks can remain fixed across CPU-only work. Accepted ADR 0056 applies to the
 group-add preflight window; its exact scope does not amend group-refresh time.
@@ -59,12 +59,11 @@ row and byte caps remain unconditional. Those checks do not constitute a hard
 monotonic real-elapsed-time guarantee during unobservable stalls or wall-clock
 adjustments.
 
-Recommendation awaiting Terry: explicitly accept this practical native timing
-model for read-only group refresh as well. A delayed cache refresh cannot add a
-photo to a group. Record the scoped owner decision in the canonical accepted
-contract/ADR before production activation. If declined, retain the disabled
-flag and evaluate alternatives without claiming the current implementation
-satisfies the strict requirement.
+Terry approved this practical native timing model on 2026-09-18. Accepted
+architecture ADR 0059 records the scoped amendment for read-only group refresh.
+A delayed cache refresh cannot add a photo to a group. The implementation
+continues to disclose the clock limitation rather than claiming a hard
+monotonic guarantee.
 
 ## Validation and remaining activation work
 
@@ -84,7 +83,7 @@ satisfies the strict requirement.
   archive/restore checks pass. Local workerd supports 2026-07-30, so its runtime
   result is recorded separately from the hosted compatibility date.
 
-After the clock decision, apply migration 0013 and qualify the exact proposed
+After exact-artifact qualification, apply migration 0013 to the proposed
 production artifact/configuration. Enable only discovery and perform the
 bounded owner-authorized real Flickr read. Record the result and keep all
 submission/write controls paused. Ticket #0022 then consumes this endpoint in
