@@ -12,8 +12,9 @@ local function sectionsForTopOfDialog(factory, properties)
     return {
         {
             title = "FGA-LrC15 connection",
-            synopsis = bind "status",
+            synopsis = bind { key = "status", bind_to_object = properties },
             factory:column {
+                bind_to_object = properties,
                 spacing = factory:control_spacing(),
                 fill_horizontal = 1,
 

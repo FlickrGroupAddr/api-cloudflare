@@ -91,7 +91,7 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(manifest["LrPluginName"], "FGA-LrC15")
         self.assertEqual(manifest["LrPluginInfoProvider"], "PluginInfoProvider.lua")
         self.assertEqual(
-            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 1}
+            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 2}
         )
 
     def test_store_precedes_clear_and_confirms_exact_retrieval(self):
@@ -378,6 +378,51 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertTrue(properties["canStore"])
         self.assertIn("invalid", properties["status"].lower())
         self.assertNotIn(CREDENTIAL, properties["status"])
+
+    def test_plugin_manager_section_binds_to_initialized_properties(self):
+        lua, _ = self.controller(self.response(), 200)
+        lua.execute(
+            """
+            local view = {
+                bind = function(value) return value end,
+            }
+            local modules = { LrView = view }
+            function import(name)
+                if name == "LrView" then return view end
+                error("unexpected import")
+            end
+            factory = {
+                control_spacing = function() return 4 end,
+            }
+            for _, name in ipairs({"column", "row", "static_text", "edit_field", "push_button"}) do
+                factory[name] = function(self, args) return args end
+            end
+            properties = {
+                addObserver = function(self, key, callback)
+                    self.observedKey = key
+                    self.observer = callback
+                end,
+            }
+            """
+        )
+        provider = lua.execute(
+            (PLUGIN_ROOT / "PluginInfoProvider.lua").read_text(encoding="utf-8")
+        )
+        globals_ = lua.globals()
+        sections = provider.sectionsForTopOfDialog(globals_.factory, globals_.properties)
+        section = sections[1]
+        column = section[1]
+        same_table = lua.eval("function(a, b) return a == b end")
+        self.assertEqual(section["synopsis"]["key"], "status")
+        self.assertTrue(same_table(section["synopsis"]["bind_to_object"], globals_.properties))
+        self.assertTrue(same_table(column["bind_to_object"], globals_.properties))
+        self.assertEqual(
+            globals_.properties["pluginCodeUrl"], "https://flickrgroupaddr.com/admin/"
+        )
+        self.assertEqual(globals_.properties["status"], "No Plugin Code is stored.")
+        self.assertEqual(column[2]["value"], "pluginCodeUrl")
+        self.assertEqual(column[4]["value"], "pluginCode")
+        self.assertEqual(globals_.properties["observedKey"], "pluginCodeUrl")
 
 
 if __name__ == "__main__":
