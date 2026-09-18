@@ -5,13 +5,51 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from scripts import current_schema_archive as archive
 from scripts import hosted_restore_proof as proof
 
 
 class RestoreBarrierTests(unittest.TestCase):
+    def test_provider_error_diagnostics_exclude_raw_messages(self):
+        error = proof.QueryFailure(503, [{"code": 7500, "message": "SECRET-CANARY"}])
+        self.assertIn("http_503_codes_7500", str(error))
+        self.assertNotIn("SECRET-CANARY", str(error))
+
+    def test_only_transient_frozen_snapshot_reads_are_retried(self):
+        runner = cast(Any, proof.Proof.__new__(proof.Proof))
+        runner.contract = object()
+        runner.query = Mock(side_effect=[proof.QueryFailure(503, []), [{"ok": 1}]])
+        with (
+            patch.object(proof.archive, "capture", side_effect=lambda q, *_a, **_k: q("SELECT 1")),
+            patch.object(proof.time, "sleep") as sleep,
+        ):
+            self.assertEqual(runner.capture("owned"), [{"ok": 1}])
+        self.assertEqual(runner.query.call_count, 2)
+        sleep.assert_called_once_with(2)
+        runner.query = Mock(side_effect=proof.QueryFailure(400, [{"code": 7500}]))
+        with (
+            patch.object(proof.archive, "capture", side_effect=lambda q, *_a, **_k: q("SELECT 1")),
+            patch.object(proof.time, "sleep") as sleep,
+        ):
+            with self.assertRaises(proof.QueryFailure):
+                runner.capture("owned")
+        self.assertEqual(runner.query.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_transient_snapshot_failure_still_fails_after_bounded_attempts(self):
+        runner = cast(Any, proof.Proof.__new__(proof.Proof))
+        runner.contract = object()
+        runner.query = Mock(side_effect=proof.QueryFailure(429, []))
+        with (
+            patch.object(proof.archive, "capture", side_effect=lambda q, *_a, **_k: q("SELECT 1")),
+            patch.object(proof.time, "sleep"),
+        ):
+            with self.assertRaises(proof.QueryFailure):
+                runner.capture("owned")
+        self.assertEqual(runner.query.call_count, 4)
+
     def test_only_named_sql_guard_failures_count_as_guard_evidence(self):
         self.assertTrue(
             proof.QueryFailure(

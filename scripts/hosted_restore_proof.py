@@ -11,6 +11,7 @@ import json
 import os
 import re
 import secrets
+import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
@@ -73,7 +74,16 @@ def require_current_restore(actual: archive.Archive, required: archive.Archive) 
 
 class QueryFailure(RuntimeError):
     def __init__(self, status: int, errors: Any):
-        super().__init__("disposable_database_query_failed")
+        codes = (
+            [
+                str(row["code"])
+                for row in errors[:8]
+                if isinstance(row, dict) and type(row.get("code")) is int
+            ]
+            if isinstance(errors, list)
+            else []
+        )
+        super().__init__(f"disposable_database_query_failed_http_{status}_codes_" + ",".join(codes))
         self.status, self.errors = status, errors
 
     def is_guard(self, marker: str) -> bool:
@@ -243,9 +253,21 @@ class Proof:
         )
 
     def capture(self, database: str) -> archive.Archive:
-        return archive.capture(
-            lambda sql: self.query(database, sql), self.contract, source_stopped=True
-        )
+        def snapshot_read(sql: str) -> list[dict[str, Any]]:
+            # archive.capture emits SELECTs against a stopped source. Only these
+            # idempotent reads may be retried; query()/restore() writes never are.
+            for attempt, delay in enumerate((0, 2, 10, 30)):
+                if delay:
+                    time.sleep(delay)
+                try:
+                    return self.query(database, sql)
+                except QueryFailure as error:
+                    if error.status not in {429, 500, 502, 503, 504} or attempt == 3:
+                        raise
+                    print(f"Retrying frozen snapshot read after HTTP {error.status}", flush=True)
+            raise RuntimeError("snapshot_read_attempts_exhausted")
+
+        return archive.capture(snapshot_read, self.contract, source_stopped=True)
 
     def restore(self, database: str, saved: archive.Archive) -> None:
         # Reconfirm the server-side identity immediately before importing. Only
