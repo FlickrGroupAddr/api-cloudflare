@@ -229,3 +229,16 @@ authorization covers board snapshots. Opening the board does not authorize
 moving cards or starting queued implementation work.
 Use `localswim-cli` for board inspection and mutations; do not edit the board JSON
 directly or print its runtime service descriptor, which contains a credential.
+
+### Board-write alert preference
+
+Terry's standing preference, stated 2026-09-19, is that changes authored only by
+`bot` must not queue a next-turn alert or cause a redundant board inspection.
+When monitoring this board, use the actor-filtered
+`C:\Projects\FGA\architecture-design\scripts\watch_localswim.py` with this
+board's path and port 8795. It queries sanitized `localswim-cli activity between
+--json` metadata after the quiet window; it alerts for Terry, other actors, or
+uncertain/incomplete activity and suppresses only fully accounted bot-only bursts.
+Never read card prose inside the monitor. If an old-style alert is already queued,
+check its activity bounds; when every event is by `bot`, no further card inspection
+is needed. This preference applies in future sessions as well as this one.
