@@ -25,6 +25,11 @@ for(const route of ROUTES){
   parameters.push(...PHOTO_QUERY_PARAMETERS[route.handler]);
   responses[200].description=route.handler==="existing_photos"?"One completely validated page of current-owner public Flickr photos.":"One completely validated photo-membership observation keyset page.";
  }
+ if(route.handler==="photo_thumbnail"){
+  responses[200].description="One complete bounded JPEG or PNG thumbnail from a freshly validated owned public-photo page. Candidate; production disabled pending qualification.";
+  responses[200].headers["Cache-Control"]={schema:{type:"string",const:"private, no-store"}};
+  responses[200].content={"image/jpeg":{schema:route.response},"image/png":{schema:route.response}};
+ }
  if(route.handler==="groups"){
   responses[200].description="One complete snapshot keyset page with explicit freshness state.";
   responses[202].description="First snapshot is refreshing; no group data is available yet.";
@@ -37,6 +42,7 @@ for(const route of ROUTES){
  (paths[route.pathPattern]??={})[method]={operationId:route.id,description:["status","status_admin"].includes(route.handler)?"Read-only owner-scoped status snapshot. No Flickr or identity-provider request, worker wake, or domain mutation. Continuation fields are paired and bounded.":description,parameters,security:[route.auth==="browser_session"?{browserSessionCookie:[]}:{installationBearer:[]}],...(route.request?{requestBody:{required:true,content:{[route.requestMediaType??"application/json"]:{schema:route.request}}}}:{}),responses};
  if(route.handler==="groups")paths[route.pathPattern][method].description="Current installation credential only. Initial reads admit or join one bounded group refresh. Continuations require paired revision and exact keyset boundary; revision change returns 409 snapshot_changed. No request body. Flickr group additions remain disabled independently.";
  if(route.handler==="existing_photos")paths[route.pathPattern][method].description="Current installation credential and linked-owner authority only. Reads one bounded public-photo discovery page from Flickr. The feature is separately disabled pending qualification. No submission or upload occurs.";
+ if(route.handler==="photo_thumbnail")paths[route.pathPattern][method].description="Proposed disabled candidate. Current installation and expected linked revision only. Re-reads and validates the complete referenced discovery page, selects the exact photo ID and fetches only its validated public static thumbnail. Refuses redirects; bounds the complete operation to 15 seconds and image to 256 KiB; fences current credentials and grant before private no-store publication. No arbitrary URL input or photo mutation.";
  if(route.handler==="photo_memberships")paths[route.pathPattern][method].description="Current installation credential and owned photo binding only. Each initial request reads a fresh complete Flickr membership observation. Continuations require paired revision and keyset boundary; a changed or invalidated observation returns 409 membership_observation_changed. No group addition occurs.";
  if(route.handler==="upload_authorization"){
   paths[route.pathPattern][method].description="Current installation credential only. Metadata-only direct-upload signing under current linked-account authority and both enabled Flickr write gates. The backend durably records the authorization association and sanitized audit before returning the exact signed metadata and fixed Flickr upload URL. The bearer envelope is kept in memory only, is not image-bound or guaranteed single-use, and has no backend-enforced Flickr expiry. No image or Flickr network request reaches this handler. Separately disabled pending hosted qualification.";

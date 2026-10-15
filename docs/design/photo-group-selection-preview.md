@@ -1,5 +1,7 @@
 # Photo group selection preview — ticket #0027
 
+Current host follow-up: [actual-host selection evidence](../evidence/lrc15-selection-preview-host-2026-10-15.md). The original source-only verification narrative below is historical; fixture installation and bounded native checks subsequently occurred. Owner interaction approval remains pending.
+
 Copyright 2026 Terry Ott. MIT License.
 
 Review artifact dated 2026-10-15. No #0024/#0026 production selection behavior

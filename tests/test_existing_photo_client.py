@@ -119,6 +119,8 @@ class ExistingPhotoClientTests(unittest.TestCase):
             self.page(page=2),
             self.page(total=0),
             self.page(unknown="bad"),
+            self.page(pages=2, total=10),
+            self.page(photos=[self.photo(str(n)) for n in range(5)], total=10, pages=99),
         ]
         for value in malformed:
             with self.subTest(value=value):
@@ -340,6 +342,19 @@ class ExistingPhotoClientTests(unittest.TestCase):
         browser = self.lua.execute((PLUGIN / "ExistingPhotoBrowser.lua").read_text())
         self.dependencies.thumbnailTransportQualified = True
         self.dependencies.fetchThumbnail = globals_.mockThumbnail
+        globals_.deps = self.dependencies
+        self.lua.execute("""
+            local request = deps.request
+            deps.request = function(method, path, body)
+                if path:find("/thumbnail?", 1, true) then
+                    local bytes, mediaType = deps.fetchThumbnail(path)
+                    return bytes, {status=200,
+                        {field="Content-Type",value=mediaType},
+                        {field="Cache-Control",value="private, no-store"}}
+                end
+                return request(method, path, body)
+            end
+        """)
         return browser, globals_.context
 
     def test_browser_cancel_removes_only_transient_cache(self):
@@ -397,7 +412,7 @@ class ExistingPhotoClientTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             browser, context = self.prepare_browser(directory, "next")
             self.responses = [
-                (200, self.page(pages=2, total=6)),
+                (200, self.page(photos=[self.photo(str(n)) for n in range(5)], pages=2, total=6)),
                 (503, {"error": {"code": "existing_photo_discovery_unavailable"}}),
             ]
             result, reason = browser.run(context, self.dependencies)
@@ -583,6 +598,158 @@ class ExistingPhotoClientTests(unittest.TestCase):
             globals_.cleanup()
             self.assertEqual(len(globals_.dialogs), 0)
             self.assertEqual(list(Path(directory).rglob("image-*")), [])
+
+    def test_later_thumbnail_failure_discards_complete_page_and_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            browser, context = self.prepare_browser(directory, "ok")
+            self.responses = [
+                (200, self.page(photos=[self.photo(), self.photo("photo-2")], total=2))
+            ]
+            self.lua.execute("""
+                imageCalls=0
+                deps.fetchThumbnail=function()
+                    imageCalls=imageCalls+1
+                    if imageCalls==2 then return "html","text/html" end
+                    return string.char(255,216,255,217),"image/jpeg"
+                end
+            """)
+            self.assertEqual(
+                browser.run(context, self.dependencies), (None, "thumbnail_unavailable")
+            )
+            self.assertEqual(self.lua.globals().imageCalls, 2)
+            self.assertEqual(len(self.lua.globals().dialogs), 0)
+            self.assertEqual([call[0] for call in self.calls], ["GET"])
+            self.assertEqual(list(Path(directory).rglob("image-*")), [])
+            self.lua.globals().cleanup()
+
+    def test_cache_cleanup_failure_stops_before_next_page_or_proof(self):
+        with tempfile.TemporaryDirectory() as directory:
+            browser, context = self.prepare_browser(directory, "next")
+            self.responses = [
+                (200, self.page(photos=[self.photo(str(n)) for n in range(5)], pages=2, total=6))
+            ]
+            self.lua.execute("deleteDirectory=function() return false end")
+            # The imported SDK stub captured the Python callback; replace that
+            # callback's directory operation by disabling its successful result.
+            self.lua.execute("""
+                local files=import "LrFileUtils"
+                files.delete=function() return false end
+            """)
+            self.assertEqual(
+                browser.run(context, self.dependencies), (None, "thumbnail_unavailable")
+            )
+            self.assertEqual(len(self.calls), 1)
+            self.assertEqual(len(self.lua.globals().dialogs), 1)
+            self.lua.globals().cleanup()
+
+    def test_thumbnail_exact_byte_limit_and_png_signatures(self):
+        self.lua.globals().client = self.client
+        accepted, rejected, png = self.lua.execute("""
+            local jpeg=string.char(255,216,255)..string.rep("x",262139)..string.char(255,217)
+            return client.validImage(jpeg,"image/jpeg"),client.validImage(jpeg.."x","image/jpeg"),
+                client.validImage(string.char(137).."PNG"..string.char(13,10,26,10)
+                    ..string.char(0,0,0,13).."IHDR"..string.rep("x",17)
+                    ..string.char(0,0,0,0).."IEND"..string.char(174,66,96,130),"image/png")
+        """)
+        self.assertEqual((accepted, rejected, png), (True, False, True))
+
+    def test_hosted_thumbnail_uses_exact_page_reference_and_safe_revision(self):
+        page = self.page(linkedFlickrRevision=9007199254740991)
+        page["photos"][0]["flickrPhotoId"] = "photo@owner:1"
+        value = self.decode(json.dumps(page))
+        path = self.client.thumbnailPath(value.photos[1], value)
+        self.assertEqual(
+            path,
+            "/api/v001/existing-public-photos/photo%40owner%3A1/thumbnail"
+            "?page=1&page_size=5&linked_flickr_revision=9007199254740991",
+        )
+        self.assertIsNone(
+            self.client.thumbnailPath(self.decode(json.dumps(page["photos"][0])), value)
+        )
+        value.photos[1].thumbnail.url = "https://evil.invalid/a.jpg"
+        self.assertIsNone(self.client.thumbnailPath(value.photos[1], value))
+
+    def test_thumbnail_headers_and_bytes_fail_before_publication(self):
+        self.lua.globals().client = self.client
+        self.lua.globals().page = self.decode(json.dumps(self.page()))
+        for variant in (
+            "oversize",
+            "wrong_type",
+            "wrong_signature",
+            "redirect",
+            "missing_no_store",
+            "wrong_length",
+            "duplicate_type",
+            "duplicate_length",
+            "failure_status",
+        ):
+            self.lua.globals().variant = variant
+            result, reason = self.lua.execute("""
+                local bytes=string.char(255,216,255,217)
+                local headers={status=200,
+                    {field="Content-Type",value="image/jpeg"},
+                    {field="Cache-Control",value="private, no-store"}}
+                if variant == "oversize" then bytes=string.rep("a",262145)
+                elseif variant == "wrong_type" then headers[1].value="text/html"
+                elseif variant == "wrong_signature" then bytes="html"
+                elseif variant == "redirect" then headers[3]={field="Location",value="https://evil.invalid"}
+                elseif variant == "missing_no_store" then headers[2].value="private"
+                elseif variant == "wrong_length" then headers[3]={field="Content-Length",value="5"}
+                elseif variant == "duplicate_type" then headers[3]=headers[1]
+                elseif variant == "duplicate_length" then
+                    headers[3]={field="Content-Length",value="4"}; headers[4]=headers[3]
+                elseif variant == "failure_status" then headers.status=302 end
+                return client.thumbnail({request=function() return bytes,headers end},
+                    page.photos[1],page)
+            """)
+            self.assertIsNone(result, variant)
+            self.assertEqual(reason, "thumbnail_unavailable", variant)
+
+    def test_thumbnail_auth_adapter_uses_fga_host_and_bounded_timeout(self):
+        self.adapter("none")
+        self.lua.execute("""
+            -- Capture only the candidate authenticated image call, no live HTTP.
+            local core=require "ConnectionCore"
+            local json=require "dkjson"
+            adapterRequest=client.authenticatedRequest({
+                retrieve=function(key)
+                    if key==core.CURRENT_KEY then return current end return ""
+                end,
+                expectedInstallationId="installation-1",
+                decode=function(s) return json.decode(s) end,
+                httpGet=function(url,headers,timeout)
+                    if url==core.CURRENT_URL then
+                        return [[{"schemaVersion":1,"installationId":"installation-1",
+                          "installationRevision":1,"installationState":"active",
+                          "presentedCredentialState":"current"}]], {status=200}
+                    end
+                    imageUrl,imageTimeout,imageAuthorization=url,timeout,headers[1].field
+                    return "result",{status=200}
+                end,
+            },core)
+        """)
+        path = (
+            "/api/v001/existing-public-photos/photo-1/thumbnail"
+            "?page=1&page_size=5&linked_flickr_revision=7"
+        )
+        self.lua.globals().adapterRequest("GET", path)
+        self.assertEqual(self.lua.globals().imageUrl, "https://flickrgroupaddr.com" + path)
+        self.assertEqual(self.lua.globals().imageTimeout, 15)
+        self.assertEqual(self.lua.globals().imageAuthorization, "Authorization")
+
+    def test_adapter_rejects_non_api_paths_before_credential_verification(self):
+        request = self.adapter("none")
+        for path in (
+            "https://evil.invalid",
+            "@evil.invalid",
+            "//evil.invalid",
+            "/api/v001/evil#fragment",
+            "/api/v001/evil\\path",
+            "/api/v001/evil\r\nLocation: other",
+        ):
+            body, _ = request("GET", path)
+            self.assertIsNone(body)
+        self.assertEqual(self.lua.globals().adapterCalls, 0)
 
     def test_adapter_cannot_verify_one_credential_then_send_another(self):
         request = self.adapter("after_verify")

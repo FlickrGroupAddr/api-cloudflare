@@ -7,5 +7,5 @@ return {
     LrLibraryMenuItems = {
         { title = "FlickrGroupAddr: Browse writable groups...", file = "RunGroupBrowser.lua" },
     },
-    VERSION = { major = 0, minor = 2, revision = 0, build = 3 },
+    VERSION = { major = 0, minor = 2, revision = 0, build = 4 },
 }

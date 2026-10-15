@@ -1,5 +1,7 @@
 # Lightroom fixture host checkpoint
 
+Current follow-up: [hosted thumbnail and timing handoff](hosted-thumbnail-handoff-2026-10-15.md) and [later selection observations](../evidence/lrc15-selection-preview-host-2026-10-15.md). The selection-popup instructions below are the earlier checkpoint, not the latest test state.
+
 Date: 2026-10-15. Status: bounded host evidence; selection review in progress.
 
 ## Agent policy and speed

@@ -32,6 +32,10 @@ export const PHOTO_MEMBERSHIPS_SCHEMA = { type: 'object', additionalProperties: 
   } } as const;
 
 export const PHOTO_ROUTES = [
+  { id: 'existing_public_photo_thumbnail', method: 'GET', pathPattern: '/api/v001/existing-public-photos/{photoId}/thumbnail',
+    owner: 'fga_api_backend', routingClass: 'worker_first', probe: 'missing_authentication', expectedStatus: 401,
+    expectedChallenge: 'Bearer realm="fga-api"', handler: 'photo_thumbnail', auth: 'installation_bearer',
+    allowPending: false, response: { type: 'string', format: 'binary', maxLength: 262144 }, successStatuses: [200], request: null },
   { id: 'existing_public_photos', method: 'GET', pathPattern: '/api/v001/existing-public-photos',
     owner: 'fga_api_backend', routingClass: 'worker_first', probe: 'missing_authentication', expectedStatus: 401,
     expectedChallenge: 'Bearer realm="fga-api"', handler: 'existing_photos', auth: 'installation_bearer',
@@ -45,6 +49,11 @@ export const PHOTO_ROUTES = [
 // The existing route registry has no query-parameter field. These are explicit projection
 // inputs for the parent generator integration, not additional route-registry properties.
 export const PHOTO_QUERY_PARAMETERS = {
+  photo_thumbnail: [
+    { name: 'page', in: 'query', required: true, schema: REVISION },
+    { name: 'page_size', in: 'query', required: true, schema: { type: 'integer', minimum: 1, maximum: 100 } },
+    { name: 'linked_flickr_revision', in: 'query', required: true, schema: REVISION },
+  ],
   existing_photos: [
     { name: 'page', in: 'query', required: true, schema: REVISION },
     { name: 'page_size', in: 'query', required: true, schema: { type: 'integer', minimum: 1, maximum: 100 } },

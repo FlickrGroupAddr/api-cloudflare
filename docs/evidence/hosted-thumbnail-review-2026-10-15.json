@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-15",
+  "ticket": "0032",
+  "review": "independent staged hosted-thumbnail candidate",
+  "result": "pass within synthetic review scope",
+  "unresolvedFindings": [],
+  "productionQualified": false,
+  "nativeHostQualified": false,
+  "hostedEdgeQualified": false,
+  "reviewedFiles": [
+    {
+      "path": "src/photo_thumbnails.ts",
+      "sha2_256": "cae3e2ed57cba300c14737dcf63d0cd37b3f43ad7173bd013cd6b32d63a21c56",
+      "repository": "api-cloudflare"
+    },
+    {
+      "path": "src/worker.ts",
+      "sha2_256": "93678d80082cae1cb4309445d091b3c7af99bda5945f66dae7371d8de509e580",
+      "repository": "api-cloudflare"
+    },
+    {
+      "path": "src/photo_registry.ts",
+      "sha2_256": "c72a8582cc672ba84ed18531585d71078f609e74af36a65045db78e1f01f9f96",
+      "repository": "api-cloudflare"
+    },
+    {
+      "path": "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoClient.lua",
+      "sha2_256": "2fcd68afae4f933ce83e25aa4cf8c734971f25a5ae12855c23c6f3f68bcfdc54",
+      "repository": "api-cloudflare"
+    },
+    {
+      "path": "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoBrowser.lua",
+      "sha2_256": "f56f9d0be4b1b29e4404a4ff991d70d14907a91f46b014618fb8e0be53c9501c",
+      "repository": "api-cloudflare"
+    },
+    {
+      "path": "docs/hosted-thumbnail-candidate.md",
+      "sha2_256": "b4409e5f83f7dad89a157bbd68e6cccd53d9b37f34614cb3883ab6344931a3dc",
+      "repository": "architecture-design"
+    }
+  ],
+  "checks": [
+    {
+      "suite": "backend supplied thumbnail, discovery, route suites",
+      "passed": 22,
+      "failed": 0,
+      "command": "node --test tests/photo_thumbnails.test.mjs tests/existing_photos.test.mjs tests/photo_routes.test.mjs",
+      "cwd": "batch4/backend"
+    },
+    {
+      "suite": "backend independent review",
+      "passed": 6,
+      "failed": 0,
+      "command": "node --test ../review/thumbnail_review.test.mjs",
+      "cwd": "batch4/backend"
+    },
+    {
+      "suite": "client supplied actual Lua 5.1 suite",
+      "passed": 33,
+      "failed": 0,
+      "command": "uv run --project C:/Projects/FGA/api-cloudflare --frozen python -m unittest discover -s batch4/client/tests -p test_existing_photo_client.py"
+    },
+    {
+      "suite": "client independent actual Lua 5.1 review",
+      "passed": 3,
+      "failed": 0,
+      "command": "uv run --project C:/Projects/FGA/api-cloudflare --frozen python -m unittest discover -s batch4/review -p test_thumbnail_review.py"
+    },
+    {
+      "suite": "independent Python review Ruff check and format",
+      "result": "pass"
+    }
+  ],
+  "resolvedFindings": [
+    "The selected discovery row URL now requires the exact photo ID filename prefix and an unambiguous secret/size suffix before the CDN request.",
+    "Both image validators require PNG header, IHDR marker and IEND marker, rejecting the reviewed truncation cases.",
+    "Failed prior-page deletion prevents further navigation or proof publication; whole-dialog cleanup remains registered.",
+    "Client discovery validation now enforces page count and complete expected row cardinality."
+  ],
+  "reviewConclusions": [
+    "Enabled route rejects invalid body framing and duplicate Authorization before credential lookup; feature switches remain independent and disabled by default.",
+    "HTTP request accepts only the exact photo ID and closed canonical discovery-page/revision query, with fresh full owner/public discovery validation.",
+    "CDN request has one fixed destination allowlist, manual redirects and no inherited credentials, cookies or referrer.",
+    "Stream reads reject oversized declared or observed bodies, wrong length/type/signature, cancellation and observed expired/invalid/negative clock budgets before returning image bytes.",
+    "Final linked-grant SQL also checks current installation credential and same linked revision/owner/generation. Independent cancellation and credential changes at that final read cannot return image bytes.",
+    "Client image path remains fixed to the authenticated FGA origin; complete-page cache publication and temporary-directory cleanup remain fail closed.",
+    "Detailed qualification gates appropriately concern the trusted FGA backend/edge and supported native client path, without requiring a universal guarantee against an arbitrary malicious replacement server."
+  ],
+  "limitations": [
+    "No native UI, hosted network, real-account Flickr read, production enablement or real-repository edit was performed.",
+    "Signature validation checks bounded response completeness and signatures; it is not a complete image decoder.",
+    "Observed 15-second deadline and abort checks are not a hard real elapsed stall guarantee.",
+    "Actual edge error/redirect behavior and Lightroom SDK allocation/credential-forwarding behavior require the explicitly scoped qualification evidence."
+  ]
+}

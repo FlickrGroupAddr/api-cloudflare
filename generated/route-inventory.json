@@ -119,6 +119,28 @@
       "request": null
     },
     {
+      "id": "existing_public_photo_thumbnail",
+      "method": "GET",
+      "pathPattern": "/api/v001/existing-public-photos/{photoId}/thumbnail",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "photo_thumbnail",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "response": {
+        "type": "string",
+        "format": "binary",
+        "maxLength": 262144
+      },
+      "successStatuses": [
+        200
+      ],
+      "request": null
+    },
+    {
       "id": "existing_public_photos",
       "method": "GET",
       "pathPattern": "/api/v001/existing-public-photos",

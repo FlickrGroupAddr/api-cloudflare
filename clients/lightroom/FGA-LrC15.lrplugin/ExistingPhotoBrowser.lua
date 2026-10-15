@@ -19,7 +19,7 @@ local function report(dependencies, state)
     if dependencies.logState then pcall(dependencies.logState, state) end
 end
 local function remove(dependencies, directory)
-    if not directory then return end
+    if not directory then return true end
     local ok, deleted = pcall(function()
         if not LrFileUtils.exists(directory) then return true end
         return LrFileUtils.delete(directory)
@@ -27,7 +27,9 @@ local function remove(dependencies, directory)
     if not ok or not deleted then
         report(dependencies, "unavailable")
         if loggingEnabled then pcall(function() logger:warn("thumbnail_cache_cleanup_failed") end) end
+        return false
     end
+    return true
 end
 local function write(path, bytes)
     local file = io.open(path, "wb")
@@ -36,26 +38,15 @@ local function write(path, bytes)
     local closed, closeResult = pcall(function() return file:close() end)
     return ok and written ~= nil and closed and closeResult ~= nil
 end
-function Browser.validImage(bytes, mediaType)
-    if type(bytes) ~= "string" or #bytes == 0 or #bytes > Browser.THUMBNAIL_BYTES then return false end
-    if mediaType == "image/jpeg" then
-        return bytes:sub(1, 3) == "\255\216\255" and bytes:sub(-2) == "\255\217"
-    end
-    return mediaType == "image/png" and bytes:sub(1, 8) == "\137PNG\13\10\26\10"
-        and bytes:sub(-12) == "\0\0\0\0IEND\174\66\96\130"
-end
+Browser.validImage = Client.validImage
 local function stagePage(dependencies, directory, page)
     if not LrFileUtils.createAllDirectories(directory) then return nil end
     local total, staged = 0, {}
     for index, photo in ipairs(page.photos) do
         if dependencies.cancelled and dependencies.cancelled() then return nil end
-        -- A qualified adapter must enforce the byte/phase budgets while reading,
-        -- reject redirects, and return the exact requested URL. SDK15 get has no
-        -- documented redirect or streaming limit switch, so no default is supplied.
-        local bytes, mediaType, effectiveUrl = dependencies.fetchThumbnail(
-            photo.thumbnail.url, Browser.THUMBNAIL_TIMEOUT, Browser.THUMBNAIL_BYTES)
+        local bytes, mediaType = Client.thumbnail(dependencies, photo, page)
         if dependencies.cancelled and dependencies.cancelled() then return nil end
-        if effectiveUrl ~= photo.thumbnail.url or not Browser.validImage(bytes, mediaType) then return nil end
+        if not bytes then return nil end
         total = total + #bytes
         if total > Browser.PAGE_BYTES then return nil end
         if dependencies.cancelled and dependencies.cancelled() then return nil end
@@ -92,13 +83,13 @@ local function showPage(context, page, rows, duplicated)
         width_in_chars=76, height_in_lines=2,
     } end
     local result = LrDialogs.presentModalDialog {
-        title="Add Groups to Existing Flickr Photo…",
+        title="Add Groups to Existing Flickr Photoâ€¦",
         contents=factory:column {
             bind_to_object=properties, spacing=factory:control_spacing(),
             factory:static_text {title="Select a public Flickr photo. This workflow does not upload, replace, delete, move, or create a catalog publish record.",
                 width_in_chars=80, height_in_lines=2},
-            factory:static_text {title="Observed " .. page.observedAt .. " · advisory page " .. tostring(page.page)
-                .. " of " .. tostring(page.pages) .. " · total " .. tostring(page.total), width_in_chars=80, height_in_lines=2},
+            factory:static_text {title="Observed " .. page.observedAt .. " Â· advisory page " .. tostring(page.page)
+                .. " of " .. tostring(page.pages) .. " Â· total " .. tostring(page.total), width_in_chars=80, height_in_lines=2},
             factory:static_text {title="Pages can change while browsing. " .. tostring(duplicated)
                 .. " repeated photo IDs hidden on this page.", width_in_chars=80, height_in_lines=2},
             factory:scrolled_view {width=760, height=500, factory:column(column)},
@@ -142,7 +133,7 @@ local function displayMemberships(binding, observation)
         contents=factory:column {
             factory:static_text {title="Exact Flickr photo ID: " .. binding.flickrPhotoId, selectable=true, width_in_chars=82, height_in_lines=3},
             factory:static_text {title="Fresh photo verification: " .. binding.verifiedAt, width_in_chars=82},
-            factory:static_text {title="Membership observed: " .. observation.observedAt .. " · " .. tostring(#observation.groups)
+            factory:static_text {title="Membership observed: " .. observation.observedAt .. " Â· " .. tostring(#observation.groups)
                 .. " groups. Membership can change afterward.", width_in_chars=82, height_in_lines=2},
             factory:scrolled_view {width=760, height=440, factory:column(rows)},
             factory:static_text {title="This read-only view does not select or submit groups to add.", width_in_chars=82},
@@ -152,7 +143,7 @@ local function displayMemberships(binding, observation)
 end
 function Browser.run(context, dependencies)
     if active then return nil, "busy" end
-    if dependencies.thumbnailTransportQualified ~= true or type(dependencies.fetchThumbnail) ~= "function" then
+    if dependencies.thumbnailTransportQualified ~= true then
         LrDialogs.message("Existing public photos unavailable",
             "Thumbnail transport and the Lightroom Classic 15.6 workflow still require qualification. No photo request was sent.", "info")
         return nil, "qualification_required"
@@ -201,7 +192,10 @@ function Browser.run(context, dependencies)
         end
         report(dependencies, #rows == 0 and "empty" or "available")
         local action, selected = showPage(context, page, rows, repeated)
-        remove(dependencies, pageDirectory)
+        if not remove(dependencies, pageDirectory) then
+            unavailable("Public photos unavailable", nil)
+            return nil, "thumbnail_unavailable"
+        end
         if action == "next" then pageNumber = pageNumber + 1
         elseif action == "previous" then pageNumber = pageNumber - 1
         elseif action == "ok" and selected then

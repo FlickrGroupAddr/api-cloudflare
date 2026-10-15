@@ -1,6 +1,7 @@
 import {budgetedFlickrFetch} from "./flickr_rate.ts";
 import {groupsRequest,refreshGroups} from "./group_discovery.ts";
 import {existingPhotosRequest} from "./existing_photo_discovery.ts";
+import {photoThumbnailRequest} from "./photo_thumbnails.ts";
 import {photoMembershipsRequest} from "./photo_memberships.ts";
 import {uploadAuthorizationRequest} from "./upload_authorization.ts";
 import {readSubmissionStatus,statusFailure,cleanupStatusReads} from "./submission_status.ts";
@@ -15,7 +16,7 @@ import { ROUTES } from "./registry.ts";
 export {ROUTES};
 import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
 import {duePartitions} from "./scheduling.ts";
-export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; }
+export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -33,7 +34,8 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
     if(path==="/admin/login"||path==="/admin/google-login"||path==="/admin/flickr-oauth/callback")return createAdmin(providerFetch).fetch(request,env);
     const candidates=ROUTES.filter(route=>{
       const pattern=route.pathPattern.split("/").map(part=>part.startsWith("{")?"[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}":part).join("/");
-      return new RegExp("^"+pattern+"$").test(path);
+      const routePath=route.handler==="photo_thumbnail"?decodeURIComponent(path):path;
+      return new RegExp("^"+pattern+"$").test(routePath);
     });
     const route=candidates.find(route=>route.method===request.method)??candidates[0];
     if (route) {
@@ -43,14 +45,17 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
       if(route.handler==="admin"||route.handler==="plugin_code"||route.handler==="status_admin")return createAdmin(providerFetch).fetch(request,env);
       const photosEnabled=env.FGA_READ_ENABLED==="1"&&env.FGA_EXISTING_PHOTOS_ENABLED==="1";
       const enabled=route.handler==="groups" ? env.FGA_READ_ENABLED==="1"&&env.FGA_GROUPS_ENABLED==="1" :
+        route.handler==="photo_thumbnail" ? photosEnabled&&env.FGA_PHOTO_THUMBNAILS_ENABLED==="1" :
         route.handler==="upload_authorization" ? env.FGA_UPLOAD_AUTHORIZATION_ENABLED==="1" :
         (route.handler==="existing_photos"||route.handler==="photo_memberships") ? photosEnabled :
         (route.handler==="current"||route.handler==="status") ? env.FGA_READ_ENABLED==="1" :
         route.handler==="binding" ? photosEnabled||configured(env) : configured(env);
       if(!enabled)return errorResponse(503,"service_unavailable","Service unavailable.");
-      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,route.handler==="current"?"empty":["status","groups","existing_photos","photo_memberships"].includes(route.handler)?"query":"json");
+      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,route.handler==="current"?"empty":["status","groups","existing_photos","photo_memberships","photo_thumbnail"].includes(route.handler)?"query":"json");
       if(result instanceof Response)return result;
       if(route.handler==="current")return jsonCurrent(result);
+      if(route.handler==="photo_thumbnail")return photoThumbnailRequest(env.DB,{installationId:result.installationId,
+        credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},decodeURIComponent(path.split("/")[4]!),new URL(request.url),env,providerFetch,flickrFetch,request.signal);
       if(route.handler==="groups")return groupsRequest(env.DB,{installationId:result.installationId,
         credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},new URL(request.url));
       if(route.handler==="existing_photos"||route.handler==="photo_memberships"){

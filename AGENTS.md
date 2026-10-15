@@ -266,14 +266,24 @@ Terry approved this task-based model and effort policy on 2026-10-15:
 - Narrow mechanical documentation edits, file inventories and prescribed test
   execution: GPT-6 Luna (`gpt-6-luna`) with Low reasoning (`low`). Keep code
   interpretation, safety conclusions and integration with a Sol agent.
-- Particularly stubborn architecture or debugging problems: selectively use
-  GPT-6 Astra (`gpt-6-astra`) with Medium reasoning (`medium`).
+- Particularly difficult debugging, design or architecture problems: GPT-6
+  Astra (`gpt-6-astra`) with Medium reasoning (`medium`) is an option only
+  after Terry explicitly approves using one or more Astra subagents for that
+  turn. Ask again on each later turn that would use Astra; prior approval
+  does not carry forward. Terry added this requirement on 2026-10-15.
 
 These role-based choices supersede the earlier requirement that every subagent
 use Sol Medium. A typical eight-agent batch may use five Sol Medium, one Sol
 High and two Luna Low, but assign by actual work rather than filling a quota.
 Do not escalate effort or model indiscriminately; the primary owns integration,
 required verification, commits/pushes and truthful handoff.
+
+Terry clarified on 2026-10-15 that the mix of models and reasoning efforts may
+vary each turn. Reassess the complexity of each agent's task for that turn;
+there is no fixed distribution or permanent per-agent model assignment. Select
+GPT-6 Luna Low (called Light), GPT-6.1 Sol Medium or GPT-6.1 Sol High as appropriate
+to the authorized work. Use a freshly configured agent when an existing one
+cannot be retuned, preserving the eight-active-direct-subagent/depth-1 limits.
 
 Use Standard speed for the parent and all subagents. Subagents inherit the root
 session's service tier. Keep `service_tier = "default"` in the user Codex
@@ -293,3 +303,15 @@ Set the chosen model and effort explicitly when spawning. Use a fresh context
 when required for overrides and supply the task, authority, file ownership,
 constraints and handoff criteria. Preserve unrelated work and avoid conflicting
 edits; keep desktop input under one primary operator.
+
+## Parent/subagent communication
+
+Terry requires aggressively summarized messages in both directions between all
+subagents and their parent, including progress updates and final reports, to limit
+token usage (2026-10-15). No raw data may pass from a subagent to its parent:
+no raw logs, tool output, datasets, transcripts, source dumps or full diffs.
+
+Report only the outcome, material findings or blockers, verification summary and
+concise file/line references. Keep detailed evidence in appropriate files and send
+references so the parent can inspect it directly when needed. Parent instructions
+should likewise be compact and reference shared files instead of pasting data.

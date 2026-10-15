@@ -5,6 +5,8 @@ Client.PAGE_SIZE = 5
 Client.MAX_MEMBERSHIPS = 10000
 Client.MAX_RESPONSE_BYTES = 2097152
 Client.PRODUCTION_QUALIFIED = false
+Client.THUMBNAIL_BYTES = 262144
+Client.THUMBNAIL_TIMEOUT = 15
 
 local function integer(value, minimum, maximum)
     return type(value) == "number" and value >= minimum and value <= maximum
@@ -90,9 +92,13 @@ function Client.validatePage(value, pageNumber, pageSize)
         or not timestamp(value.observedAt) or value.page ~= pageNumber or value.pageSize ~= pageSize
         or not integer(value.pages, 0, 1000000) or not integer(value.total, 0, 100000000)
         or not array(value.photos, pageSize) then return false end
-    if (#value.photos == 0 and (value.total ~= 0 or pageNumber ~= 1 or value.pages > 1))
-        or (#value.photos > 0 and (value.pages < pageNumber or value.total < #value.photos)) then
-        return false
+    if value.total == 0 then
+        if #value.photos ~= 0 or pageNumber ~= 1 or value.pages > 1 then return false end
+    else
+        local expectedPages = math.ceil(value.total / pageSize)
+        local expectedRows = math.min(pageSize, value.total - (pageNumber - 1) * pageSize)
+        if value.pages ~= expectedPages or pageNumber > expectedPages
+            or #value.photos ~= expectedRows then return false end
     end
     local seen = {}
     for _, photo in ipairs(value.photos) do
@@ -106,6 +112,73 @@ function Client.validatePage(value, pageNumber, pageSize)
         seen[photo.flickrPhotoId] = true
     end
     return true
+end
+-- Candidate hosted transport: the caller supplies an exact validated discovery
+-- reference, never an arbitrary image URL. Native transport qualification is a
+-- separate release gate; post-fetch checks only bound cache publication.
+function Client.thumbnailPath(photo, page)
+    if type(page) ~= "table" or not integer(page.page, 1, 1000000)
+        or not integer(page.pageSize, 1, Client.PAGE_SIZE)
+        or not Client.validatePage(page, page.page, page.pageSize) then return nil end
+    local found = false
+    for _, candidate in ipairs(page.photos) do
+        if candidate == photo then found = true end
+    end
+    if not found then return nil end
+    return "/api/v001/existing-public-photos/" .. encodeComponent(photo.flickrPhotoId)
+        .. "/thumbnail?page=" .. tostring(page.page) .. "&page_size=" .. tostring(page.pageSize)
+        .. "&linked_flickr_revision=" .. string.format("%.0f", page.linkedFlickrRevision)
+end
+local function responseHeader(headers, name)
+    local result
+    for _, header in ipairs(headers) do
+        if type(header) ~= "table" or type(header.field) ~= "string" then return nil end
+        if header.field:lower() == name then
+            if result ~= nil or type(header.value) ~= "string" then return nil end
+            result = header.value
+        end
+    end
+    return result
+end
+function Client.validImage(bytes, mediaType)
+    if type(bytes) ~= "string" or #bytes == 0 or #bytes > Client.THUMBNAIL_BYTES then return false end
+    if mediaType == "image/jpeg" then
+        return bytes:sub(1, 3) == "\255\216\255" and bytes:sub(-2) == "\255\217"
+    end
+    return mediaType == "image/png" and #bytes >= 45
+        and bytes:sub(1, 8) == "\137PNG\13\10\26\10"
+        and bytes:sub(9, 16) == "\0\0\0\13IHDR"
+        and bytes:sub(-12) == "\0\0\0\0IEND\174\66\96\130"
+end
+function Client.thumbnail(dependencies, photo, page)
+    local path = Client.thumbnailPath(photo, page)
+    if not path then return nil, "response_invalid" end
+    if dependencies.cancelled and dependencies.cancelled() then return nil, "cancelled" end
+    local bytes, headers = dependencies.request("GET", path)
+    if dependencies.cancelled and dependencies.cancelled() then return nil, "cancelled" end
+    if type(headers) ~= "table" or headers.status ~= 200 then return nil, "thumbnail_unavailable" end
+    -- Redirect following and streaming limits still need native-host evidence.
+    -- Any explicit redirect metadata is rejected before cache publication.
+    local seenHeaders = {}
+    for _, header in ipairs(headers) do
+        if type(header) ~= "table" or type(header.field) ~= "string"
+            or type(header.value) ~= "string" then return nil, "thumbnail_unavailable" end
+        local name = header.field:lower()
+        if name == "location" then return nil, "thumbnail_unavailable" end
+        if name == "content-type" or name == "cache-control" or name == "content-length" then
+            if seenHeaders[name] then return nil, "thumbnail_unavailable" end
+            seenHeaders[name] = true
+        end
+    end
+    local mediaType = responseHeader(headers, "content-type")
+    local cacheControl = responseHeader(headers, "cache-control")
+    if not cacheControl or not ("," .. cacheControl:lower():gsub("%s", "") .. ","):find(",no%-store,")
+        or not Client.validImage(bytes, mediaType) then return nil, "thumbnail_unavailable" end
+    local length = responseHeader(headers, "content-length")
+    if length ~= nil and (not length:match("^%d+$") or tonumber(length) ~= #bytes) then
+        return nil, "thumbnail_unavailable"
+    end
+    return bytes, mediaType
 end
 local bindingKeys = {schemaVersion=true, fgaPhotoBindingId=true, sourceKind=true,
     flickrPhotoId=true, linkedFlickrRevision=true, verificationRevision=true, verifiedAt=true}
@@ -216,6 +289,8 @@ function Client.encodeProof(body, encode)
 end
 function Client.authenticatedRequest(dependencies, core)
     return function(method, path, body)
+        if type(path) ~= "string" or path:sub(1, 10) ~= "/api/v001/"
+            or path:find("[%s%z\1-\31\127\\#]") then return nil, {} end
         -- luacheck: push ignore 311
         local verifiedCredential
         local verification = core.verifyStored(function(key)
@@ -237,7 +312,8 @@ function Client.authenticatedRequest(dependencies, core)
         local bytes, responseHeaders
         if method == "GET" then
             bytes, responseHeaders = dependencies.httpGet("https://flickrgroupaddr.com" .. path,
-                headers, core.TIMEOUT_SECONDS)
+                headers, path:match("^/api/v001/existing%-public%-photos/")
+                    and Client.THUMBNAIL_TIMEOUT or core.TIMEOUT_SECONDS)
         elseif method == "POST" and path == "/api/v001/existing-public-photo-bindings" then
             local encoded = Client.encodeProof(body, dependencies.encode)
             if not encoded then verifiedCredential = nil; return nil, {} end

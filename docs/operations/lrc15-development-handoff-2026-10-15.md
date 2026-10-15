@@ -1,5 +1,7 @@
 # FGA-LrC15 development handoff - 2026-10-15
 
+Latest update: [approved timing decision and disabled hosted-thumbnail candidate](hosted-thumbnail-handoff-2026-10-15.md). The original clock/transport owner decisions below have been resolved; exact hosted/native qualification and interaction review remain.
+
 The subsequent [parallel implementation and native-host handoff](lrc15-parallel-handoff-2026-10-15.md) records release 0.2.0 build3, successful actual-host group browsing, new fixture receipts and the disabled upload-authorization candidate. Use that update for current acceptance state; the source-only batch evidence below remains historical.
 
 ## Host and SDK
