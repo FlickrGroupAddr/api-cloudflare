@@ -110,3 +110,18 @@ Terry requested a conspicuous active-filter indication to prevent
 mistaking filtered-out groups for missing groups. That requests a
 native filter/status and layout refinement; it does not reopen his
 accepted two-list, explicit-move, empty-save or contextual-title choices.
+
+## Native build 0.0.1.9 alignment and count-copy feedback
+
+Terry's 2026-10-15 screenshot shows query land, 62 available matches
+from 376 eligible groups, two selected additions and the correct Save
+for publish: 2 groups action. The available and selected lists remain
+the same height but their tops differ by about one header region; the
+selected list starts higher. This disproves a native alignment pass for
+the shared-header-height candidate, despite its structural tests.
+
+Terry requested the concise visible match line 62 matches / 376 total,
+vertically aligned list boxes and the selected/maximum count directly
+under the right list. The two right-side selected rows remain visible
+while land filters the left side. The screenshot supplies no Clear
+click or hover outcome and no new pixel-resize qualification.

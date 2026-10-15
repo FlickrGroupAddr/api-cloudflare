@@ -56,6 +56,17 @@ local sdk = {
             local addButton, removeButton, clearButton = byTitle["Add →"], byTitle["← Remove"], byTitle["Clear filter"]
             check(addButton and removeButton and clearButton, "all explicit actions present")
             check(lists[1].items == "availableItems" and lists[2].items == "selectedItems", "left/right binding")
+            local listRow, listIndex
+            for i, row in ipairs(options.contents) do
+                if row[1] == lists[1] and row[3] == lists[2] then listRow, listIndex = row, i end
+            end
+            check(listRow and listRow[2].height == 220 and listRow[2].width == 90,
+                "shared list-only row with fixed center region")
+            check(lists[1].height == 220 and lists[2].height == 220
+                and lists[1].fill_horizontal == .5 and lists[2].fill_horizontal == .5,
+                "equal list heights and growth")
+            local footer = options.contents[listIndex+1]
+            check(footer[3][2].title == "summary", "selected summary below right list")
             check(options.otherVerb == nil, "no distant search action")
             local edit = collect(options.contents, "edit_field")[1]
             check(edit.immediate and type(edit.validate) == "function", "per-change search callback")
@@ -68,11 +79,16 @@ local sdk = {
                 check(#props.availableItems == expected, "all eligible groups available")
                 check(props.allowed == (currentKind == "new"), "zero boundary matches photo mode")
                 check(not props.filterActive and props.filterStatus == string.format(
-                    "All available: %d / %d eligible groups", expected, expected), "complete initial filter status")
+                    "%d matches / %d total", expected, expected), "complete initial filter status")
                 local title = props.actionTitle
+                if currentKind == "new" then
+                    edit.validate(edit, "Landscape")
+                    check(props.filterStatus == "62 matches / 376 total", "exact matchline format")
+                    check(props.searchHeading:find("FILTERED", 1, true), "heading owns FILTERED cue")
+                end
                 edit.validate(edit, "no possible match")
                 check(props.filterActive and #props.availableItems == 0 and props.filterStatus == string.format(
-                    "FILTERED: 0 available matches / %d eligible groups", expected), "visible active filter and counts")
+                    "0 matches / %d total", expected), "visible active filter and counts")
                 clearButton.action()
                 check(not props.filterActive and props.query == "" and #props.availableItems == expected
                     and props.actionTitle == title and #props.selectedItems == 0, "clear in place preserves selection title")

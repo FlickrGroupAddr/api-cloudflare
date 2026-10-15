@@ -242,3 +242,33 @@ Ruff, Pyright and Adobe SDK 15.3 compilation passed. The independent
 [review receipt](../evidence/filter-visibility-review-2026-10-15.md)
 records the exact Preview.lua digest. These are offline checks;
 no native full-width, clipping, focus or visual-prominence pass is claimed.
+
+## Alignment and concise-count revision: build 0.0.1.10
+
+The owner observed that build 9's separate side-column lists did not
+align in Lightroom. Build 10 removes that dependency: both native lists
+are direct siblings in a single list-only row, with equal 220-pixel
+heights and the fixed centered move-button region between them.
+
+A preceding header row keeps filter, Clear and the concise n matches /
+t total line above the left list. FILTERED remains in the search heading
+for a nonempty query. The selected heading sits close above the right
+list; a following row places selected/maximum under the right list.
+Header/footer side minima match the documented native 450-pixel list
+minimum without fixing the widths of the lists or growing containers.
+
+Exact IDs, selected-set authority, Clear's stale-highlight guard,
+unknown-data counts, dynamic action titles and protection semantics
+remain unchanged. The new tree is reviewable source evidence, not yet
+a native pixel-alignment or full-width/resize pass.
+
+### Build 10 verification boundary
+
+The existing integrated Python/Lua suite passed 251 tests, including
+nine canonical adversarial methods and 145 structural checks. The
+independent review's 18 source/event scenarios, explicit 59/60/61 test,
+Ruff, Pyright and Adobe SDK 15.3 compilation passed. The [review record](../evidence/selection-alignment-review-2026-10-15.md) contains the exact
+Preview.lua source digest. The one-off review harness remains in its
+review workspace; adapted existing regression suites retain the durable
+behavior checks. Native list coordinates, clipping and resizing still
+require observation in Lightroom; structural checks are not pixel proof.

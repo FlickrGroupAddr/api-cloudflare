@@ -115,7 +115,7 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(observers.choice == nil and p.choice == nil, 'mutable UI choice remains')
                     local left, right = lists[1], lists[2]
                     assert(left.width == nil and right.width == nil, 'fixed list width')
-                    assert(left.fill_horizontal == 1 and right.fill_horizontal == 1)
+                    assert(left.fill_horizontal == .5 and right.fill_horizontal == .5)
                     assert(left.height == right.height)
                     assert(options.contents.width == nil and options.contents.fill_horizontal == 1)
                     local function ancestors(view, target, path)
@@ -130,23 +130,34 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     end
                     local leftParents = ancestors(options.contents, left)
                     local rightParents = ancestors(options.contents, right)
-                    local leftSide = leftParents[#leftParents]
-                    local rightSide = rightParents[#rightParents]
-                    local outer = leftParents[#leftParents-1]
-                    assert(outer == rightParents[#rightParents-1] and #outer == 3)
+                    local outer = leftParents[#leftParents]
+                    assert(outer == rightParents[#rightParents] and #outer == 3)
+                    assert(outer[1] == left and outer[3] == right,
+                        'both lists must be direct siblings in one shared row')
                     assert(outer.fill_horizontal == 1 and outer.width == nil)
-                    assert(outer[1] == leftSide and outer[3] == rightSide)
-                    for _, side in ipairs({leftSide, rightSide}) do
-                        assert(side.width == nil and side.fill_horizontal == .5,
-                            'equal growing side columns')
-                        assert(side[1].fill_horizontal == 1 and side[1].width == nil)
-                        assert(side[1].height.shared == 'selectionHeaderHeight')
+                    assert(outer[2].width == 90 and outer[2].height == 220)
+                    local index
+                    for i, child in ipairs(options.contents) do
+                        if child == outer then index = i end
                     end
-                    assert(leftParents[1] == options.contents and options.contents.width == nil)
-                    assert(outer[2].width == 90
-                        and outer[2][1].height.shared == 'selectionHeaderHeight')
-                    assert(rightSide[1][1].alignment == 'center'
-                        and rightSide[1][1].fill_horizontal == 1)
+                    local header, footer = options.contents[index-1], options.contents[index+1]
+                    assert(header.kind == 'row' and footer.kind == 'row')
+                    for _, row in ipairs({header, footer}) do
+                        assert(row.fill_horizontal == 1 and row.spacing == outer.spacing)
+                        assert(row[2].width == 90 and #row == 3)
+                        for _, side in ipairs({row[1], row[3]}) do
+                            assert(side.width == nil and side.fill_horizontal == .5)
+                            assert(side[1].kind == 'spacer' and side[1].width == 450
+                                and side[1].height == 0, 'matching native list minimum')
+                        end
+                    end
+                    assert(header[3][2].title == 'Selected additions')
+                    assert(header[3][2].alignment == 'center')
+                    assert(header[1][2].title == 'searchHeading'
+                        and header[1][2].font == '<system/bold>')
+                    assert(header[1][4].title == 'filterStatus')
+                    assert(header[1][4].tooltip == 'searchSummary')
+                    assert(footer[3][2].title == 'summary', 'summary directly under right list')
                     assert(not left.allows_multiple_selection)
                     assert(not right.allows_multiple_selection)
                     local edit = find(options.contents, 'edit_field')[1]
@@ -154,9 +165,9 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     local editParents = ancestors(options.contents, edit)
                     assert(editParents[#editParents].width == nil)
                     assert(editParents[#editParents].fill_horizontal == 1)
-                    assert(editParents[#editParents] == leftSide[1][2]
-                        and leftSide[1][2][1] == edit)
-                    assert(leftSide[1][2][2].title == 'Clear filter')
+                    assert(editParents[#editParents] == header[1][3]
+                        and header[1][3][1] == edit)
+                    assert(header[1][3][2].title == 'Clear filter')
                     assert(edit.immediate == true, 'query must notify every change')
                     local add, remove, clear
                     for _, button in ipairs(find(options.contents, 'push_button')) do
@@ -168,15 +179,14 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(clear and clear.enabled == 'filterActive'
                         and #find(options.contents, 'push_button') == 3,
                         'explicit filter clear action')
-                    local status = leftSide[1][3]
+                    local status = header[1][4]
                     assert(status.title == 'filterStatus' and status.font == '<system/bold>')
-                    assert(status.height_in_lines == -1 and status.height == 36,
-                        'wrapped filter cue reserves two-line height')
+                    assert(status.height == nil, 'concise single-line count')
                     assert(add.width == 90 and remove.width == add.width)
                     local buttonParents = ancestors(options.contents, add)
                     local center = buttonParents[#buttonParents]
                     assert(center.place_vertical == .5 and center[1] == add and center[2] == remove)
-                    assert(outer[2][2].height == left.height and outer[2][2][1] == center)
+                    assert(outer[2].height == left.height and outer[2][1] == center)
                     assert(observers[left.value] and observers[right.value],
                         'highlight must reveal full name/NSID')
                     if fixture_kind == 'new' then

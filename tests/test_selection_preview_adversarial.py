@@ -173,14 +173,14 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 end
                 check(photo and album and notice,"clear photo/Album and fixture boundary")
                 check(add.width==remove.width and add.width==90,"equal button widths")
+                local lists=collect(options.contents,"simple_list")
                 local outer
                 for _,row in ipairs(collect(options.contents,"row")) do
-                    if row[1] and row[1].kind=="column" and row[1][2] and
-                        row[1][2].kind=="simple_list" then outer=row end
+                    if row[1]==lists[1] and row[3]==lists[2] then outer=row end
                 end
-                check(outer and #outer==3,"one row owns both side columns and center")
-                check(outer[2].width==90 and outer[2][2].height==220,"fixed center list region")
-                local centered=outer[2][2][1]
+                check(outer and #outer==3,"one shared list-only row")
+                check(outer[2].width==90 and outer[2].height==220,"fixed center list region")
+                local centered=outer[2][1]
                 check(centered[1]==add and centered[2]==remove and
                     centered.place_vertical==0.5,"move buttons centered within list region")
                 local panels=collect(options.contents,"scrolled_view")
@@ -209,37 +209,44 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 check(options.resizable and options.contents.fill_horizontal==1,
                     "dialog and contents accept horizontal growth")
                 for _,list in ipairs(lists) do
-                    check(list.width==nil and list.fill_horizontal==1,
+                    check(list.width==nil and list.fill_horizontal==0.5,
                         "equal expandable native list minima without fixed width")
                     check(list.tooltip=="highlightDetail","whole-list highlight tooltip")
                 end
                 check(edit.width==nil and edit.width_in_chars==24 and edit.fill_horizontal==1,
                     "search follows expandable left header")
-                local outer
-                for _,row in ipairs(collect(options.contents,"row")) do
-                    if row[1] and row[1].kind=="column" and row[1][2]==lists[1] then outer=row end
+                local outer,index
+                for i,row in ipairs(options.contents) do
+                    if row[1]==lists[1] and row[3]==lists[2] then outer=row; index=i end
                 end
                 check(outer and outer.fill_horizontal==1 and outer.width==nil,"row fills dialog")
-                local left,right,center=outer[1],outer[3],outer[2]
-                check(left[2]==lists[1] and right[2]==lists[2],"each side owns its list")
-                check(left.width==nil and right.width==nil and left.fill_horizontal==0.5 and
-                    right.fill_horizontal==0.5,"equal expandable side columns")
-                check(left[1][2][1]==edit and left[1].fill_horizontal==1 and
-                    right[1].fill_horizontal==1,"query and headers follow side edges")
-                check(left[1][2][2].title=="Clear filter" and left[1][2].fill_horizontal==1,
-                    "Clear directly beside edit in the same growing row")
-                check(left[1].height.shared=="selectionHeaderHeight" and
-                    right[1].height.shared==left[1].height.shared and
-                    center[1].height.shared==left[1].height.shared,
-                    "shared header height aligns lists")
-                check(right[1][1].title=="Selected additions" and right[1][1].alignment=="center"
-                    and right[1][1].fill_horizontal==1,"heading centered across selected list")
-                check(center.width==90 and center[2].height==lists[1].height and
-                    center[2][1].place_vertical==0.5,"compact centered button column")
-                check(left[1][3].font=="<system/bold>" and left[1][3].title=="filterStatus" and
-                    left[1][3].tooltip=="searchSummary","persistent bold textual filter cue")
-                check(left[1][3].height_in_lines==-1 and left[1][3].height==36,
-                    "wrapped filter status reserves stable two-line space")
+                local header,footer=options.contents[index-1],options.contents[index+1]
+                for _,row in ipairs({header,footer}) do
+                    check(row.kind=="row" and row.fill_horizontal==1 and row.spacing==outer.spacing,
+                        "metadata rows follow same horizontal layout")
+                    check(row[2].width==90,"matching center gap")
+                    for _,side in ipairs({row[1],row[3]}) do
+                        check(side.fill_horizontal==0.5 and side.width==nil,"equal growing sides")
+                        check(side[1].width==450 and side[1].height==0,"native list minimum spacer")
+                    end
+                end
+                check(header[1][3][1]==edit and header[1][3][2].title=="Clear filter",
+                    "query and clear share left header")
+                check(header[1][2].title=="searchHeading" and
+                    header[1][2].font=="<system/bold>","bold heading owns FILTERED cue")
+                check(header[1][4].title=="filterStatus" and
+                    header[1][4].tooltip=="searchSummary","count above left list")
+                check(header[3][2].title=="Selected additions" and
+                    header[3][2].alignment=="center","selected heading centered")
+                check(footer[3][2].title=="summary","selected count directly below right")
+                check(header[3].place_vertical==1,"selected heading rests above right list")
+                check(outer[2].width==90 and outer[2].height==lists[1].height and
+                    outer[2][1].place_vertical==0.5,"compact centered button column")
+                edit.validate(edit,"Landscape"); flush()
+                check(p.filterStatus=="62 matches / 376 total","exact requested count format")
+                check(p.searchHeading:find("FILTERED",1,true),"heading shows active filter")
+                edit.validate(edit,""); flush()
+                check(not p.searchHeading:find("FILTERED",1,true),"clear removes heading cue")
                 local detail
                 for _,view in ipairs(collect(options.contents,"static_text")) do
                     if view.title=="highlightDetail" then detail=view end
@@ -452,7 +459,7 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                     local state=activeFixture.kind=="loading" and "Loading group data"
                         or "Group data unavailable"
                     check(not p.filterActive and p.filterStatus==(unknown and state or
-                        string.format("All available: %d / %d eligible groups",available,total)),
+                        string.format("%d matches / %d total",available,total)),
                         "empty filter truthful even with selected or unavailable groups")
                     for _,query in ipairs({" ","  ","[%.*","no possible match"}) do
                         edit.validate(edit,query)
@@ -465,9 +472,9 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                                 and string.find(string.lower(group.name.." "..group.id),
                                     string.lower(query),1,true) then expected=expected+1 end
                         end
-                        check(p.filterActive and p.filterStatus==(unknown and "FILTERED — "..state
+                        check(p.filterActive and p.filterStatus==(unknown and state
                             or string.format(
-                            "FILTERED: %d available matches / %d eligible groups",expected,total)),
+                            "%d matches / %d total",expected,total)),
                             "any characters activate a literal filter with truthful counts")
                         check(p.searchSummary:find(query,1,true),"tooltip retains literal query")
                         if unknown then

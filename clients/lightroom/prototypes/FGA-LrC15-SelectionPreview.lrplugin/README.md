@@ -19,7 +19,7 @@ in `.selectionpreview`. Do not overwrite or silently install it into the
 production bundle path. No automatic installer is provided. Remove/disable
 this entry through Plug-in Manager after review.
 
-Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.9**
+Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.10**
 shows available groups on the left and selected additions on the right.
 Search above the left list filters literal name/ID text on every edit,
 including deletion, without reopening the modal. The right list always shows
@@ -29,32 +29,26 @@ this avoids treating native highlight changes during list updates as new
 addition requests. Both lists stay sorted by display name. Rows show the name
 first and the exact Flickr group NSID in brackets at the end.
 
-Build 0.0.1.9 keeps a bold **FILTERED** message and the available-match/eligible count
-directly below the query whenever it contains any characters, including spaces.
-The query field shows the active literal query; the status tooltip repeats its
-full text. **Clear filter**, directly beside the query field, restores all
-available rows immediately in the same
-dialog. With an empty query, the status says **All available** and Clear filter
-is disabled. Counts explicitly distinguish available matches from all eligible
-groups, including selected additions in the eligible total.
-Loading or unavailable projections instead show their data state and mark counts
-unknown in the tooltip; a missing projection never appears as a complete empty
-list. The status reserves a 36-pixel wrapped area for two regular native text
-lines. Font scaling and actual clipping still require host review.
-Filtering and clearing preserve the selected set and confirmation title.
+Build 0.0.1.10 displays the concise **62 matches / 376 total** format above
+the available list (numbers reflect the current available matches and complete
+eligible total, including selected additions). The bold search heading adds
+**FILTERED** whenever the query contains any characters, including spaces.
+The status tooltip repeats the literal query. **Clear filter**, beside the edit
+field, restores available rows immediately and preserves selected additions.
+Loading/unavailable projections show their state and unknown counts in the
+tooltip instead of a false complete empty count.
 
-Each side now owns its heading and list in one column, so their edges follow
-the same container instead of independently sized rows. Both columns have the
-native list's 450-pixel minimum and equal `fill_horizontal` growth; the filter
-row, including Clear filter, fills the left side, and the selected heading is
-centered over its list.
-Documented `LrView.share` header heights align both lists and the compact
-90-pixel Add/Remove column. The buttons retain `place_vertical = 0.5` inside
-the 220-pixel list region. Numeric widths remain only on fixed controls.
-This replaces build 8's separate header/list rows: equal fill fractions did
-not compensate for their different intrinsic minimum widths. No dynamic width
-binding, custom drawing, or unsupported control styling is used. The documented
-system bold font and explicit wording make filter state independent of color.
+The two 220-pixel lists are direct siblings in one list-only row, with a fixed
+90-pixel center button region. This guarantees a shared list baseline by tree
+structure. A preceding shared header row holds the query/count and selected
+heading. The selected summary sits in the following row directly under the
+right list. All rows use equal side fill and matching 450-pixel minima (the
+documented native simple_list minimum). Fixed minimum spacers in header/footer
+side containers leave the side containers and lists free to grow; no numeric
+width is set on a growing container or list. This replaces build 9's separate
+side columns and shared header height, which the native screenshot showed did
+not align the lists. Buttons remain vertically centered in the list region.
+Native geometry and resizing still require Lightroom review after reload.
 
 Highlight a row to read its full name and exact NSID in the wrapped detail
 below the lists. Hovering either list also shows that highlighted group's

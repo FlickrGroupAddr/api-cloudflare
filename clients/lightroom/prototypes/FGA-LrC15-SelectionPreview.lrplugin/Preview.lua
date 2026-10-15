@@ -77,16 +77,17 @@ local function show(s)
             p.availableItems, p.selectedItems = available, selected
             p.highlightDetail = "Highlight a group to read its full name and Flickr group NSID."
             p.filterActive = s.query ~= ""
-            p.filterStatus = p.filterActive
-                and string.format("FILTERED: %d available matches / %d eligible groups", #available, total)
-                or string.format("All available: %d / %d eligible groups", #available, total)
+            p.searchHeading = p.filterActive
+                and "Available groups — FILTERED — filter name or ID:"
+                or "Available groups — filter name or ID:"
+            p.filterStatus = string.format("%d matches / %d total", #available, total)
             p.searchSummary = p.filterActive
                 and string.format('FILTERED: query "%s"; %d available matches / %d eligible groups. Clear filter to see all available groups.',
                     s.query, #available, total)
                 or string.format("All available: %d / %d eligible groups; no filter.", #available, total)
             if not M.valid(s) then
                 local state = s.kind == "loading" and "Loading group data" or "Group data unavailable"
-                p.filterStatus = p.filterActive and "FILTERED — " .. state or state
+                p.filterStatus = state
                 p.searchSummary = p.filterActive
                     and string.format('FILTERED: query "%s"; %s. Available and eligible counts are unknown.', s.query, state)
                     or state .. ". Available and eligible counts are unknown; no filter."
@@ -165,64 +166,66 @@ local function show(s)
             contents[#contents + 1] = f:scrolled_view { height = 125, width = 740, f:column(readonly) }
         end
         contents[#contents + 1] = text("Changing selections never removes membership, cancels an intent, or clears protection.", 2)
-        -- Keep each header, query and list in one side column: separate rows
-        -- have independent intrinsic minima, so equal fill alone cannot align
-        -- their edges. Native lists give both sides the same 450px minimum.
-        -- Shared header height aligns the lists and the fixed button region.
+        -- Separate shared rows make list geometry independent of header height.
+        -- Matching native 450px minima keep all three rows' edges aligned, while
+        -- leaving the growing side containers and lists free of numeric widths.
+        local function sideMinimum() return f:spacer { width = 450, height = 0 } end
         contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,
             f:column { spacing = 4, fill_horizontal = 0.5,
-                f:column { spacing = 4, fill_horizontal = 1,
-                    height = LrView.share "selectionHeaderHeight",
-                    f:static_text { title = "Available groups — filter name or ID:",
-                        width_in_chars = 32, fill_horizontal = 1 },
-                    f:row { spacing = 8, fill_horizontal = 1,
-                        f:edit_field { value = bind "query", immediate = true,
-                            width_in_chars = 24, fill_horizontal = 1,
-                            validate = function(_, value)
-                                -- Validation runs on every change with immediate=true.
-                                p.query = value or ""
-                                queryChanged()
-                                return true, value
-                            end,
-                        },
-                        f:push_button { title = "Clear filter", width = 90,
-                            enabled = bind "filterActive",
-                            action = function()
-                                p.query = ""
-                                -- Clear also invalidates any prior highlights
-                                -- when the host defers property observers.
-                                refreshLists()
-                            end },
+                sideMinimum(),
+                f:static_text { title = bind "searchHeading", font = "<system/bold>",
+                    width_in_chars = 32, fill_horizontal = 1 },
+                f:row { spacing = 8, fill_horizontal = 1,
+                    f:edit_field { value = bind "query", immediate = true,
+                        width_in_chars = 24, fill_horizontal = 1,
+                        validate = function(_, value)
+                            p.query = value or ""
+                            queryChanged()
+                            return true, value
+                        end,
                     },
-                    f:static_text { title = bind "filterStatus", font = "<system/bold>",
-                        width_in_chars = 32, fill_horizontal = 1,
-                        height_in_lines = -1, height = 36,
-                        tooltip = bind "searchSummary" },
+                    f:push_button { title = "Clear filter", width = 90,
+                        enabled = bind "filterActive",
+                        action = function()
+                            p.query = ""
+                            -- Invalidate highlights even with deferred observers.
+                            refreshLists()
+                        end },
                 },
-                f:simple_list { items = bind "availableItems", value = bind "availableChoice",
-                    allows_multiple_selection = false, fill_horizontal = 1, height = 220,
-                    tooltip = bind "highlightDetail" },
+                f:static_text { title = bind "filterStatus", font = "<system/bold>",
+                    width_in_chars = 32, fill_horizontal = 1,
+                    tooltip = bind "searchSummary" },
             },
-            f:column { spacing = 4, width = 90,
-                f:spacer { height = LrView.share "selectionHeaderHeight" },
-                f:column { height = 220,
-                    f:column { spacing = 8, place_vertical = 0.5,
-                        f:push_button { title = "Add →", width = 90,
-                            action = function() move("availableChoice", true) end },
-                        f:push_button { title = "← Remove", width = 90,
-                            action = function() move("selectedChoice", false) end },
-                    },
+            f:spacer { width = 90 },
+            f:column { fill_horizontal = 0.5, place_vertical = 1,
+                sideMinimum(),
+                f:static_text { title = "Selected additions", width_in_chars = 32,
+                    fill_horizontal = 1, alignment = "center" },
+            },
+        }
+        -- Both lists are direct siblings: one row owns their top and bottom.
+        contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,
+            f:simple_list { items = bind "availableItems", value = bind "availableChoice",
+                allows_multiple_selection = false, fill_horizontal = 0.5, height = 220,
+                tooltip = bind "highlightDetail" },
+            f:column { width = 90, height = 220,
+                f:column { spacing = 8, place_vertical = 0.5,
+                    f:push_button { title = "Add →", width = 90,
+                        action = function() move("availableChoice", true) end },
+                    f:push_button { title = "← Remove", width = 90,
+                        action = function() move("selectedChoice", false) end },
                 },
             },
-            f:column { spacing = 4, fill_horizontal = 0.5,
-                f:column { spacing = 4, fill_horizontal = 1,
-                    height = LrView.share "selectionHeaderHeight",
-                    f:static_text { title = "Selected additions", width_in_chars = 32,
-                        fill_horizontal = 1, alignment = "center" },
-                },
-                f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
-                    allows_multiple_selection = false, fill_horizontal = 1, height = 220,
-                    tooltip = bind "highlightDetail" },
+            f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
+                allows_multiple_selection = false, fill_horizontal = 0.5, height = 220,
+                tooltip = bind "highlightDetail" },
+        }
+        contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,
+            f:column { fill_horizontal = 0.5, sideMinimum() },
+            f:spacer { width = 90 },
+            f:column { fill_horizontal = 0.5, sideMinimum(),
+                f:static_text { title = bind "summary", width_in_chars = 32,
+                    fill_horizontal = 1 },
             },
         }
         -- simple_list has no documented per-row hover API or horizontal bar.
@@ -230,7 +233,6 @@ local function show(s)
         contents[#contents + 1] = f:static_text { title = bind "highlightDetail",
             tooltip = bind "highlightDetail", width_in_chars = 96,
             height_in_lines = -1, fill_horizontal = 1 }
-        contents[#contents + 1] = f:static_text { title = bind "summary", width_in_chars = 96 }
         local answer = LrDialogs.presentModalDialog {
             title = "FlickrGroupAddr — Group additions (FIXTURE PREVIEW)", resizable = true,
             actionVerb = p.actionTitle,
