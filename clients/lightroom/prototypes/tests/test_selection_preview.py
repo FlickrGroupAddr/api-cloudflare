@@ -87,10 +87,10 @@ def main() -> None:
         assert(not M.copy.moderation:find('pending',1,true))
         """
     )
-    source = (bundle / "Preview.lua").read_text()
+    source = (bundle / "Preview.lua").read_text(encoding="utf-8")
     for forbidden in ("LrHttp", "LrPasswords", "LrPrefs", "LrApplication", "setPropertyForPlugin"):
         assert forbidden not in source, forbidden
-    info = (bundle / "Info.lua").read_text()
+    info = (bundle / "Info.lua").read_text(encoding="utf-8")
     assert 'lrc15.selectionpreview"' in info
     assert "LrExportServiceProvider" not in info
     print(

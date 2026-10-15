@@ -1,7 +1,4 @@
-"""Independent multi-dialog adversarial review of the fixture selection UI.
-
-This exercises actual Lua 5.1 observers and Preview.lua, not a native host.
-"""
+"""Actual Lua 5.1 dual-list callbacks; mocked SDK, never native qualification."""
 
 from __future__ import annotations
 
@@ -18,12 +15,12 @@ MODEL_OVERRIDE = os.environ.get("FGA_SELECTION_MODEL_OVERRIDE", "")
 
 
 class SelectionPreviewAdversarialTests(unittest.TestCase):
-    def run_preview(self, scenario, kind="new"):
+    def run_preview(self, scenario, kind="new", deferred=False):
         lua = cast(Any, LuaRuntime)(unpack_returned_tuples=True)
         self.assertEqual(lua.lua_version, (5, 1))
         lua.globals().pluginPath = PLUGIN.as_posix()
-        lua.globals().scenario = scenario
         lua.globals().fixtureKind = kind
+        lua.globals().deferred = deferred
         lua.globals().modelOverride = MODEL_OVERRIDE.replace("\\", "/")
         lua.execute("""
             _PLUGIN={path=pluginPath}
@@ -31,221 +28,228 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
             function dofile(path)
                 local model=realDofile(modelOverride ~= "" and modelOverride or path)
                 local original=model.fixture
-                model.fixture=function(kind)
-                    activeFixture=original(kind)
-                    return activeFixture
-                end
+                model.fixture=function(kind) activeFixture=original(kind); return activeFixture end
                 return model
             end
+            pending,callbacks={},{}
+            function flush()
+                local count=0
+                while #pending>0 do
+                    count=count+1; assert(count<10000,"observer loop")
+                    table.remove(pending,1)()
+                end
+            end
             function propertyTable()
-                local values, observers={}, {}
-                return setmetatable({}, {
-                    __index=function(_, key)
-                        if key == "addObserver" then
-                            return function(_, name, callback) observers[name]=callback end
+                local values,observers={},{}
+                callbacks=observers
+                local p
+                p=setmetatable({}, {
+                    __index=function(_,key)
+                        if key=="addObserver" then
+                            return function(_,name,callback) observers[name]=callback end
                         end
                         return values[key]
                     end,
-                    __newindex=function(_, key, value)
-                        local previous=values[key]
-                        values[key]=value
-                        if previous ~= value and observers[key] then observers[key]() end
+                    __newindex=function(_,key,value)
+                        local old=values[key]; values[key]=value
+                        local callback=observers[key]
+                        if old~=value and callback then
+                            if deferred then
+                                pending[#pending+1]=function() callback(p,key,value) end
+                            else callback(p,key,value) end
+                        end
                     end,
                 })
+                return p
             end
-            local factory=setmetatable({}, {__index=function(_, kind)
-                return function(_, args) args.kind=kind; return args end
+            local factory=setmetatable({}, {__index=function(_,kind)
+                return function(_,args) args.kind=kind; return args end
             end})
-            function collect(view, kind, values)
+            function collect(view,kind,values)
                 values=values or {}
-                if view.kind == kind then values[#values+1]=view end
-                for _, child in ipairs(view) do collect(child, kind, values) end
+                if view.kind==kind then values[#values+1]=view end
+                for _,child in ipairs(view) do collect(child,kind,values) end
                 return values
             end
-            function check(value, message) assert(value, message) end
-            function contains(text, part) return text:find(part, 1, true) ~= nil end
+            function check(value,message) assert(value,message) end
+            function find(items,id)
+                for _,item in ipairs(items) do if item.value==id then return item end end
+            end
+            function move(p,key,id,button) p[key]={id}; button.action(); flush() end
+            modalNumber=0; summaries={}
             local sdk={
                 LrBinding={makePropertyTable=propertyTable},
-                LrView={osFactory=function() return factory end, bind=function(key) return key end},
-                LrFunctionContext={callWithContext=function(_, callback) return callback({}) end},
-                LrPathUtils={child=function(parent, child) return parent .. "/" .. child end},
-                LrTasks={startAsyncTask=function(callback) callback() end},
+                LrView={osFactory=function() return factory end,bind=function(key) return key end},
+                LrFunctionContext={callWithContext=function(_,fn) return fn({}) end},
+                LrPathUtils={child=function(a,b) return a.."/"..b end},
+                LrTasks={startAsyncTask=function(fn) fn() end},
+                LrDialogs={
+                    message=function(title,text)
+                        summaries[#summaries+1]={title=title,text=text} end,
+                    presentModalDialog=function(options)
+                        if options.title=="FGA Selection Preview — fixtures only" then
+                            options.contents.bind_to_object.kind=fixtureKind; return "ok"
+                        end
+                        modalNumber=modalNumber+1
+                        local p=options.contents.bind_to_object
+                        local lists=collect(options.contents,"simple_list")
+                        check(#lists==2,"two native lists")
+                        check(lists[1].items=="availableItems" and lists[2].items=="selectedItems",
+                            "available left; selected right")
+                        check(not lists[1].allows_multiple_selection and
+                            not lists[2].allows_multiple_selection,
+                            "single-selection array contract")
+                        check(options.otherVerb==nil,"no Apply search modal action")
+                        check(#collect(options.contents,"checkbox")==0,"no checkbox hierarchy")
+                        local edit=collect(options.contents,"edit_field")[1]
+                        check(edit.immediate and type(edit.validate)=="function",
+                            "per-edit validation")
+                        local buttons=collect(options.contents,"push_button")
+                        check(#buttons==2 and buttons[1].title=="Add →" and
+                            buttons[2].title=="← Remove","center arrow actions")
+                        flush()
+                        return scenario(options,p,edit,buttons[1],buttons[2])
+                    end,
+                },
             }
-            modalNumber=0
-            summaries={}
-            sdk.LrDialogs={
-                message=function(title, text) summaries[#summaries+1]={title=title,text=text} end,
-                presentModalDialog=function(options)
-                    if options.title == "FGA Selection Preview — fixtures only" then
-                        options.contents.bind_to_object.kind=fixtureKind
-                        return "ok"
-                    end
-                    modalNumber=modalNumber+1
-                    local p=options.contents.bind_to_object
-                    local boxes=collect(options.contents,"checkbox")
-                    check(#boxes <= 376,"bounded fixture row hierarchy")
-                    return scenario(options,p,boxes,modalNumber)
-                end,
-            }
-            function import(name) return assert(sdk[name],"unexpected SDK import " .. name) end
+            function import(name) return assert(sdk[name],"unexpected SDK import "..name) end
         """)
         lua.globals().scenario = lua.eval(scenario)
         lua.execute((PLUGIN / "Preview.lua").read_text(encoding="utf-8"))
+        self.assertEqual(lua.globals().modalNumber, 1)
         return lua
 
-    def test_search_keeps_hidden_selection_and_exact_id_returns_single_row(self):
-        lua = self.run_preview("""function(options,p,boxes,step)
-            if step==1 then
-                firstKey=boxes[1].value
-                firstID=boxes[1].title:match("%[([^%]]+)%]")
-                secondKey=boxes[2].value
-                secondID=boxes[2].title:match("%[([^%]]+)%]")
-                p[firstKey]=true
-                p.query=secondID
-                return "other"
-            elseif step==2 then
-                check(#boxes==1 and contains(boxes[1].title,secondID),"exact ID search")
-                check(p[firstKey]==true and contains(p.summary,"1 selected"),
-                    "hidden choice retained")
-                p[boxes[1].value]=true
-                check(p.allowed and contains(p.summary,"2 selected"),"two selected union")
-                p.query=""
-                return "other"
-            end
-            check(#boxes==376 and p[firstKey] and p[secondKey],"clear search restores checked rows")
-            return "ok"
-        end""")
-        self.assertEqual(lua.globals().modalNumber, 3)
-        self.assertIn("2 group(s)", lua.globals().summaries[1].text)
-
-    def test_none_clears_hidden_marks_before_unpublished_confirmation(self):
-        lua = self.run_preview("""function(options,p,boxes,step)
-            if step==1 then
-                hiddenKey=boxes[1].value
-                p[hiddenKey]=true
-                p.query=boxes[2].title:match("%[([^%]]+)%]")
-                return "other"
-            end
-            check(#boxes==1 and p[hiddenKey],"selected row really hidden")
-            p.choice="none"
-            check(not p[hiddenKey] and p.allowed and contains(p.summary,"0 selected"),
-                "none clears hidden")
-            return "ok"
-        end""")
-        self.assertIn("Choice: none; 0 group(s)", lua.globals().summaries[1].text)
-
-    def test_sixty_one_across_filtered_views_cannot_be_confirmed(self):
-        lua = self.run_preview("""function(options,p,boxes,step)
-            if step==1 then
-                for index=1,60 do p[boxes[index].value]=true end
-                check(p.allowed,"sixty valid")
-                overflowKey=boxes[61].value
-                p.query=boxes[61].title:match("%[([^%]]+)%]")
-                return "other"
-            elseif step==2 then
-                check(#boxes==1,"filtered overflow target")
-                p[overflowKey]=true
-                check(not p.allowed and contains(p.summary,"61 selected"),
-                    "61 invalid including hidden")
-                p.query="literal unmatched .*[]%"
-                return "other"
-            elseif step==3 then
-                check(#boxes==0 and not p.allowed,"no matches cannot hide invalid count")
-                p.query=""
-                return "other"
-            end
-            check(#boxes==376 and p[overflowKey],"overflow mark retained")
-            p[overflowKey]=false
-            check(p.allowed and contains(p.summary,"60 selected"),"return to60 valid")
-            return "cancel"
-        end""")
-        self.assertEqual(lua.globals().modalNumber, 4)
-        self.assertEqual(len(lua.globals().summaries), 0)
-
-    def test_projection_becoming_unavailable_after_selection_disables_reopened_view(self):
-        lua = self.run_preview(
-            """function(options,p,boxes,step)
-            if step==1 then
-                p[boxes[1].value]=true
-                check(p.allowed,"initial complete view confirmable")
-                activeFixture.ready=false
-                return "other"
-            end
-            check(#boxes==0 and not p.allowed,"failure discards selectable projection")
-            return "ok" -- Host/action spoofing still cannot produce a result.
-        end""",
-            "bound",
-        )
-        self.assertEqual(lua.globals().modalNumber, 2)
-        self.assertEqual(len(lua.globals().summaries), 0)
-
-    def test_protected_member_row_keeps_full_protection_and_has_no_checkbox(self):
-        lua = self.run_preview(
-            """function(options,p,boxes)
-            local all=collect(options.contents,"static_text")
-            local protection,later,unknown=false,false,false
-            for _, item in ipairs(all) do
-                local title=item.title
-                if type(title)=="string" then
-                    protection=protection or contains(title,"will not submit this exact pair again")
-                    later=later or contains(title,"Membership was later observed")
-                    unknown=unknown or contains(title,"final moderator decision is unknown")
+    def test_live_query_and_exact_id_moves(self):
+        for deferred in (False, True):
+            lua = self.run_preview(
+                """function(options,p,edit,add,remove)
+                check(#p.availableItems==376 and #p.selectedItems==0,"initial population")
+                local first=p.availableItems[1].value
+                p.availableChoice={first}; flush()
+                check(#p.selectedItems==0,"highlight does not move")
+                add.action(); flush()
+                check(#p.availableItems==375 and #p.selectedItems==1 and p.allowed,"Add moves")
+                local id,other="fixture-0374@N00","fixture-0375@N00"
+                edit.validate(edit,id)
+                check(#p.availableItems==1 and p.availableItems[1].value==id,
+                    "exact ID filters before focus loss")
+                flush(); move(p,"availableChoice",id,add)
+                edit.validate(edit,other); flush(); move(p,"availableChoice",other,add)
+                edit.validate(edit,"literal .*[]%")
+                check(#p.availableItems==0 and #p.selectedItems==3,"right unfiltered; literal left")
+                move(p,"selectedChoice",id,remove)
+                check(#p.selectedItems==2 and #p.availableItems==0,"Remove preserves query")
+                edit.validate(edit,""); flush()
+                check(#p.availableItems==374 and find(p.availableItems,id),
+                    "clear restores available")
+                check(not find(p.availableItems,other) and find(p.selectedItems,other),
+                    "same-name IDs remain distinct")
+                for _,row in ipairs(p.availableItems) do
+                    check(row.title:sub(1,#row.value+2)=="["..row.value.."]","ID first")
                 end
-            end
-            check(protection and later and unknown,"both block and later membership remain visible")
-            for _, box in ipairs(boxes) do
-                for index=1,4 do
-                    check(not contains(box.title,string.format("fixture-%04d@N00",index)),
-                        "no unsafe checkbox")
-                end
-            end
-            check(not p.allowed,"bound zero disabled")
-            p[boxes[1].value]=true
-            check(p.allowed,"one bound addition valid")
-            p[boxes[1].value]=false
-            check(not p.allowed,"bound zero disabled again")
-            return "cancel"
-        end""",
+                return "ok"
+            end""",
+                deferred=deferred,
+            )
+            self.assertIn("2 group(s)", lua.globals().summaries[1].text)
+
+    def test_limits_none_and_cancel(self):
+        for deferred in (False, True):
+            lua = self.run_preview(
+                """function(options,p,edit,add,remove)
+                local ids={}
+                for i=1,61 do ids[i]=p.availableItems[i].value end
+                for i=1,60 do move(p,"availableChoice",ids[i],add) end
+                check(p.allowed and #p.selectedItems==60,"60 valid")
+                edit.validate(edit,ids[61]); flush(); move(p,"availableChoice",ids[61],add)
+                check(not p.allowed and #p.selectedItems==61,"61 disabled")
+                move(p,"selectedChoice",ids[61],remove)
+                check(p.allowed and #p.selectedItems==60,"back to60")
+                p.choice="none"; flush()
+                check(p.allowed and #p.selectedItems==0,"None clears all")
+                p.choice="groups"; flush(); check(not p.allowed,"zero groups invalid")
+                return "cancel"
+            end""",
+                deferred=deferred,
+            )
+            self.assertEqual(len(lua.globals().summaries), 0)
+
+    def test_projection_guards_and_bound59(self):
+        for kind in (
             "bound",
-        )
-        self.assertEqual(len(lua.globals().summaries), 0)
-
-    def test_literal_search_special_characters_and_confirmation_cancellation(self):
-        for query in (".*", "%", "[", "(", "nothing-matches"):
-            with self.subTest(query=query):
-                scenario = """function(options,p,boxes,step)
-                    if step==1 then p.query=QUERY; return "other" end
-                    check(#boxes==0,"search treats Lua pattern characters literally")
-                    return "cancel"
-                end""".replace("QUERY", repr(query))
-                lua = self.run_preview(scenario)
-                self.assertEqual(len(lua.globals().summaries), 0)
-
-    def test_duplicate_names_remain_distinct_by_id_and_long_label_fixture_is_present(self):
-        lua = self.run_preview("""function(options,p,boxes,step)
-            if step==1 then
-                local duplicates={}
-                local longFound=false
-                for _,box in ipairs(boxes) do
-                    if contains(box.title,"Shared coastal photographers") then
-                        duplicates[#duplicates+1]=box
+            "existing",
+            "bound59",
+            "loading",
+            "empty",
+            "stale",
+            "unavailable",
+            "contradictory",
+        ):
+            lua = self.run_preview(
+                """function(options,p,edit,add,remove)
+                for _,items in ipairs({p.availableItems,p.selectedItems}) do
+                    for _,row in ipairs(items) do
+                        for i=1,4 do check(row.value~=string.format("fixture-%04d@N00",i),
+                            "protected rows excluded") end
                     end
-                    longFound=longFound or #box.title>170
                 end
-                check(#duplicates==2,"duplicate-looking group names need distinct fixture IDs")
-                check(longFound,"long label must exist for host clipping acceptance")
-                p[duplicates[1].value]=true
-                p[duplicates[2].value]=true
-                duplicateID=duplicates[1].title:match("%[([^%]]+)%]")
-                p.query=duplicateID
-                return "other"
-            end
-            check(#boxes==1 and contains(boxes[1].title,duplicateID),"ID disambiguates same names")
-            check(contains(p.summary,"2 selected") and p.allowed,
-                "distinct same-name choices retained")
+                if activeFixture.kind=="bound59" then
+                    check(#p.selectedItems==59 and p.allowed,"59 preload")
+                    move(p,"availableChoice",p.availableItems[1].value,add)
+                    check(#p.selectedItems==60 and p.allowed,"bound60")
+                    move(p,"availableChoice",p.availableItems[1].value,add)
+                    check(#p.selectedItems==61 and not p.allowed,"bound61")
+                elseif activeFixture.kind=="bound" or activeFixture.kind=="existing" then
+                    check(#p.availableItems==372 and not p.allowed,"bound zero invalid")
+                    move(p,"availableChoice",p.availableItems[1].value,add)
+                    check(p.allowed,"bound one valid")
+                    move(p,"selectedChoice",p.selectedItems[1].value,remove)
+                    check(not p.allowed,"bound zero again")
+                else check(#p.availableItems==0 and #p.selectedItems==0 and not p.allowed,
+                    "empty or failed projection") end
+                move(p,"availableChoice","fixture-0003@N00",add)
+                check(not activeFixture.selected["fixture-0003@N00"],"forged protected ID refused")
+                return "cancel"
+            end""",
+                kind=kind,
+                deferred=True,
+            )
+            self.assertEqual(len(lua.globals().summaries), 0)
+
+    def test_deferred_replays_stale_query_and_native_highlights(self):
+        self.run_preview(
+            """function(options,p,edit,add,remove)
+            local first=p.availableItems[1].value
+            local second=p.availableItems[2].value
+            move(p,"availableChoice",first,add)
+            p.availableChoice={second} -- simulate adjacent native highlight after items replacement
+            flush(); check(#p.selectedItems==1,"native adjacent highlight never cascades")
+            p.query="no-match"
+            add.action(); flush()
+            check(#p.selectedItems==1,"newest pending query blocks stale Add")
+            edit.validate(edit,""); flush()
+            p.availableChoice={first}; add.action(); flush()
+            check(#p.selectedItems==1,"wrong-side stale ID rejected")
+            p.availableChoice={second,first}; add.action(); flush()
+            check(#p.selectedItems==1,"multi-value event rejected")
+            p.availableChoice=second; add.action(); flush()
+            check(#p.selectedItems==1,"scalar event rejected")
+            p.choice="none"; flush()
+            check(#p.selectedItems==0 and p.allowed,"None clears selected marks")
+            move(p,"availableChoice",first,add)
+            p.availableChoice={second}
+            p.choice="none"
+            add.action(); flush()
+            check(p.choice=="none" and #p.selectedItems==0 and p.allowed,
+                "pending None reconciles before Add and requires fresh highlight")
+            callbacks.choice(p,"choice","groups"); flush()
+            check(p.choice=="none" and p.allowed,"stale radio replay ignored")
+            edit.validate(edit,"nothing"); edit.validate(edit,""); flush()
+            check(#p.availableItems==376,"latest rapid query wins")
             return "cancel"
-        end""")
-        self.assertEqual(len(lua.globals().summaries), 0)
+        end""",
+            deferred=True,
+        )
 
 
 if __name__ == "__main__":

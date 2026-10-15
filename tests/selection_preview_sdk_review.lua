@@ -6,14 +6,16 @@ local function check(value, message) assert(value, message); checks = checks + 1
 local function propertyTable()
     local values, observers = {}, {}
     local methods = { addObserver = function(_, key, fn) observers[key] = fn end }
-    return setmetatable({}, {
+    local p
+    p = setmetatable({}, {
         __index = function(_, key) return methods[key] or values[key] end,
         __newindex = function(_, key, value)
             local old = values[key]
             values[key] = value
-            if old ~= value and observers[key] then observers[key]() end
+            if old ~= value and observers[key] then observers[key](p, key, value) end
         end,
     })
+    return p
 end
 local factory = setmetatable({}, { __index = function(_, kind)
     return function(_, props)
@@ -45,26 +47,37 @@ local sdk = {
             dialogs = dialogs + 1
             local props = options.contents.bind_to_object
             if dialogs == 1 then props.kind = currentKind; return "ok" end
-            local boxes = collect(options.contents, "checkbox")
+            local lists = collect(options.contents, "simple_list")
+            local buttons = collect(options.contents, "push_button")
+            check(#lists == 2 and #buttons == 2, "two lists and two explicit move buttons")
+            check(lists[1].items == "availableItems" and lists[2].items == "selectedItems", "left/right binding")
+            check(options.otherVerb == nil, "no distant search action")
+            local edit = collect(options.contents, "edit_field")[1]
+            check(edit.immediate and type(edit.validate) == "function", "per-change search callback")
+            local function add(id) props.availableChoice = { id }; buttons[1].action() end
             if currentKind == "new" or currentKind == "bound" or currentKind == "existing" then
                 local expected = currentKind == "new" and 376 or 372
-                check(#boxes == expected, "all eligible groups rendered in ordinary checkbox hierarchy")
+                check(#props.availableItems == expected, "all eligible groups available")
                 check(props.allowed == (currentKind == "new"), "zero boundary matches photo mode")
-                props[boxes[1].value] = true
-                check(props.allowed and props.choice == "groups", "checking one enables group mode")
-                for i = 2, 60 do props[boxes[i].value] = true end
-                check(props.allowed, "60 checked boxes permit confirmation")
-                props[boxes[61].value] = true
-                check(not props.allowed, "61 checked boxes disable confirmation")
-                props[boxes[61].value] = false
+                local ids = {}
+                for i = 1, 61 do ids[i] = props.availableItems[i].value end
+                props.availableChoice = { ids[1] }
+                check(#props.selectedItems == 0, "highlight alone never moves")
+                buttons[1].action()
+                check(props.allowed and props.choice == "groups", "Add one enables group mode")
+                for i = 2, 60 do add(ids[i]) end
+                check(props.allowed, "60 additions permit confirmation")
+                add(ids[61])
+                check(not props.allowed, "61 additions disable confirmation")
+                props.selectedChoice = { ids[61] }; buttons[2].action()
                 check(props.allowed, "return to60 restores confirmation")
                 if currentKind == "new" then
                     props.choice = "none"
-                    for _, box in ipairs(boxes) do check(props[box.value] == false, "none clears every visible checkbox") end
+                    check(#props.selectedItems == 0 and #props.availableItems == expected, "none clears all additions")
                     check(props.allowed, "unpublished none permits confirmation")
                 end
             else
-                check(#boxes == 0 and not props.allowed, "unavailable or bound-empty exposes no selectable rows")
+                check(#props.availableItems == 0 and not props.allowed, "unavailable or bound-empty exposes no selectable rows")
             end
             return "cancel"
         end,

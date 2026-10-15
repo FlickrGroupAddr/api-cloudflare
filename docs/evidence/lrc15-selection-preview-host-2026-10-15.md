@@ -41,3 +41,19 @@ For the Contradictory fixture, Cancel was not confirmed: a window lookup failed,
 Next manual checks: complete H12, then the remaining ergonomics and keyboard coverage (native resizing, full Tab sweep, Enter behavior), followed by full-list scrolling and latency measurements. Owner preference approval remains **false**.
 
 Separate outbox host evidence: `docs/evidence/lrc15-outbox-host-2026-10-15.json`.
+
+## Owner review of the checkbox/Apply-search build
+
+On 2026-10-15, Terry supplied the requested native screenshot after using the
+Unpublished fixture and searching Shared coastal photographers. The two exact
+IDs 0374 and 0375 were shown, both unchecked, while one earlier hidden
+selection remained counted and Save was enabled in groups mode. This
+supports that specific search/hidden-selection observation, not every H05/H07 step.
+
+Terry found the distant bottom-left Apply search button difficult to discover.
+He prefers filtering on each character and requested available groups left,
+selected additions right, with search above the left list. Click-to-move is
+preferred, but two move buttons between lists are explicitly acceptable.
+This is a requested interaction revision, not final approval of either view.
+The [revised prototype plan](../design/dual-list-group-selection-preview.md)
+records the candidate and its own outstanding native checks.

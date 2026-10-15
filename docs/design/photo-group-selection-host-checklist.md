@@ -1,5 +1,7 @@
 # Group-selection preview: actual-host acceptance
 
+Current requested revision: [dual-list selection with live search](dual-list-group-selection-preview.md). Terry requested this after reviewing build 0.0.1.4; its checkbox/Apply-search plan below is historical. Use the linked revised sequence for the new build; earlier host observations do not qualify the revised native list controls.
+
 Current recorded results: [actual-host selection evidence](../evidence/lrc15-selection-preview-host-2026-10-15.md). The Not run cells below preserve the original test-plan baseline; consult that evidence index for later partial observations and remaining checks.
 
 Copyright 2026 Terry Ott. MIT License.

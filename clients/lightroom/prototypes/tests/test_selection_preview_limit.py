@@ -1,4 +1,4 @@
-"""Lua 5.1 model and native-view observer proof for the synthetic 59 fixture."""
+"""Lua 5.1 model and mocked dual-list action proof for the synthetic 59 fixture."""
 
 from pathlib import Path
 from typing import Any, cast
@@ -38,7 +38,8 @@ def main() -> None:
 
         local function propertyTable()
             local values, observers = {}, {}
-            return setmetatable({}, {
+            local p
+            p = setmetatable({}, {
                 __index = function(_, key)
                     if key == 'addObserver' then
                         return function(_, name, fn) observers[name] = fn end
@@ -48,17 +49,18 @@ def main() -> None:
                 __newindex = function(_, key, value)
                     local old = values[key]
                     values[key] = value
-                    if old ~= value and observers[key] then observers[key]() end
+                    if old ~= value and observers[key] then observers[key](p, key, value) end
                 end,
             })
+            return p
         end
         local factory = setmetatable({}, {__index = function(_, kind)
             return function(_, props) props.kind = kind; return props end
         end})
-        local function boxes(view, found)
+        local function collect(view, kind, found)
             found = found or {}
-            if view.kind == 'checkbox' then found[#found+1] = view end
-            for _, child in ipairs(view) do boxes(child, found) end
+            if view.kind == kind then found[#found+1] = view end
+            for _, child in ipairs(view) do collect(child, kind, found) end
             return found
         end
         local dialogs = 0
@@ -77,18 +79,28 @@ def main() -> None:
                     if dialogs == 1 then p.kind = 'bound59'; return 'ok' end
                     assert(options.actionVerb == 'Queue selected additions')
                     assert(options.title == 'FlickrGroupAddr — Group additions (FIXTURE PREVIEW)')
-                    local rows = boxes(options.contents)
-                    assert(#rows == 372)
-                    assert(rows[1].title:find('fixture-0007@N00',1,true))
-                    assert(rows[2].title:find('fixture-0013@N00',1,true))
-                    assert(not p[rows[1].value] and not p[rows[2].value])
+                    local lists = collect(options.contents, 'simple_list')
+                    local buttons = collect(options.contents, 'push_button')
+                    assert(#lists == 2 and #buttons == 2)
+                    assert(lists[1].items == 'availableItems' and lists[2].items == 'selectedItems')
+                    assert(buttons[1].title == 'Add →' and buttons[2].title == '← Remove')
+                    assert(#p.availableItems == 313 and #p.selectedItems == 59)
+                    assert(p.availableItems[1].value == 'fixture-0007@N00')
+                    assert(p.availableItems[2].value == 'fixture-0013@N00')
                     assert(p.allowed and p.summary:find('59 selected',1,true))
-                    p[rows[1].value] = true
+                    p.availableChoice = { 'fixture-0007@N00' }
+                    assert(#p.selectedItems == 59) -- Highlight alone never moves a row.
+                    buttons[1].action()
                     assert(p.allowed and p.summary:find('60 selected',1,true))
-                    p[rows[2].value] = true
+                    assert(#p.selectedItems == 60 and #p.availableItems == 312)
+                    p.availableChoice = { 'fixture-0013@N00' }
+                    buttons[1].action()
                     assert(not p.allowed and p.summary:find('61 selected',1,true))
-                    p[rows[2].value] = false
+                    assert(#p.selectedItems == 61 and #p.availableItems == 311)
+                    p.selectedChoice = { 'fixture-0013@N00' }
+                    buttons[2].action()
                     assert(p.allowed and p.summary:find('60 selected',1,true))
+                    assert(#p.selectedItems == 60 and #p.availableItems == 312)
                     return 'cancel'
                 end,
             },
@@ -99,8 +111,8 @@ def main() -> None:
         assert(dialogs == 2)
         """
     )
-    assert "build = 4" in (bundle / "Info.lua").read_text()
-    print("PASS: synthetic bound59 model and actual view observers: 59/60/61/60, cancel")
+    assert "build = 5" in (bundle / "Info.lua").read_text()
+    print("PASS: synthetic bound59 model and dual-list actions: 59/60/61/60, cancel")
 
 
 if __name__ == "__main__":

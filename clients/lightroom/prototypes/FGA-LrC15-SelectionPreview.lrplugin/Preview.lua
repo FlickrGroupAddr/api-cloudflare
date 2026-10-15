@@ -47,50 +47,79 @@ local function show(s)
         local p = LrBinding.makePropertyTable(context)
         p.query, p.choice = s.query, s.choice
         local updating = false
+        local function refreshLists()
+            local available, selected = {}, {}
+            local total = 0
+            s.query = p.query or ""
+            for _, group in ipairs(s.groups) do
+                if M.code(s, group) == "eligible" then
+                    total = total + 1
+                    local row = { title = "[" .. group.id .. "]  " .. group.name, value = group.id }
+                    if s.selected[group.id] then
+                        selected[#selected + 1] = row
+                    elseif M.matches(group, s.query) then
+                        available[#available + 1] = row
+                    end
+                end
+            end
+            -- Native list controls may highlight an adjacent row when their
+            -- items change. Highlights never move rows; only explicit buttons do.
+            p.availableChoice, p.selectedChoice = {}, {}
+            p.availableItems, p.selectedItems = available, selected
+            p.searchSummary = string.format("%d available matches / %d eligible groups. Selected additions stay on the right.", #available, total)
+        end
         local function sync()
             p.allowed = M.canConfirm(s)
-            p.summary = string.format("%d selected / 60 maximum. Hidden search results keep their selection.", M.count(s))
+            p.summary = string.format("%d selected / 60 maximum. Search filters only available groups.", M.count(s))
         end
-        p:addObserver("choice", function()
+        p:addObserver("choice", function(_, _, value)
             if updating then return end
+            if value ~= p.choice then return end
             M.mode(s, p.choice)
             if p.choice == "none" then
                 updating = true
-                for i, _ in ipairs(s.groups) do p["g" .. i] = false end
+                p.availableChoice, p.selectedChoice = {}, {}
                 updating = false
             end
+            refreshLists()
             sync()
         end)
-        local eligible = { spacing = 4 }
-        local readonly = { spacing = 8 }
-        local shown, total = 0, 0
-        for i, g in ipairs(s.groups) do
-            local group, key = g, "g" .. i
-            local code = M.code(s, group)
-            if code == "eligible" then
-                total = total + 1
-                p[key] = s.selected[group.id] == true
-                p:addObserver(key, function()
-                    if updating then return end
-                    -- SDK notifications may be deferred or repeated. A queued
-                    -- no-op must not overwrite a newer radio-button choice.
-                    if (p[key] == true) == (s.selected[group.id] == true) then return end
-                    M.toggle(s, group.id, p[key])
+        local function move(key, selecting)
+            if p.choice ~= s.choice then
+                M.mode(s, p.choice)
+                refreshLists()
+                sync()
+                return
+            end
+            if s.query ~= (p.query or "") then refreshLists(); return end
+            local values = p[key]
+            if type(values) ~= "table" or #values ~= 1 then return end
+            local id = values[1]
+            local items = selecting and p.availableItems or p.selectedItems
+            local present = false
+            for _, row in ipairs(items) do if row.value == id then present = true end end
+            if not present then return end
+            if (s.selected[id] == true) == selecting then return end
+            if M.toggle(s, id, selecting) then
+                if selecting then
                     updating = true
-                    -- Only checking a group changes the radio mode. An
-                    -- unchecked notification must not replace a newer choice.
-                    if p[key] == true then p.choice = s.choice end
+                    p.choice = s.choice
                     updating = false
-                    sync()
-                end)
-                if M.matches(group, s.query) then
-                    shown = shown + 1
-                    eligible[#eligible + 1] = f:checkbox {
-                        title = group.name .. "  [" .. group.id .. "]", value = bind(key),
-                        width_in_chars = 92,
-                    }
                 end
-            elseif code ~= "unavailable" then
+                refreshLists()
+                sync()
+            end
+        end
+        p.availableChoice, p.selectedChoice = {}, {}
+        local function queryChanged()
+            if s.query ~= (p.query or "") then refreshLists() end
+        end
+        p:addObserver("query", queryChanged)
+        local readonly = { spacing = 8 }
+        for _, g in ipairs(s.groups) do
+            local group = g
+            local code = M.code(s, group)
+            if code ~= "eligible" and code ~= "unavailable" then
                 local copy = M.copy[code]
                 if code == "member" then
                     copy = "Currently in this Flickr group as observed at " .. M.observedAt .. ". Membership is read-only in FGA."
@@ -102,7 +131,6 @@ local function show(s)
                 end
             end
         end
-        if #eligible == 0 then eligible[1] = text("No eligible groups match this view.") end
         if #readonly == 0 then readonly[1] = text("No current memberships or retained intents in this complete fixture.") end
         local status
         if not M.valid(s) then
@@ -117,6 +145,7 @@ local function show(s)
             status = "Not yet published by this FGA collection. Writable groups: " .. M.observedAt
             readonly = { text("No Flickr membership request for this unpublished fixture.") }
         end
+        refreshLists()
         sync()
         local contents = { bind_to_object = p, spacing = 8, fill_horizontal = 1,
             text("FIXTURE PREVIEW — every confirmation produces only an in-memory summary."),
@@ -131,20 +160,42 @@ local function show(s)
                 f:radio_button { title = "Add to selected groups", value = bind "choice", checked_value = "groups" },
             }
         end
-        contents[#contents + 1] = text("Additions only — unchecking never removes membership, cancels an intent, or clears protection.", 2)
-        contents[#contents + 1] = f:row {
-            f:static_text { title = "Find name or exact group ID:" },
-            f:edit_field { value = bind "query", width_in_chars = 45 },
+        contents[#contents + 1] = text("Changing selections never removes membership, cancels an intent, or clears protection.", 2)
+        contents[#contents + 1] = text("Highlight one group, then use Add → or ← Remove. Search filters only available groups.", 2)
+        contents[#contents + 1] = f:row { spacing = 12,
+            f:column { spacing = 4,
+                f:static_text { title = "Available groups — find name or exact ID:" },
+                f:edit_field { value = bind "query", immediate = true, width_in_chars = 44,
+                    validate = function(_, value)
+                        -- The edit-properties reference explicitly guarantees
+                        -- validation on every change with immediate=true.
+                        p.query = value or ""
+                        queryChanged()
+                        return true, value
+                    end,
+                },
+                f:simple_list { items = bind "availableItems", value = bind "availableChoice",
+                    allows_multiple_selection = false, width = 325, height = 220 },
+            },
+            f:column { spacing = 8,
+                f:push_button { title = "Add →", action = function() move("availableChoice", true) end },
+                f:push_button { title = "← Remove", action = function() move("selectedChoice", false) end },
+            },
+            f:column { spacing = 4,
+                f:static_text { title = "Selected additions", width_in_chars = 40 },
+                f:static_text { title = "Always shows every selected addition." },
+                f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
+                    allows_multiple_selection = false, width = 325, height = 220 },
+            },
         }
-        contents[#contents + 1] = text(string.format("Showing %d of %d eligible groups; sorted by name, with exact IDs.", shown, total))
-        contents[#contents + 1] = f:scrolled_view { height = 220, width = 740, f:column(eligible) }
+        contents[#contents + 1] = f:static_text { title = bind "searchSummary", width_in_chars = 96 }
         contents[#contents + 1] = f:static_text { title = bind "summary", width_in_chars = 96 }
         contents[#contents + 1] = text("Refresh: close this fixture and reopen a complete bound/new fixture from the launcher.")
         local answer = LrDialogs.presentModalDialog {
             title = "FlickrGroupAddr — Group additions (FIXTURE PREVIEW)", resizable = true,
             actionVerb = s.bound and "Queue selected additions" or "Save for publish",
             actionBinding = { enabled = { bind_to_object = p, key = "allowed" } },
-            cancelVerb = "Cancel", otherVerb = "Apply search", contents = f:column(contents),
+            cancelVerb = "Cancel", contents = f:column(contents),
         }
         s.query = p.query or ""
         return answer
@@ -155,8 +206,7 @@ LrTasks.startAsyncTask(function()
     local kind = chooseFixture()
     if not kind then return end
     local s = M.fixture(kind)
-    local answer
-    repeat answer = show(s) until answer ~= "other"
+    local answer = show(s)
     local result = M.result(s, answer)
     if result then
         local nextStep = s.bound
