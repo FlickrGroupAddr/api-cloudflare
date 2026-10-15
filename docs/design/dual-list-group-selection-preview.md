@@ -335,3 +335,12 @@ correct singular action label. The observations are recorded in
 [the host evidence](../evidence/lrc15-selection-preview-host-2026-10-15.md).
 The interaction is accepted for integration; no further owner repetition of
 this batch Add/Remove check is required. Production qualification remains separate.
+
+### Final owner sign-off
+
+On 2026-10-15, Terry explicitly directed that ticket 0027 be considered done
+after accepting the native interaction. The preview work is owner-approved for
+closure; subsequent production integration is tracked separately by 0024.
+Automatic approval review rejected the bot's requested Completed transition
+because that lane is reserved for Terry. The card therefore remains Ready for
+Review pending the owner's board move; no further design approval is required.
