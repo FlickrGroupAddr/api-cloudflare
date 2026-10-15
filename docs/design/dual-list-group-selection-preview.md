@@ -22,9 +22,9 @@ auto-selection defect is asserted by this design choice.
 
 The left list contains eligible, not-yet-selected groups matching literal name
 or exact-ID search. The right list always contains all selected additions,
-independent of search. Duplicate names retain distinct exact IDs. Row labels
-put IDs first so the long synthetic group name cannot hide its identity behind
-the name. Readonly current membership and retained/protected intents stay
+independent of search. Duplicate names retain distinct exact IDs. Row labels put group names first and bracketed NSIDs last. A wrapped
+highlighted-group detail and whole-view tooltip keep full names and exact
+IDs accessible when a row clips. Readonly current membership and retained/protected intents stay
 separate from both editable lists.
 
 The selected list is the sole choice: an empty unpublished selection means
@@ -169,3 +169,26 @@ These are offline results; native title redraw and the revised empty
 Save/Queue affordances are not claimed as observed for this build.
 The owner's semantic approval is recorded separately and does not need
 to be requested again. No publication, intake or dispatch was activated.
+
+## Delivered width/readability revision: build 0.0.1.8
+
+Terry requested names before NSIDs and use of the full available dialog
+width. Both native list controls now have equal horizontal fill inside
+a full-width row, with no explicit numeric list or ancestor width that
+would exclude automatic horizontal resizing. The fixed equal-width move
+buttons remain centered against the list boxes; left search follows its
+side's width. Exact group IDs still own item values and selection.
+
+Highlighting a row displays its complete name and NSID below the lists
+and supplies a whole-list tooltip. This is a highlighted-row detail, not
+a documented per-row hover callback. Highlight changes never move groups.
+Search and move behavior, contextual titles, empty Save, nonempty Queue,
+limits, readonly protections and fixture isolation remain unchanged.
+
+Local checks passed 250 Python/Lua tests, 102 existing structural checks,
+14 independent width/detail/event scenarios, model/limit checks, Ruff,
+Pyright and Adobe SDK 15.3 compilation. The [independent review](../evidence/selection-width-review-2026-10-15.md) records source hashes
+and scope. Actual native equal sizing, expansion on resize, wrapping and
+tooltip behavior remain to be observed; the SDK's default list sizing
+is not simulated by the test harness. Earlier owner screenshots already
+verify 3/2/1/0 title redraw in the preceding empty-selection build.

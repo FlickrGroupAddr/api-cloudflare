@@ -72,3 +72,25 @@ Current owner interaction approval: **true** for the dual-list/live-filter
 flow. Technical-text simplification and equal-width, centered move buttons
 were requested as follow-up. The earlier checkbox approval-false entries
 do not override this later explicit approval.
+
+## Native selected-count and action-title observations
+
+On 2026-10-15, Terry supplied sequential native screenshots of the
+unpublished empty-selection preview. They show no radio buttons and the
+following states: 3 selected/373 available with Save for publish: 3
+groups; 2/374 with the 2 groups label; 1/375 with singular 1 group;
+and 0/376 with Save for publish: no groups. Exact synthetic IDs return
+to the left list as removed. Terry explicitly reported the singular
+and zero cases as correct. This directly supports native title redraw
+and these count transitions. The screenshots do not display a plug-in
+version field; the tested source is the delivered 0.0.1.7 candidate.
+No zero-save click/result, bound-zero queue, 60/61 native boundary,
+latency measurement or real submission is inferred from these images.
+
+The same screenshots expose fixed-width lists and NSID-first labels
+that clip useful group names despite spare dialog width. Terry requested
+name-first labels with NSID last and lists expanding across the available
+dialog width, retaining a compact centered move-button column. The
+documented SDK supports a whole-view tooltip, but no per-item hover
+callback was identified for simple_list. Full highlighted identity must
+remain accessible independently of a clipped row or row-specific hover.

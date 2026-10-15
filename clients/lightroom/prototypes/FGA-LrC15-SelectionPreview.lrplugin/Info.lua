@@ -7,5 +7,5 @@ return {
     LrLibraryMenuItems = {
         { title = "FGA: Preview group selection (fixtures only)...", file = "Preview.lua" },
     },
-    VERSION = { major = 0, minor = 0, revision = 1, build = 7 },
+    VERSION = { major = 0, minor = 0, revision = 1, build = 8 },
 }

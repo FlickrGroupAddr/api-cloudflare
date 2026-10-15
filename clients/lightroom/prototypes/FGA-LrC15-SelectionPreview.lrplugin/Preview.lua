@@ -46,6 +46,16 @@ local function show(s)
     return LrFunctionContext.callWithContext("fixture group selection", function(context)
         local p = LrBinding.makePropertyTable(context)
         p.query = s.query
+        local function highlightedGroup(key, itemsKey)
+            local values = p[key]
+            if type(values) ~= "table" or #values ~= 1 then return end
+            for _, row in ipairs(p[itemsKey] or {}) do
+                if row.value == values[1] then
+                    p.highlightDetail = "Highlighted group: " .. row.title
+                    return
+                end
+            end
+        end
         local function refreshLists()
             local available, selected = {}, {}
             local total = 0
@@ -53,7 +63,7 @@ local function show(s)
             for _, group in ipairs(s.groups) do
                 if M.code(s, group) == "eligible" then
                     total = total + 1
-                    local row = { title = "[" .. group.id .. "]  " .. group.name, value = group.id }
+                    local row = { title = group.name .. " [" .. group.id .. "]", value = group.id }
                     if s.selected[group.id] then
                         selected[#selected + 1] = row
                     elseif M.matches(group, s.query) then
@@ -65,6 +75,7 @@ local function show(s)
             -- items change. Highlights never move rows; only explicit buttons do.
             p.availableChoice, p.selectedChoice = {}, {}
             p.availableItems, p.selectedItems = available, selected
+            p.highlightDetail = "Highlight a group to read its full name and Flickr group NSID."
             p.searchSummary = string.format("%d available matches / %d eligible groups", #available, total)
         end
         local function sync()
@@ -99,6 +110,8 @@ local function show(s)
             if s.query ~= (p.query or "") then refreshLists() end
         end
         p:addObserver("query", queryChanged)
+        p:addObserver("availableChoice", function() highlightedGroup("availableChoice", "availableItems") end)
+        p:addObserver("selectedChoice", function() highlightedGroup("selectedChoice", "selectedItems") end)
         local readonly = { spacing = 8 }
         for _, g in ipairs(s.groups) do
             local group = g
@@ -138,10 +151,14 @@ local function show(s)
             contents[#contents + 1] = f:scrolled_view { height = 125, width = 740, f:column(readonly) }
         end
         contents[#contents + 1] = text("Changing selections never removes membership, cancels an intent, or clears protection.", 2)
-        contents[#contents + 1] = f:row { spacing = 12,
-            f:column { spacing = 4, width = 325,
-                f:static_text { title = "Available groups — search name or ID:", width = 325 },
-                f:edit_field { value = bind "query", immediate = true, width = 325,
+        -- Equal text minima and equal fill keep this header aligned with the
+        -- equal native list minima below. Numeric widths disable SDK resizing.
+        contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,
+            f:column { spacing = 4, fill_horizontal = 0.5,
+                f:static_text { title = "Available groups — search name or ID:",
+                    width_in_chars = 32, fill_horizontal = 1 },
+                f:edit_field { value = bind "query", immediate = true,
+                    width_in_chars = 32, fill_horizontal = 1,
                     validate = function(_, value)
                         -- The edit-properties reference explicitly guarantees
                         -- validation on every change with immediate=true.
@@ -152,11 +169,13 @@ local function show(s)
                 },
             },
             f:spacer { width = 90 },
-            f:static_text { title = "Selected additions", width = 325 },
+            f:static_text { title = "Selected additions", width_in_chars = 32,
+                fill_horizontal = 0.5 },
         }
-        contents[#contents + 1] = f:row { spacing = 12,
+        contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,
             f:simple_list { items = bind "availableItems", value = bind "availableChoice",
-                allows_multiple_selection = false, width = 325, height = 220 },
+                allows_multiple_selection = false, fill_horizontal = 0.5, height = 220,
+                tooltip = bind "highlightDetail" },
             -- SDK node layout place_vertical=.5 centers this column in the
             -- list row's free height, independently of the search/header row.
             f:column { spacing = 8, width = 90, place_vertical = 0.5,
@@ -166,8 +185,14 @@ local function show(s)
                     action = function() move("selectedChoice", false) end },
             },
             f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
-                allows_multiple_selection = false, width = 325, height = 220 },
+                allows_multiple_selection = false, fill_horizontal = 0.5, height = 220,
+                tooltip = bind "highlightDetail" },
         }
+        -- simple_list has no documented per-row hover API or horizontal bar.
+        -- A wrapped detail and whole-list tooltip describe the highlighted row.
+        contents[#contents + 1] = f:static_text { title = bind "highlightDetail",
+            tooltip = bind "highlightDetail", width_in_chars = 96,
+            height_in_lines = -1, fill_horizontal = 1 }
         contents[#contents + 1] = f:static_text { title = bind "searchSummary", width_in_chars = 96 }
         contents[#contents + 1] = f:static_text { title = bind "summary", width_in_chars = 96 }
         local answer = LrDialogs.presentModalDialog {

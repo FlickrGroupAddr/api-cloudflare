@@ -117,7 +117,7 @@ def main() -> None:
         assert(dialogs == 2)
         """
     )
-    assert "build = 7" in (bundle / "Info.lua").read_text()
+    assert "build = 8" in (bundle / "Info.lua").read_text(encoding="utf-8")
     print("PASS: synthetic bound59 model and dual-list actions: 59/60/61/60, cancel")
 
 

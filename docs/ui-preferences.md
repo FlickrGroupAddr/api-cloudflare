@@ -49,3 +49,15 @@ bound/existing-public Queue still requires 1-60 groups. Publishing
 without groups must not require opening group selection. This
 supersedes older radio-specific UI wording, not metadata, outbox,
 proof, protection, idempotency or production activation requirements.
+
+## Group-name visibility and dialog width
+
+Terry directed on 2026-10-15 that group display names precede the Flickr
+group NSID in list rows; the NSID goes at the end. Group names carry the
+recognition value, while exact IDs continue to own internal identity.
+Use the dialog's available horizontal space for the two lists: left
+edge, available list, compact move-button column, selected list, right
+edge, with normal native margins. Both lists should grow with the dialog
+instead of retaining fixed widths and a large unused right margin.
+Preserve readable full name/NSID details when a long row clips. A whole
+list tooltip is not a documented per-row hover capability.

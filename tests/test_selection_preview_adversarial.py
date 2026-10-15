@@ -198,6 +198,72 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 deferred=True,
             )
 
+    def test_expandable_layout_and_full_highlight_identity(self):
+        for deferred in (False, True):
+            self.run_preview(
+                """function(options,p,edit,add,remove)
+                local lists=collect(options.contents,"simple_list")
+                check(options.resizable and options.contents.fill_horizontal==1,
+                    "dialog and contents accept horizontal growth")
+                for _,list in ipairs(lists) do
+                    check(list.width==nil and list.fill_horizontal==0.5,
+                        "equal expandable native list minima without fixed width")
+                    check(list.tooltip=="highlightDetail","whole-list highlight tooltip")
+                end
+                check(edit.width==nil and edit.width_in_chars==32 and edit.fill_horizontal==1,
+                    "search follows expandable left header")
+                local rows=collect(options.contents,"row")
+                local header,listrow
+                for _,row in ipairs(rows) do
+                    if row[1] and row[1].kind=="column" then header=row end
+                    if row[1]==lists[1] then listrow=row end
+                end
+                check(header.fill_horizontal==1 and listrow.fill_horizontal==1,
+                    "header and lists fill dialog")
+                check(header[1].width==nil and header[1].fill_horizontal==0.5 and
+                    header[3].width==nil and header[3].fill_horizontal==0.5,
+                    "equal header fill")
+                check(header[1][1].width_in_chars==header[1][2].width_in_chars and
+                    header[3].width_in_chars==header[1][1].width_in_chars,
+                    "equal header minima align with equal list minima")
+                check(header[2].width==90 and listrow[2].width==90 and
+                    listrow[2].place_vertical==0.5,"compact centered button column")
+                local detail
+                for _,view in ipairs(collect(options.contents,"static_text")) do
+                    if view.title=="highlightDetail" then detail=view end
+                end
+                check(detail and detail.height_in_lines==-1 and detail.fill_horizontal==1
+                    and detail.tooltip=="highlightDetail","wrapped full identity detail")
+                for _,group in ipairs(activeFixture.groups) do
+                    local row=find(p.availableItems,group.id)
+                    check(row.title==group.name.." ["..group.id.."]","name then exact NSID")
+                end
+                local id,other="fixture-0374@N00","fixture-0375@N00"
+                p.availableChoice={id}; flush()
+                check(p.highlightDetail=="Highlighted group: "..find(p.availableItems,id).title,
+                    "highlight exposes exact duplicate identity")
+                check(#p.selectedItems==0,"detail observer never moves rows")
+                p.availableChoice={other}; flush()
+                check(p.highlightDetail:find(other,1,true) and
+                    not p.highlightDetail:find(id,1,true),"duplicate labels distinguish exact IDs")
+                local long="fixture-0376@N00"
+                p.availableChoice={long}; flush()
+                local expected="Highlighted group: "..find(p.availableItems,long).title
+                check(#expected>180 and p.highlightDetail==expected,
+                    "full long name and trailing NSID")
+                move(p,"availableChoice",long,add)
+                p.selectedChoice={long}; flush()
+                check(p.highlightDetail==expected,"right list exposes full exact identity")
+                edit.validate(edit,"no matches"); flush()
+                check(not p.highlightDetail:find(long,1,true),"list refresh clears stale detail")
+                p.availableChoice={long}; flush()
+                check(not p.highlightDetail:find(long,1,true),"wrong-side stale highlight ignored")
+                check(#p.selectedItems==1,"search and details preserve additions")
+                return "cancel"
+            end""",
+                deferred=deferred,
+            )
+
     def test_live_query_and_exact_id_moves(self):
         for deferred in (False, True):
             lua = self.run_preview(
@@ -224,7 +290,7 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 check(not find(p.availableItems,other) and find(p.selectedItems,other),
                     "same-name IDs remain distinct")
                 for _,row in ipairs(p.availableItems) do
-                    check(row.title:sub(1,#row.value+2)=="["..row.value.."]","ID first")
+                    check(row.title:sub(-(#row.value+2))=="["..row.value.."]","NSID at end")
                 end
                 return "ok"
             end""",

@@ -19,15 +19,31 @@ in `.selectionpreview`. Do not overwrite or silently install it into the
 production bundle path. No automatic installer is provided. Remove/disable
 this entry through Plug-in Manager after review.
 
-Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.7**
+Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.8**
 shows available groups on the left and selected additions on the right.
 Search above the left list filters literal name/ID text on every edit,
 including deletion, without reopening the modal. The right list always shows
 every selected addition. Highlight one row and use the center **Add →** or
 **← Remove** button to move its exact ID. Highlighting alone makes no change;
 this avoids treating native highlight changes during list updates as new
-addition requests. Both lists stay sorted by display name, with exact IDs
-first so a long name cannot hide the identity at the end of the row.
+addition requests. Both lists stay sorted by display name. Rows show the name
+first and the exact Flickr group NSID in brackets at the end.
+
+Build 0.0.1.8 lets both list boxes share the available dialog width equally,
+including when the dialog grows. The search follows the left list width, and
+the compact 90-pixel Add/Remove column stays centered between the list boxes.
+Expandable nodes use documented `fill_horizontal` sizing instead of fixed
+numeric widths; equal header/search `width_in_chars` minima and equal native
+list minima keep the left and right sides aligned. The fixed buttons retain
+`place_vertical = 0.5` within the list row.
+
+Highlight a row to read its full name and exact NSID in the wrapped detail
+below the lists. Hovering either list also shows that highlighted group's
+detail using the documented view tooltip. This is a whole-list tooltip for
+the highlighted row; moving the mouse over a different row does not select it
+or promise a different tooltip. The SDK documents neither per-row hover callbacks
+nor a guaranteed horizontal scrollbar. Duplicate names and a deliberately long
+name remain synthetic fixtures for checking identity and clipping after reload.
 
 Clearing the query restores available rows. A group returned from the right
 appears on the left only if it matches the current query. The selected list
