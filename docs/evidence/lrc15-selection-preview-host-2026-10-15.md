@@ -125,3 +125,16 @@ vertically aligned list boxes and the selected/maximum count directly
 under the right list. The two right-side selected rows remain visible
 while land filters the left side. The screenshot supplies no Clear
 click or hover outcome and no new pixel-resize qualification.
+
+## Owner screenshot: build 0.0.1.10 aligned lists
+
+Terry's 2026-10-15 screenshot shows the coast query, 62 matches / 376 total,
+two selected additions (synthetic Coast 021 and Coast 033), aligned list tops
+and bottoms, and 2 selected / 60 maximum below the right list. The highlighted
+synthetic Coast 051 group is shown in full with its fixture NSID below the
+lists. The action correctly reads Save for publish: 2 groups. This establishes
+the observed geometry and visible state only, not general resize qualification.
+
+Terry requested one final wording correction: prefix the count with FILTERED:.
+Build 0.0.1.11 implements that correction; no native observation of build 11
+is claimed by this build 10 screenshot.

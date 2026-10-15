@@ -83,12 +83,12 @@ local sdk = {
                 local title = props.actionTitle
                 if currentKind == "new" then
                     edit.validate(edit, "Landscape")
-                    check(props.filterStatus == "62 matches / 376 total", "exact matchline format")
+                    check(props.filterStatus == "FILTERED: 62 matches / 376 total", "exact matchline format")
                     check(props.searchHeading:find("FILTERED", 1, true), "heading owns FILTERED cue")
                 end
                 edit.validate(edit, "no possible match")
                 check(props.filterActive and #props.availableItems == 0 and props.filterStatus == string.format(
-                    "0 matches / %d total", expected), "visible active filter and counts")
+                    "FILTERED: 0 matches / %d total", expected), "visible active filter and counts")
                 clearButton.action()
                 check(not props.filterActive and props.query == "" and #props.availableItems == expected
                     and props.actionTitle == title and #props.selectedItems == 0, "clear in place preserves selection title")

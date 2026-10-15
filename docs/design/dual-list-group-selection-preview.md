@@ -272,3 +272,31 @@ Preview.lua source digest. The one-off review harness remains in its
 review workspace; adapted existing regression suites retain the durable
 behavior checks. Native list coordinates, clipping and resizing still
 require observation in Lightroom; structural checks are not pixel proof.
+
+## Final filter-count wording: build 0.0.1.11
+
+On 2026-10-15, Terry requested the explicit FILTERED: prefix on the concise
+count itself. A nonempty query now shows FILTERED: 62 matches / 376 total
+(with current counts); the unfiltered count omits the prefix. Unknown data
+still reports loading or unavailable rather than invented counts. No selection,
+layout, confirmation or protection behavior changed. The owner's build 10
+screenshot confirms aligned list edges and the selected count below the right
+list for that observed geometry; it does not qualify every resize or font scale.
+
+### Flickr provider limit clarification
+
+Checked 2026-10-15: [Flickr's current help article](https://www.flickrhelp.com/hc/en-us/articles/4404069536532-Add-or-remove-photos-in-Flickr-groups)
+states 60 groups per photo for Pro and 30 for free accounts, but excludes groups
+allowing unlimited posting from that total. Consequently 60 is not a universal
+Flickr photo-membership ceiling. The preview's 60 selected-additions bound remains
+an application batch limit; this observation does not amend the accepted batch
+contract or model remaining provider capacity after existing memberships.
+
+Terry accepted retaining the 60-selection bound on 2026-10-15 after the
+provider exception was explained; he has never approached 60 selections.
+
+Build 11 verification: 12 affected unittest methods passed (including the native
+view harness's 145 preview checks), the explicit 59/60/61 limit check passed,
+and 18 filter/clear scenarios passed in synchronous and deferred modes.
+Ruff, whitespace checks and Adobe SDK 15.3 Lua compilation passed. These
+are offline checks; native observation is bounded to the build 10 screenshot.

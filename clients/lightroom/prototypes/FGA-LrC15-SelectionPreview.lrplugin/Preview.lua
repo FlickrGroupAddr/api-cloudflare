@@ -80,7 +80,8 @@ local function show(s)
             p.searchHeading = p.filterActive
                 and "Available groups — FILTERED — filter name or ID:"
                 or "Available groups — filter name or ID:"
-            p.filterStatus = string.format("%d matches / %d total", #available, total)
+            p.filterStatus = (p.filterActive and "FILTERED: " or "")
+                .. string.format("%d matches / %d total", #available, total)
             p.searchSummary = p.filterActive
                 and string.format('FILTERED: query "%s"; %d available matches / %d eligible groups. Clear filter to see all available groups.',
                     s.query, #available, total)

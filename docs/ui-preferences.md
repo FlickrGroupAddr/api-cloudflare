@@ -82,8 +82,9 @@ accessibility-conformance or screen-reader result is claimed.
 ## Align the lists and colocate their counts
 
 Terry directed on 2026-10-15 that the match line use concise wording such
-as 62 matches / 376 total. Keep the active-filter cue separately visible
-in the search heading; the match numerator still means available matches
+as FILTERED: 62 matches / 376 total when a filter is active, and
+62 matches / 376 total without a filter. Keep the active-filter cue
+separately visible in the search heading; the match numerator still means available matches
 and total still means eligible choices including selected additions.
 The match count stays above the left list. The selected/maximum count
 belongs directly below the right list. Both native list tops and

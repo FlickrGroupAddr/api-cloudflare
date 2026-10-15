@@ -243,7 +243,8 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 check(outer[2].width==90 and outer[2].height==lists[1].height and
                     outer[2][1].place_vertical==0.5,"compact centered button column")
                 edit.validate(edit,"Landscape"); flush()
-                check(p.filterStatus=="62 matches / 376 total","exact requested count format")
+                check(p.filterStatus=="FILTERED: 62 matches / 376 total",
+                    "exact requested count format")
                 check(p.searchHeading:find("FILTERED",1,true),"heading shows active filter")
                 edit.validate(edit,""); flush()
                 check(not p.searchHeading:find("FILTERED",1,true),"clear removes heading cue")
@@ -474,7 +475,7 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                         end
                         check(p.filterActive and p.filterStatus==(unknown and state
                             or string.format(
-                            "%d matches / %d total",expected,total)),
+                            "FILTERED: %d matches / %d total",expected,total)),
                             "any characters activate a literal filter with truthful counts")
                         check(p.searchSummary:find(query,1,true),"tooltip retains literal query")
                         if unknown then

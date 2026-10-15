@@ -256,7 +256,8 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                         for _, group in ipairs(fixture.groups) do
                             if M.code(fixture, group) == 'eligible' then eligible = eligible + 1 end
                         end
-                        local expectedFilter = string.format('%d matches / %d total',
+                        local expectedFilter = (p.filterActive and 'FILTERED: ' or '')
+                            .. string.format('%d matches / %d total',
                             #p[left.items], eligible)
                         if not M.valid(fixture) then
                             local state = fixture_kind == 'loading' and 'Loading group data'
