@@ -89,3 +89,10 @@ and total still means eligible choices including selected additions.
 The match count stays above the left list. The selected/maximum count
 belongs directly below the right list. Both native list tops and
 bottoms must align; a simulated shared-height assertion is insufficient.
+
+## Batch selection in the two lists
+
+Terry requested Ctrl-click and Shift-click selection on both lists on 2026-10-15.
+Enable native multi-selection, keep highlighting separate from moving, and make
+the explicit Add/Remove buttons operate on all highlighted rows at once. Preserve
+the left filter, exact group identities and the 60-choice confirmation boundary.

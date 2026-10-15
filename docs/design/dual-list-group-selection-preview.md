@@ -300,3 +300,28 @@ view harness's 145 preview checks), the explicit 59/60/61 limit check passed,
 and 18 filter/clear scenarios passed in synchronous and deferred modes.
 Ruff, whitespace checks and Adobe SDK 15.3 Lua compilation passed. These
 are offline checks; native observation is bounded to the build 10 screenshot.
+
+## Multiple highlighted rows: build 0.0.1.12
+
+On 2026-10-15, Terry requested Ctrl/Shift multi-selection on both lists.
+The local Adobe SDK 15.3 API Reference, modules/LrView.html,
+viewFactory:simple_list documents allows_multiple_selection and the value array
+of selected item values. Both lists now enable this supported property.
+Ctrl-click for separate rows and Shift-click for ranges are the expected Windows
+native gestures; the actual modifier gestures still need host observation.
+
+Add/Remove validates every highlighted ID against the current source list before
+moving the entire set, then refreshes once. Invalid, duplicate, stale or wrong-side
+IDs reject the whole event. Highlighting alone never moves groups. Selected rows
+remain independent of the left filter. Multiple highlights show their count in
+the detail line; a single highlight retains the full name and NSID. Batch moves
+may exceed 60, retaining all requested choices with confirmation disabled until
+the owner removes enough rows. No silent truncation, real membership removal,
+intent cancellation, network access or durable write is introduced.
+
+Build 12 verification: 13 affected unittest methods passed, including batch
+moves in synchronous and deferred observer modes and 145 preview view checks.
+The explicit 59/60/61 boundary check and 18 filter/clear scenarios passed.
+Ruff lint/format, Pyright, whitespace checks and Adobe SDK 15.3 Lua compilation
+passed. The harness supplies selected-ID arrays; it does not synthesize native
+Ctrl/Shift gestures or establish native focus/anchor behavior.

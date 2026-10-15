@@ -165,8 +165,8 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(header[1][4].title == 'filterStatus')
                     assert(header[1][4].tooltip == 'searchSummary')
                     assert(footer[3][2].title == 'summary', 'summary directly under right list')
-                    assert(not left.allows_multiple_selection)
-                    assert(not right.allows_multiple_selection)
+                    assert(left.allows_multiple_selection)
+                    assert(right.allows_multiple_selection)
                     local edits = find(options.contents, 'edit_field')
                     assert(#edits == 1, 'exactly one query field required')
                     local edit = edits[1]

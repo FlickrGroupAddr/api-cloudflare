@@ -72,8 +72,8 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(#find(options.contents, 'radio_button') == 0)
                     assert(observers.choice == nil, 'no separate choice authority')
                     local left, right = lists[1], lists[2]
-                    assert(not left.allows_multiple_selection)
-                    assert(not right.allows_multiple_selection)
+                    assert(left.allows_multiple_selection)
+                    assert(right.allows_multiple_selection)
                     local edit = find(options.contents, 'edit_field')[1]
                     assert(edit.immediate == true, 'query must notify every change')
                     local add, remove, clear

@@ -116,9 +116,9 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                         check(#lists==2,"two native lists")
                         check(lists[1].items=="availableItems" and lists[2].items=="selectedItems",
                             "available left; selected right")
-                        check(not lists[1].allows_multiple_selection and
-                            not lists[2].allows_multiple_selection,
-                            "single-selection array contract")
+                        check(lists[1].allows_multiple_selection and
+                            lists[2].allows_multiple_selection,
+                            "multiple-selection array contract")
                         check(options.otherVerb==nil,"no Apply search modal action")
                         check(#collect(options.contents,"checkbox")==0,"no checkbox hierarchy")
                         check(#collect(options.contents,"radio_button")==0,
@@ -514,6 +514,45 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                     deferred=deferred,
                 )
 
+    def test_batch_moves_keep_exact_ids_filter_and_confirmation_limit(self):
+        for deferred in (False, True):
+            with self.subTest(deferred=deferred):
+                self.run_preview(
+                    """function(options,p,edit,add,remove)
+                    local ids={}
+                    for i=1,61 do ids[i]=p.availableItems[i].value end
+                    p.availableChoice={ids[1],ids[3],ids[5]}; flush()
+                    check(#p.selectedItems==0,"multiple highlights alone never move")
+                    check(p.highlightDetail:find("3 highlighted",1,true),"batch detail")
+                    add.action(); flush(); checkActionTitle(p)
+                    check(#p.selectedItems==3 and p.allowed,"noncontiguous exact batch added")
+                    for _,id in ipairs({ids[1],ids[3],ids[5]}) do
+                        check(find(p.selectedItems,id),"every highlighted exact ID moved")
+                    end
+                    edit.validate(edit,"no-match"); flush()
+                    p.selectedChoice={ids[1],ids[5]}; remove.action(); flush()
+                    check(#p.selectedItems==1 and #p.availableItems==0
+                        and p.query=="no-match","batch remove preserves filter")
+                    edit.validate(edit,""); flush()
+                    p.availableChoice={ids[1],ids[1]}; add.action(); flush()
+                    check(#p.selectedItems==1,"duplicate event rejected as a whole")
+                    p.availableChoice={[1]=ids[1],extra=ids[5]}; add.action(); flush()
+                    check(#p.selectedItems==1,"malformed event rejected as a whole")
+                    p.selectedChoice={ids[3]}; remove.action(); flush()
+                    p.availableChoice=ids; add.action(); flush(); checkActionTitle(p)
+                    check(#p.selectedItems==61 and not p.allowed,
+                        "batch over limit retained in full; confirmation disabled")
+                    p.selectedChoice={ids[1],ids[3]}; remove.action(); flush()
+                    check(#p.selectedItems==59 and p.allowed,"batch removal repairs limit")
+                    local remaining={}
+                    for _,row in ipairs(p.selectedItems) do remaining[#remaining+1]=row.value end
+                    p.selectedChoice=remaining; remove.action(); flush(); checkActionTitle(p)
+                    check(#p.selectedItems==0 and p.allowed,"batch remove all permits zero save")
+                    return "cancel"
+                end""",
+                    deferred=deferred,
+                )
+
     def test_deferred_replays_stale_query_and_native_highlights(self):
         self.run_preview(
             """function(options,p,edit,add,remove)
@@ -529,7 +568,7 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
             p.availableChoice={first}; add.action(); flush()
             check(#p.selectedItems==1,"wrong-side stale ID rejected")
             p.availableChoice={second,first}; add.action(); flush()
-            check(#p.selectedItems==1,"multi-value event rejected")
+            check(#p.selectedItems==1,"mixed valid and stale batch rejected without partial move")
             p.availableChoice=second; add.action(); flush()
             check(#p.selectedItems==1,"scalar event rejected")
             move(p,"selectedChoice",first,remove)

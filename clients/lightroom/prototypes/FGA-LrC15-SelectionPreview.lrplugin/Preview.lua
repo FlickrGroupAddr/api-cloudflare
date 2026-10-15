@@ -48,7 +48,11 @@ local function show(s)
         p.query = s.query
         local function highlightedGroup(key, itemsKey)
             local values = p[key]
-            if type(values) ~= "table" or #values ~= 1 then return end
+            if type(values) ~= "table" or #values == 0 then return end
+            if #values > 1 then
+                p.highlightDetail = string.format("%d highlighted groups — use Add or Remove to move them together.", #values)
+                return
+            end
             for _, row in ipairs(p[itemsKey] or {}) do
                 if row.value == values[1] then
                     p.highlightDetail = "Highlighted group: " .. row.title
@@ -75,7 +79,7 @@ local function show(s)
             -- items change. Highlights never move rows; only explicit buttons do.
             p.availableChoice, p.selectedChoice = {}, {}
             p.availableItems, p.selectedItems = available, selected
-            p.highlightDetail = "Highlight a group to read its full name and Flickr group NSID."
+            p.highlightDetail = "Ctrl-click for separate groups; Shift-click for a range. Use Add or Remove to move highlighted groups."
             p.filterActive = s.query ~= ""
             p.searchHeading = p.filterActive
                 and "Available groups — FILTERED — filter name or ID:"
@@ -109,17 +113,24 @@ local function show(s)
         local function move(key, selecting)
             if s.query ~= (p.query or "") then refreshLists(); return end
             local values = p[key]
-            if type(values) ~= "table" or #values ~= 1 then return end
-            local id = values[1]
+            if type(values) ~= "table" or #values == 0 or not M.valid(s) then return end
             local items = selecting and p.availableItems or p.selectedItems
-            local present = false
-            for _, row in ipairs(items) do if row.value == id then present = true end end
-            if not present then return end
-            if (s.selected[id] == true) == selecting then return end
-            if M.toggle(s, id, selecting) then
-                refreshLists()
-                sync()
+            local present, seen, ids = {}, {}, {}
+            for _, row in ipairs(items) do present[row.value] = true end
+            -- Validate the whole highlighted set before changing any choice.
+            -- Stale/wrong-side IDs reject the batch rather than moving a subset.
+            for index, id in pairs(values) do
+                if type(index) ~= "number" or index % 1 ~= 0
+                    or index < 1 or index > #values or type(id) ~= "string"
+                    or seen[id] or not present[id]
+                    or (s.selected[id] == true) == selecting then return end
+                seen[id] = true
+                ids[#ids + 1] = id
             end
+            if #ids ~= #values then return end
+            for _, id in ipairs(ids) do M.toggle(s, id, selecting) end
+            refreshLists()
+            sync()
         end
         p.availableChoice, p.selectedChoice = {}, {}
         local function queryChanged()
@@ -207,7 +218,7 @@ local function show(s)
         -- Both lists are direct siblings: one row owns their top and bottom.
         contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,
             f:simple_list { items = bind "availableItems", value = bind "availableChoice",
-                allows_multiple_selection = false, fill_horizontal = 0.5, height = 220,
+                allows_multiple_selection = true, fill_horizontal = 0.5, height = 220,
                 tooltip = bind "highlightDetail" },
             f:column { width = 90, height = 220,
                 f:column { spacing = 8, place_vertical = 0.5,
@@ -218,7 +229,7 @@ local function show(s)
                 },
             },
             f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
-                allows_multiple_selection = false, fill_horizontal = 0.5, height = 220,
+                allows_multiple_selection = true, fill_horizontal = 0.5, height = 220,
                 tooltip = bind "highlightDetail" },
         }
         contents[#contents + 1] = f:row { spacing = 12, fill_horizontal = 1,

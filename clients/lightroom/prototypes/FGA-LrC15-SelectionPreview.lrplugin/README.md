@@ -19,17 +19,18 @@ in `.selectionpreview`. Do not overwrite or silently install it into the
 production bundle path. No automatic installer is provided. Remove/disable
 this entry through Plug-in Manager after review.
 
-Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.11**
+Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.12**
 shows available groups on the left and selected additions on the right.
 Search above the left list filters literal name/ID text on every edit,
 including deletion, without reopening the modal. The right list always shows
-every selected addition. Highlight one row and use the center **Add →** or
-**← Remove** button to move its exact ID. Highlighting alone makes no change;
+every selected addition. Use Ctrl-click to highlight separate rows or
+Shift-click for a range, then use the center **Add →** or **← Remove** button
+to move all highlighted exact IDs together. Highlighting alone makes no change;
 this avoids treating native highlight changes during list updates as new
 addition requests. Both lists stay sorted by display name. Rows show the name
 first and the exact Flickr group NSID in brackets at the end.
 
-Build 0.0.1.11 displays the concise **FILTERED: 62 matches / 376 total** format above
+Build 0.0.1.12 displays the concise **FILTERED: 62 matches / 376 total** format above
 the available list (numbers reflect the current available matches and complete
 eligible total, including selected additions). The bold search heading adds
 **FILTERED** whenever the query contains any characters, including spaces.

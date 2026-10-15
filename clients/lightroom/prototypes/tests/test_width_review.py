@@ -158,8 +158,8 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(header[1][4].title == 'filterStatus')
                     assert(header[1][4].tooltip == 'searchSummary')
                     assert(footer[3][2].title == 'summary', 'summary directly under right list')
-                    assert(not left.allows_multiple_selection)
-                    assert(not right.allows_multiple_selection)
+                    assert(left.allows_multiple_selection)
+                    assert(right.allows_multiple_selection)
                     local edit = find(options.contents, 'edit_field')[1]
                     assert(edit.width == nil and edit.fill_horizontal == 1)
                     local editParents = ancestors(options.contents, edit)
