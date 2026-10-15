@@ -17,6 +17,11 @@ function M.fixture(kind)
         s.groups[i] = { id = string.format("fixture-%04d@N00", i),
             name = string.format("%s photographers %03d", topics[(i - 1) % 6 + 1], i) }
     end
+    -- Keep scanability claims reviewable: same label, distinct exact identities,
+    -- plus one intentionally long label that exercises horizontal scrolling.
+    s.groups[374].name = "Shared coastal photographers"
+    s.groups[375].name = "Shared coastal photographers"
+    s.groups[376].name = "Travel photographers with a deliberately long synthetic group display name spanning the native viewport so reviewers can check horizontal scrolling and exact identity visibility"
     if s.bound then
         s.groups[1].member = true
         s.groups[2].state = "queued"

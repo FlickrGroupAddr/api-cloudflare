@@ -62,6 +62,8 @@ did not reliably account for the popup's frame/fullscreen offset. Do not copy
 coordinates, element indexes, screenshot IDs, or window IDs from this runbook
 or a previous observation; inspect each new state.
 
+Terry normally uses full-screen mode. In the 2026-10-15 native run, `Control_L+Alt_L+f` exposed the menu bar but repeating it did not restore the previous mode. `Shift_L+f` cycled the native screen modes; observe after each press and stop at the intended mode. Do not infer a toggle from the shortcut's name or a completed input call.
+
 ## Stop and test boundaries
 
 An intentional Escape stop is terminal for computer use in that turn. Preserve

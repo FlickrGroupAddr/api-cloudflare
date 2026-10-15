@@ -7,5 +7,5 @@ return {
         { title = "Outbox fixture: write and test rollback", file = "Write.lua" },
         { title = "Outbox fixture: verify after restart", file = "Verify.lua" },
     },
-    VERSION = { major = 0, minor = 0, revision = 1, build = 1 },
+    VERSION = { major = 0, minor = 0, revision = 2, build = 4 },
 }

@@ -128,6 +128,8 @@ boundary; the earlier Python signing proof does not prove a Workers library.
 Hosted deployment/credential tests are separate qualification. Never promise
 single-use enforcement or a shorter Flickr-enforced expiry.
 
+The bounded P26-B candidate is now implemented behind the disabled `FGA_UPLOAD_AUTHORIZATION_ENABLED` flag, with migration0015 and executable registry schemas. See the [implementation handoff](../operations/lrc15-parallel-handoff-2026-10-15.md) and independent upload authorization review for local evidence. It has not been deployed or qualified against hosted secrets, and does not implement the following upload/recovery/provider stages.
+
 ### P26-C — Durable local upload attempt and direct-upload recovery boundary
 
 **Scope:** First settle and prove the local recovery-store mechanism, then

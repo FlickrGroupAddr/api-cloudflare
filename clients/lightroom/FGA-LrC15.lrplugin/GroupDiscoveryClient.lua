@@ -127,43 +127,93 @@ local function encode(value)
         return string.format("%%%02X", string.byte(char))
     end))
 end
--- dkjson normally overwrites duplicate object keys. Check lexical keys before
--- decoding the document, including escaped spellings of the same key. The
--- decoder still owns complete JSON syntax validation.
-local function uniqueKeys(body, decode)
-    local stack, pos = {}, 1
-    while pos <= #body do
-        local char = string.sub(body, pos, pos)
-        if char == "{" or char == "[" then
-            stack[#stack + 1] = {object=char == "{", keys={}}
-        elseif char == "}" or char == "]" then
-            if #stack == 0 then return false end
-            stack[#stack] = nil
-        elseif char == '"' then
-            local start = pos
-            pos = pos + 1
-            while pos <= #body do
-                local current = string.sub(body, pos, pos)
-                if current == '"' then break end
-                if current == "\\" then pos = pos + 1 end
+-- dkjson accepts comments, missing/trailing commas and non-JSON whitespace,
+-- and overwrites duplicate keys. Check strict bounded grammar first; dkjson
+-- still decodes strings/numbers and supplies the object/array/null identities.
+local function strictJson(body, decode)
+    local pos, length = 1, #body
+    local function char() return string.sub(body, pos, pos) end
+    local function white()
+        while char() == " " or char() == "\t" or char() == "\r" or char() == "\n" do pos = pos + 1 end
+    end
+    local function jsonString()
+        if char() ~= '"' then return nil end
+        local start = pos
+        pos = pos + 1
+        while pos <= length do
+            local current = char()
+            if current == '"' then pos = pos + 1; return string.sub(body, start, pos - 1) end
+            if string.byte(current) < 32 then return nil end
+            if current == "\\" then
                 pos = pos + 1
+                current = char()
+                if current == "u" then
+                    if not string.match(string.sub(body, pos + 1, pos + 4), "^%x%x%x%x$") then return nil end
+                    pos = pos + 4
+                elseif current ~= '"' and current ~= "\\" and current ~= "/" and current ~= "b"
+                    and current ~= "f" and current ~= "n" and current ~= "r" and current ~= "t" then return nil end
             end
-            if pos > #body then return false end
-            local following = pos + 1
-            while string.match(string.sub(body, following, following), "^%s$") do
-                following = following + 1
-            end
-            if string.sub(body, following, following) == ":" then
-                local scope = stack[#stack]
-                if not scope or not scope.object then return false end
-                local ok, key = pcall(decode, string.sub(body, start, pos))
-                if not ok or type(key) ~= "string" or scope.keys[key] then return false end
-                scope.keys[key] = true
+            pos = pos + 1
+        end
+        return nil
+    end
+    local function digits()
+        local start = pos
+        while string.match(char(), "^[0-9]$") do pos = pos + 1 end
+        return pos > start
+    end
+    local value
+    value = function(depth)
+        if depth > 32 then return false end
+        white()
+        local current = char()
+        if current == '"' then return jsonString() ~= nil end
+        if current == "{" or current == "[" then
+            local object, keys = current == "{", {}
+            local finish = object and "}" or "]"
+            pos = pos + 1
+            white()
+            if char() == finish then pos = pos + 1; return true end
+            while true do
+                if object then
+                    local rawKey = jsonString()
+                    if not rawKey then return false end
+                    local ok, key = pcall(decode, rawKey)
+                    if not ok or type(key) ~= "string" or keys[key] then return false end
+                    keys[key] = true
+                    white()
+                    if char() ~= ":" then return false end
+                    pos = pos + 1
+                end
+                if not value(depth + 1) then return false end
+                white()
+                if char() == finish then pos = pos + 1; return true end
+                if char() ~= "," then return false end
+                pos = pos + 1
+                white()
             end
         end
-        pos = pos + 1
+        for _, literal in ipairs({"true", "false", "null"}) do
+            if string.sub(body, pos, pos + #literal - 1) == literal then
+                pos = pos + #literal
+                return true
+            end
+        end
+        if current == "-" then pos = pos + 1 end
+        if char() == "0" then pos = pos + 1
+        elseif string.match(char(), "^[1-9]$") then digits()
+        else return false end
+        if char() == "." then pos = pos + 1; if not digits() then return false end end
+        if char() == "e" or char() == "E" then
+            pos = pos + 1
+            if char() == "+" or char() == "-" then pos = pos + 1 end
+            if not digits() then return false end
+        end
+        return true
     end
-    return #stack == 0
+    if not value(1) then return false end
+    white()
+    return pos == length + 1
 end
 
 function Module.new(core)
@@ -218,7 +268,7 @@ function Module.new(core)
             if type(headers) ~= "table" or type(body) ~= "string" then
                 return failure("retryable", "Group discovery could not reach FGA. Try again.")
             end
-            if #body > Module.MAX_BODY_BYTES or not uniqueKeys(body, decode) then return invalid() end
+            if #body > Module.MAX_BODY_BYTES or not strictJson(body, decode) then return invalid() end
             local ok, value = pcall(decode, body)
             body = nil
             if not ok or type(value) ~= "table" then return invalid() end

@@ -2869,6 +2869,1016 @@
         }
       }
     },
+    "/api/v001/upload-authorizations": {
+      "post": {
+        "operationId": "createUploadAuthorization",
+        "description": "Current installation credential only. Metadata-only direct-upload signing under current linked-account authority and both enabled Flickr write gates. The backend durably records the authorization association and sanitized audit before returning the exact signed metadata and fixed Flickr upload URL. The bearer envelope is kept in memory only, is not image-bound or guaranteed single-use, and has no backend-enforced Flickr expiry. No image or Flickr network request reaches this handler. Separately disabled pending hosted qualification.",
+        "parameters": [],
+        "security": [
+          {
+            "installationBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "schemaVersion",
+                  "flickrMetadata"
+                ],
+                "properties": {
+                  "schemaVersion": {
+                    "const": 1
+                  },
+                  "flickrMetadata": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "is_public",
+                      "is_friend",
+                      "is_family",
+                      "safety_level",
+                      "content_type",
+                      "hidden"
+                    ],
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "tags": {
+                        "type": "string"
+                      },
+                      "is_public": {
+                        "type": "string",
+                        "enum": [
+                          "0",
+                          "1"
+                        ]
+                      },
+                      "is_friend": {
+                        "type": "string",
+                        "enum": [
+                          "0",
+                          "1"
+                        ]
+                      },
+                      "is_family": {
+                        "type": "string",
+                        "enum": [
+                          "0",
+                          "1"
+                        ]
+                      },
+                      "safety_level": {
+                        "type": "string",
+                        "enum": [
+                          "1",
+                          "2",
+                          "3"
+                        ]
+                      },
+                      "content_type": {
+                        "type": "string",
+                        "enum": [
+                          "1",
+                          "2",
+                          "3"
+                        ]
+                      },
+                      "hidden": {
+                        "type": "string",
+                        "enum": [
+                          "1",
+                          "2"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Durably recorded upload authorization with the exact signed metadata and fixed Flickr upload URL; sensitive bearer envelope must be used immediately and never persisted or logged.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "fgaUploadAuthorizationId",
+                    "issuedAt",
+                    "uploadUrl",
+                    "authorizationHeader",
+                    "flickrMetadata"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "fgaUploadAuthorizationId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "uploadUrl": {
+                      "type": "string",
+                      "const": "https://up.flickr.com/services/upload/"
+                    },
+                    "authorizationHeader": {
+                      "type": "string",
+                      "minLength": 1,
+                      "x-fga-sensitive": true
+                    },
+                    "flickrMetadata": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "api_key",
+                        "is_public",
+                        "is_friend",
+                        "is_family",
+                        "safety_level",
+                        "content_type",
+                        "hidden"
+                      ],
+                      "properties": {
+                        "api_key": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "tags": {
+                          "type": "string"
+                        },
+                        "is_public": {
+                          "type": "string",
+                          "enum": [
+                            "0",
+                            "1"
+                          ]
+                        },
+                        "is_friend": {
+                          "type": "string",
+                          "enum": [
+                            "0",
+                            "1"
+                          ]
+                        },
+                        "is_family": {
+                          "type": "string",
+                          "enum": [
+                            "0",
+                            "1"
+                          ]
+                        },
+                        "safety_level": {
+                          "type": "string",
+                          "enum": [
+                            "1",
+                            "2",
+                            "3"
+                          ]
+                        },
+                        "content_type": {
+                          "type": "string",
+                          "enum": [
+                            "1",
+                            "2",
+                            "3"
+                          ]
+                        },
+                        "hidden": {
+                          "type": "string",
+                          "enum": [
+                            "1",
+                            "2"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Application errors use JSON/no-store. ADR 0054 permits the bounded early provider duplicate-Authorization rejection to use non-JSON HTTP 400 without application headers; it cannot redirect, set session cookies, expose application data or serve the shell.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "WWW-Authenticate": {
+                "description": "Present for authentication-envelope and insufficient-scope errors; not for application validation errors.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing authentication has an empty body and bare Bearer challenge; invalid credentials return the error representation.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "WWW-Authenticate": {
+                "description": "Present for authentication-envelope and insufficient-scope errors; not for application validation errors.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "WWW-Authenticate": {
+                "description": "Present for authentication-envelope and insufficient-scope errors; not for application validation errors.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Allow": {
+                "schema": {
+                  "type": "string",
+                  "const": "POST"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request rejected",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Paused Flickr write gates return flickr_writes_paused with retryable:false and no Retry-After; other unavailable dependencies fail closed without a signed envelope.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store",
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schemaVersion",
+                    "error"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "const": 1
+                    },
+                    "error": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlationId"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v001/admin/sessions": {
       "get": {
         "operationId": "listAdministrativeSessions",

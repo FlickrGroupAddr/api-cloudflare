@@ -23,6 +23,11 @@ class NativeViewTests(unittest.TestCase):
             "tests/lightroom_group_browser.test.lua", "clients/lightroom/FGA-LrC15.lrplugin"
         )
 
+    def test_group_browser_native_controls_search_detail_and_close(self) -> None:
+        self.run_view(
+            "tests/lightroom_group_browser_native.test.lua", "clients/lightroom/FGA-LrC15.lrplugin"
+        )
+
     def test_selection_preview_documented_controls_and_limits(self) -> None:
         self.run_view(
             "tests/selection_preview_sdk_review.lua",

@@ -123,7 +123,7 @@ sdk.LrHttp = { get = function() end, post = function() end }
 sdk.LrTasks = { sleep = function() end }
 package.loaded.ConnectionCore = { CURRENT_KEY = "current", PLUGIN_ID = "major-specific" }
 package.loaded.dkjson = assert(loadfile((arg[2] or pluginPath) .. "/dkjson.lua"))()
-local Controller = assert(loadfile(pluginPath .. "/ConnectionController.lua"))()
+local Controller = assert(loadfile((arg[2] or pluginPath) .. "/ConnectionController.lua"))()
 local deps = Controller.discoveryDependencies()
 check(readCount == 0 and deps.expectedInstallationId == "installation-1", "adapter captures identity without fetching credentials")
 check(deps.retrieve("current") == "private-credential", "credential returned only to injected client")
@@ -132,4 +132,60 @@ check(decoded.next == deps.jsonNull and getmetatable(decoded.items).__jsontype =
 check(deps.decode('{} trailing-data') == nil and deps.decode('{') == nil, "malformed or trailing JSON rejected")
 deps.logState("private-credential")
 check(recorded[#recorded] == "discovery state=unavailable", "untrusted diagnostic state replaced by allowlisted code")
+
+local groupRows = {}
+for i = 1, 376 do
+    groupRows[i] = { flickrGroupId = string.format("id-%04d", i), displayName = "Group " .. i }
+end
+groupRows[1].displayName = string.rep("Long group name ", 64)
+groupRows[2].displayName = "Literal [%] group"
+local searchProps, searchSession, searchQueue = fixture(function()
+    local result = complete("fresh", groupRows)
+    result.snapshotRevision = 9007199254740991
+    return result
+end)
+searchSession.reload()
+check(coroutine.resume(searchQueue[1]), "complete large-list task")
+check(#searchProps.items == 376 and searchProps.canSearch, "all376rows searchable")
+check(string.find(searchProps.observed, "9007199254740991", 1, true), "large revision displayed without rounding")
+searchProps.query = "ID-0001"
+searchSession.filter()
+check(#searchProps.items == 1 and searchProps.items[1].value == "id-0001", "exactID search keeps group identity")
+searchProps.highlight = { "id-0001" }
+searchSession.inspect()
+check(searchProps.detailName == groupRows[1].displayName and searchProps.detailId == "Exact Flickr group ID: id-0001",
+    "full long name and exactID available separately from clipped list row")
+check(searchProps.detailIdLines == "id-0001" and searchProps.canInspect,
+    "reserved ID is available and full-name inspector enabled")
+searchProps.query = "[%]"
+searchSession.filter()
+check(#searchProps.items == 1 and searchProps.items[1].value == "id-0002", "search is literal and preserves pattern characters")
+check(searchProps.detailId == "", "filter clears prior row detail")
+searchProps.query = "no possible match"
+searchSession.filter()
+check(#searchProps.items == 0 and searchProps.state == "available" and searchProps.filterSummary == "Showing 0 of 376 groups in the complete snapshot.",
+    "no matches never becomes successful empty snapshot")
+searchProps.query = ""
+searchSession.filter()
+check(#searchProps.items == 376, "clearing filter restores complete snapshot")
+searchSession.close()
+local priorItems = searchProps.items
+searchProps.query = "changed outside closed view"
+searchSession.filter()
+searchSession.inspect()
+check(searchProps.items == priorItems, "closed filter and inspection callbacks do not write view properties")
+
+local unicodeName = string.rep("\240\159\140\133", 1024)
+local longId = string.rep("a", 128)
+local edgeProps, edgeSession, edgeQueue = fixture(function()
+    return complete("fresh", { { flickrGroupId = longId, displayName = unicodeName } })
+end)
+edgeSession.reload()
+check(coroutine.resume(edgeQueue[1]), "maximumUnicode detail task")
+edgeProps.highlight = { longId }
+edgeSession.inspect()
+check(edgeProps.detailName == unicodeName and edgeProps.canInspect,
+    "1024Unicode characters retained untransformed for populated detail modal")
+check(edgeProps.detailIdLines == string.rep("a", 64) .. "\n" .. string.rep("a", 64),
+    "128ASCII ID fits exactly the2reserved ID lines")
 print("Group browser fixtures: " .. total .. " checks passed")

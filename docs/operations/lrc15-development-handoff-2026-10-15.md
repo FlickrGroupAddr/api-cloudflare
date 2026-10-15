@@ -1,5 +1,7 @@
 # FGA-LrC15 development handoff - 2026-10-15
 
+The subsequent [parallel implementation and native-host handoff](lrc15-parallel-handoff-2026-10-15.md) records release 0.2.0 build3, successful actual-host group browsing, new fixture receipts and the disabled upload-authorization candidate. Use that update for current acceptance state; the source-only batch evidence below remains historical.
+
 ## Host and SDK
 
 Terry's About Lightroom screenshot identifies Lightroom Classic **15.6 Release**,

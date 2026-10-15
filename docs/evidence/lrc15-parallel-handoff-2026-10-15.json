@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-15",
+  "cards": ["0022", "0027", "0029", "0034"],
+  "parallelDirectAgentsAssigned": 8,
+  "host": { "version": "15.6", "cameraRaw": "18.7", "build": "202609251514-f839cde9", "sdkReference": "15.3" },
+  "groupBrowser": {
+    "release": "0.2.0.3",
+    "liveCompleteGroupCount": 373,
+    "snapshotRevision": 2,
+    "snapshotObservedAt": "2026-10-15T15:07:55.007Z",
+    "staleRefreshingThenExplicitReloadObserved": true,
+    "nameFilterClearAndZeroMatchesObservedBuild2": true,
+    "exactIdFilterOneOf373ObservedBuild3": true,
+    "highlightIdVisibleBuild3": true,
+    "fullNameModalOpenedAndClosedBuild3": true,
+    "nativeDialogsClosed": true,
+    "instrumentedSlowHttpCloseQualified": false,
+    "longNameNativeStressQualified": false,
+    "strictJsonAndCoroutineTests": 14,
+    "nativeModelAndHierarchyAssertions": 98
+  },
+  "selectionPreview": { "release": "0.0.1.2", "fixtureGroups": 376, "newAdversarialTests": 7, "mockAssertions": 424, "duplicateAndLongNameFixturesAdded": true, "nativeInstalledThisBatch": false, "ownerInteractionReviewAccepted": false },
+  "outboxProbe": { "release": "0.0.2.4", "lua51Tests": 11, "sanitizedRunCorrelatedReceiptsImplemented": true, "nativeInstalledThisBatch": false, "catalogMutationPerformed": false, "nativeRollbackQualified": false, "restartQualified": false, "crashQualified": false, "restoreQualified": false, "powerLossQualified": false },
+  "uploadAuthorization": { "route": "POST /api/v001/upload-authorizations", "featureFlagDefault": "0", "migration": "0015_upload_authorizations.sql", "independentModuleTests": 32, "independentHttpTests": 8, "hostQualified": false, "deployed": false },
+  "integratedVerification": { "pythonLuaTestsPassed": 229, "runtimeSuiteTestsPassedBeforeNewHttpFile": 196, "newHttpTestsPassed": 8, "nativeTypescript": "passed", "generatedApi": "passed", "ruff": "passed", "pyright": "passed", "adobeLuaCompilation": "passed", "gitDiffCheck": "passed" },
+  "boundaries": { "productionDeployment": false, "productionMigration": false, "realUpload": false, "groupAddition": false, "writeGateActivation": false, "credentialsEntered": false },
+  "privacy": "No screenshots, group names or IDs, catalog titles, photo metadata, credentials or signed envelopes are retained in this receipt."
+}

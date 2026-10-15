@@ -252,6 +252,103 @@ class GroupDiscoveryTests(unittest.TestCase):
         self.module.MAX_GROUPS = 1
         self.assert_failed(self.discover([(self.page(["a", "b"]), 200)]))
 
+    def test_dkjson_extensions_do_not_turn_malformed_json_into_success(self):
+        valid = json.dumps(self.page(["a"]))
+        malformed = [
+            valid.replace('"schemaVersion": 1,', '"schemaVersion": 1 /*comment*/, '),
+            valid[:-1] + ",}",
+            valid.replace('"schemaVersion": 1,', '"schemaVersion": 1 '),
+            valid.replace('"snapshotRevision": 7', '"snapshotRevision": 007'),
+            valid.replace('"snapshotRevision": 7', '"snapshotRevision": +7'),
+            valid.replace('"schemaVersion": 1,', '"schemaVersion": 1,\v'),
+        ]
+        for body in malformed:
+            with self.subTest(body=body):
+                self.assert_failed(self.discover([(body, 200)]))
+
+    def test_valid_unicode_escapes_and_safe_integer_continuation_remain_exact(self):
+        revision = 9007199254740991
+        first = self.page(
+            groups=[{"flickrGroupId": "a@pool", "displayName": 'Name \\" / {} [] : café 😀'}],
+            snapshotRevision=revision,
+            nextAfterGroupId="a@pool",
+        )
+        result = self.discover(
+            [
+                (json.dumps(first).replace('"schemaVersion": 1', '"schemaVersion": 1e0'), 200),
+                (self.page(["z"], snapshotRevision=revision), 200),
+            ]
+        )
+        self.assertEqual(result.state, "complete")
+        self.assertEqual(len(result.groups), 2)
+        self.assertIn(
+            "snapshot_revision=9007199254740991&after_group_id=a%40pool", self.calls[-1][0]
+        )
+
+    def test_real_lua_coroutine_yields_through_verification_http_and_retry_wait(self):
+        globals_ = self.lua.globals()
+        globals_.groupClient, globals_.groupCore, globals_.groupDecode = (
+            self.client,
+            self.core,
+            self.decode,
+        )
+        globals_.groupNull, globals_.groupCredential = self.json.null, CREDENTIAL
+        globals_.groupPending = json.dumps({"schemaVersion": 1, "status": "refreshing"})
+        globals_.groupComplete = json.dumps(self.page(["a"]))
+        self.lua.execute("""
+            groupCancelled, groupHttpCalls = false, 0
+            groupTask = coroutine.create(function()
+                return groupClient.discoverStored(function(key)
+                    if key == groupCore.CURRENT_KEY then return groupCredential end
+                end, function(url)
+                    if url == groupCore.CURRENT_URL then
+                        coroutine.yield('verification')
+                        return '{"schemaVersion":1,"installationId":"installation-1",'
+                            .. '"installationRevision":1,"installationState":"active",'
+                            .. '"presentedCredentialState":"current"}', {status=200}
+                    end
+                    groupHttpCalls = groupHttpCalls + 1
+                    coroutine.yield('groups')
+                    if groupHttpCalls == 1 then return groupPending,
+                        {status=202,{field='Retry-After',value='1'}} end
+                    return groupComplete, {status=200}
+                end, groupDecode, function() coroutine.yield('sleep') end,
+                function() return groupCancelled end, 'installation-1', groupNull)
+            end)
+        """)
+        resume = self.lua.eval("function() return coroutine.resume(groupTask) end")
+        for marker in ("verification", "groups", "sleep", "groups"):
+            self.assertEqual(resume(), (True, marker))
+        ok, result = resume()
+        self.assertTrue(ok)
+        self.assertEqual(result.state, "complete")
+        self.assertEqual(result.groups[1].flickrGroupId, "a")
+
+        self.lua.execute("groupCancelled=false")
+        # Repeat with a new task and close while its documented sleep is suspended.
+        self.lua.execute("""
+            groupHttpCalls = 0
+            groupTask = coroutine.create(function()
+                return groupClient.discoverStored(function(key)
+                    if key == groupCore.CURRENT_KEY then return groupCredential end
+                end, function(url)
+                    if url == groupCore.CURRENT_URL then return
+                        '{"schemaVersion":1,"installationId":"installation-1",'
+                        .. '"installationRevision":1,"installationState":"active",'
+                        .. '"presentedCredentialState":"current"}', {status=200} end
+                    groupHttpCalls=groupHttpCalls+1
+                    return groupPending, {status=202,{field='Retry-After',value='1'}}
+                end, groupDecode, function() coroutine.yield('sleep') end,
+                function() return groupCancelled end, 'installation-1', groupNull)
+            end)
+        """)
+        self.assertEqual(resume(), (True, "sleep"))
+        globals_.groupCancelled = True
+        ok, cancelled = resume()
+        self.assertTrue(ok)
+        self.assert_failed(cancelled, "cancelled")
+        self.assertEqual(globals_.groupHttpCalls, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

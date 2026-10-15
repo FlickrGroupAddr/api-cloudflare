@@ -15,6 +15,19 @@ def main() -> None:
         local M = model
         local s = M.fixture('new')
         assert(#s.groups == 376 and M.canConfirm(s))
+        local shared, long = {}, nil
+        for _, g in ipairs(s.groups) do
+            if g.name == 'Shared coastal photographers' then shared[#shared + 1] = g end
+            if #g.name > 150 then long = g end
+        end
+        assert(#shared == 2 and shared[1].id == 'fixture-0374@N00')
+        assert(shared[2].id == 'fixture-0375@N00' and long.id == 'fixture-0376@N00')
+        assert(M.matches(shared[1], 'Shared coastal') and M.matches(shared[2], 'Shared coastal'))
+        assert(M.matches(shared[1], 'fixture-0374@N00'))
+        assert(not M.matches(shared[2], 'fixture-0374@N00'))
+        M.toggle(s, shared[1].id, true)
+        assert(M.count(s) == 1 and not s.selected[shared[2].id])
+        M.mode(s, 'none')
         assert(M.result(s, 'cancel') == nil)
         M.mode(s, 'groups')
         assert(not M.canConfirm(s))
