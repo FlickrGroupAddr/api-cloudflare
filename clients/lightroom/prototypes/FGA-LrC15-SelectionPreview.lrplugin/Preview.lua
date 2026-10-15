@@ -45,8 +45,7 @@ end
 local function show(s)
     return LrFunctionContext.callWithContext("fixture group selection", function(context)
         local p = LrBinding.makePropertyTable(context)
-        p.query, p.choice = s.query, s.choice
-        local updating = false
+        p.query = s.query
         local function refreshLists()
             local available, selected = {}, {}
             local total = 0
@@ -69,28 +68,18 @@ local function show(s)
             p.searchSummary = string.format("%d available matches / %d eligible groups", #available, total)
         end
         local function sync()
+            local n = M.count(s)
+            local groups = n == 1 and "1 group" or string.format("%d groups", n)
             p.allowed = M.canConfirm(s)
-            p.summary = string.format("%d selected / 60 maximum", M.count(s))
+            p.summary = string.format("%d selected / 60 maximum", n)
+            if s.bound then
+                p.actionTitle = "Queue for " .. groups
+            else
+                p.actionTitle = n == 0 and "Save for publish: no groups"
+                    or "Save for publish: " .. groups
+            end
         end
-        p:addObserver("choice", function(_, _, value)
-            if updating then return end
-            if value ~= p.choice then return end
-            M.mode(s, p.choice)
-            if p.choice == "none" then
-                updating = true
-                p.availableChoice, p.selectedChoice = {}, {}
-                updating = false
-            end
-            refreshLists()
-            sync()
-        end)
         local function move(key, selecting)
-            if p.choice ~= s.choice then
-                M.mode(s, p.choice)
-                refreshLists()
-                sync()
-                return
-            end
             if s.query ~= (p.query or "") then refreshLists(); return end
             local values = p[key]
             if type(values) ~= "table" or #values ~= 1 then return end
@@ -101,11 +90,6 @@ local function show(s)
             if not present then return end
             if (s.selected[id] == true) == selecting then return end
             if M.toggle(s, id, selecting) then
-                if selecting then
-                    updating = true
-                    p.choice = s.choice
-                    updating = false
-                end
                 refreshLists()
                 sync()
             end
@@ -140,7 +124,7 @@ local function show(s)
                 and "Prior observation is STALE, for diagnosis only. Current membership is Unavailable."
                 or "Current memberships and retained intents: Unavailable. No partial rows displayed.", 2) }
         elseif not s.bound then
-            status = "Not yet published. Choose additions for this FGA Album."
+            status = "Not yet published. Groups are optional for this FGA Album."
         end
         refreshLists()
         sync()
@@ -152,12 +136,6 @@ local function show(s)
         if s.bound then
             contents[#contents + 1] = text("Current memberships and submission records (read-only)")
             contents[#contents + 1] = f:scrolled_view { height = 125, width = 740, f:column(readonly) }
-        end
-        if not s.bound then
-            contents[#contents + 1] = f:row {
-                f:radio_button { title = "No group additions", value = bind "choice", checked_value = "none" },
-                f:radio_button { title = "Add to selected groups", value = bind "choice", checked_value = "groups" },
-            }
         end
         contents[#contents + 1] = text("Changing selections never removes membership, cancels an intent, or clears protection.", 2)
         contents[#contents + 1] = f:row { spacing = 12,
@@ -194,8 +172,11 @@ local function show(s)
         contents[#contents + 1] = f:static_text { title = bind "summary", width_in_chars = 96 }
         local answer = LrDialogs.presentModalDialog {
             title = "FlickrGroupAddr — Group additions (FIXTURE PREVIEW)", resizable = true,
-            actionVerb = s.bound and "Queue selected additions" or "Save for publish",
-            actionBinding = { enabled = { bind_to_object = p, key = "allowed" } },
+            actionVerb = p.actionTitle,
+            actionBinding = {
+                enabled = { bind_to_object = p, key = "allowed" },
+                title = { bind_to_object = p, key = "actionTitle" },
+            },
             cancelVerb = "Cancel", contents = f:column(contents),
         }
         s.query = p.query or ""

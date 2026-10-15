@@ -159,3 +159,13 @@ transport, durable recovery and release qualification gates. The accepted
 UI refinement changes editable controls, not fresh-proof, 1-60, atomic
 batch, permanent protection, idempotency or status semantics. No
 production intake or write activation is authorized by this review.
+
+## Empty selected list means no additions
+
+Terry approved this refinement on 2026-10-15: remove the group-mode
+radio buttons. The selected list alone owns choice. An empty list
+is a valid unpublished Save, including clearing prior choices;
+bound/existing-public Queue still requires 1-60 groups. Publishing
+without groups must not require opening group selection. This
+supersedes older radio-specific UI wording, not metadata, outbox,
+proof, protection, idempotency or production activation requirements.

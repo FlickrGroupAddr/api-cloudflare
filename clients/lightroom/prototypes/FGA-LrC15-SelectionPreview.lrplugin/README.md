@@ -19,7 +19,7 @@ in `.selectionpreview`. Do not overwrite or silently install it into the
 production bundle path. No automatic installer is provided. Remove/disable
 this entry through Plug-in Manager after review.
 
-Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.6**
+Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.7**
 shows available groups on the left and selected additions on the right.
 Search above the left list filters literal name/ID text on every edit,
 including deletion, without reopening the modal. The right list always shows
@@ -30,9 +30,12 @@ addition requests. Both lists stay sorted by display name, with exact IDs
 first so a long name cannot hide the identity at the end of the row.
 
 Clearing the query restores available rows. A group returned from the right
-appears on the left only if it matches the current query. **No group additions**
-clears every selected addition for an unpublished fixture. A bound photo needs
-1–60 additions; 61 disables confirmation. Confirmation displays a transient
+appears on the left only if it matches the current query. The selected list
+alone determines the choice; there are no mode radio buttons. For an unpublished
+fixture, an empty selected list saves explicit `none`, clearing earlier choices
+for that photo/Album. Adding one row saves `groups`; removing the last row
+restores `none` and leaves **Save for publish** enabled. Bound and existing
+photos need 1–60 additions; zero and 61 disable queue confirmation. Confirmation displays a transient
 summary and discards it. Reopening starts clean.
 
 Terry approved the two-list interaction on 2026-10-15 after confirming that
@@ -48,7 +51,18 @@ within their shared row; the search and headings occupy a separate row. This
 uses the SDK's numeric width, horizontal fill, and `place_vertical = 0.5`
 layout properties; native alignment still needs review after reload.
 
-The revised build still needs native presentation review; the prior owner
+Build 0.0.1.7 removes the separate mode controls with Terry’s approval on
+2026-10-15. Its confirmation button also shows the current selected count:
+**Save for publish: no groups**, **Save for publish: 1 group**, or the plural
+count for an unpublished photo; **Queue for 1 group** or the plural count for
+a bound/existing photo. The title updates after Add/Remove while query edits
+and highlights preserve it. Zero remains disabled for bound/existing photos;
+61 remains disabled for every fixture. Saving prepares choices for the ordinary
+Publish action; this preview never publishes or queues anything. The initial
+`actionVerb` supplies a truthful fallback, while the documented bindable
+push-button title attribute in `actionBinding` tracks the live property.
+
+This revised build still needs native presentation review; the prior owner
 acceptance does not establish its sizing, focus, keyboard accessibility, or
 long-label clipping. The local Lua 5.1 tests simulate documented SDK 15.3
 `simple_list` item/value arrays, button actions, and per-edit validation with

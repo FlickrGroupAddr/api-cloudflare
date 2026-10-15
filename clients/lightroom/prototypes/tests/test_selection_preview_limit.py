@@ -15,7 +15,7 @@ def main() -> None:
         """
         local M = dofile(bundle_path .. '/SelectionModel.lua')
         local s = M.fixture('bound59')
-        assert(s.bound and M.valid(s) and s.choice == 'groups')
+        assert(s.bound and M.valid(s) and M.choice(s) == 'groups')
         assert(#s.groups == 376 and M.count(s) == 59 and M.canConfirm(s))
         local eligible = 0
         for _, g in ipairs(s.groups) do
@@ -77,7 +77,9 @@ def main() -> None:
                     dialogs = dialogs + 1
                     local p = options.contents.bind_to_object
                     if dialogs == 1 then p.kind = 'bound59'; return 'ok' end
-                    assert(options.actionVerb == 'Queue selected additions')
+                    assert(options.actionVerb == 'Queue for 59 groups')
+                    assert(options.actionBinding.title.bind_to_object == p)
+                    assert(options.actionBinding.title.key == 'actionTitle')
                     assert(options.title == 'FlickrGroupAddr — Group additions (FIXTURE PREVIEW)')
                     local lists = collect(options.contents, 'simple_list')
                     local buttons = collect(options.contents, 'push_button')
@@ -88,18 +90,22 @@ def main() -> None:
                     assert(p.availableItems[1].value == 'fixture-0007@N00')
                     assert(p.availableItems[2].value == 'fixture-0013@N00')
                     assert(p.allowed and p.summary:find('59 selected',1,true))
+                    assert(p.actionTitle == 'Queue for 59 groups')
                     p.availableChoice = { 'fixture-0007@N00' }
                     assert(#p.selectedItems == 59) -- Highlight alone never moves a row.
                     buttons[1].action()
                     assert(p.allowed and p.summary:find('60 selected',1,true))
+                    assert(p.actionTitle == 'Queue for 60 groups')
                     assert(#p.selectedItems == 60 and #p.availableItems == 312)
                     p.availableChoice = { 'fixture-0013@N00' }
                     buttons[1].action()
                     assert(not p.allowed and p.summary:find('61 selected',1,true))
+                    assert(p.actionTitle == 'Queue for 61 groups')
                     assert(#p.selectedItems == 61 and #p.availableItems == 311)
                     p.selectedChoice = { 'fixture-0013@N00' }
                     buttons[2].action()
                     assert(p.allowed and p.summary:find('60 selected',1,true))
+                    assert(p.actionTitle == 'Queue for 60 groups')
                     assert(#p.selectedItems == 60 and #p.availableItems == 312)
                     return 'cancel'
                 end,
@@ -111,7 +117,7 @@ def main() -> None:
         assert(dialogs == 2)
         """
     )
-    assert "build = 6" in (bundle / "Info.lua").read_text()
+    assert "build = 7" in (bundle / "Info.lua").read_text()
     print("PASS: synthetic bound59 model and dual-list actions: 59/60/61/60, cancel")
 
 

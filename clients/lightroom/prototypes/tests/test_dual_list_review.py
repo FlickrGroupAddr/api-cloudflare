@@ -68,6 +68,8 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     if dialogs == 1 then p.kind = fixture_kind; return 'ok' end
                     local lists = find(options.contents, 'simple_list')
                     assert(#lists == 2 and options.otherVerb == nil)
+                    assert(#find(options.contents, 'radio_button') == 0)
+                    assert(observers.choice == nil, 'no separate choice authority')
                     local left, right = lists[1], lists[2]
                     assert(not left.allows_multiple_selection)
                     assert(not right.allows_multiple_selection)
@@ -100,11 +102,20 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     local function count(n, allowed)
                         assert(#p[right.items] == n, 'unexpected selected count')
                         assert(p.allowed == allowed, 'incorrect confirmation bounds')
+                        local expected
+                        if fixture_kind == 'new' then
+                            expected = n == 0 and 'Save for publish: no groups'
+                                or 'Save for publish: ' .. n .. (n == 1 and ' group' or ' groups')
+                        else expected = 'Queue for ' .. n .. (n == 1 and ' group' or ' groups') end
+                        assert(p.actionTitle == expected, 'action title must track selected count')
                     end
                     flush()
+                    assert(options.actionVerb == p.actionTitle, 'truthful initial action fallback')
+                    assert(options.actionBinding.title.bind_to_object == p)
+                    assert(options.actionBinding.title.key == 'actionTitle')
                     if fixture_kind == 'new' then
                         count(0, true)
-                        p.choice = 'groups'; flush(); count(0, false)
+                        p.choice = 'groups'; flush(); count(0, true)
                         click(left, 'fixture-0374@N00')
                         -- Hypothetical native adjacent selection cannot cascade.
                         p[left.value] = {'fixture-0375@N00'}; flush(); count(1, true)
@@ -122,26 +133,20 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                         flush(); count(1, true)
                         p[edit.value] = ''; flush()
                         click(left, 'fixture-0374@N00'); count(2, true)
-                        p.choice = 'none'; flush(); count(0, true)
-                        -- With groups already active, a later None must win over queued click.
-                        p.choice = 'groups'; flush()
-                        p[left.value] = {'fixture-0374@N00'}
-                        p.choice = 'none'; flush()
-                        count(0, true)
-                        assert(p.choice == 'none', 'queued selection overwrote newer None')
-                        p.choice = 'groups'; flush()
+                        click(right, 'fixture-0374@N00'); count(1, true)
+                        click(right, 'fixture-0375@N00'); count(0, true)
+                        p[right.value] = {'fixture-0375@N00'}
+                        remove.action(remove); flush(); count(0, true)
                         p[left.value] = {'fixture-0374@N00'}
                         p[edit.value] = 'nothing matches this'
-                        -- Button action before pending query callback must not add stale row.
-                        add.action(add); flush(); count(0, false)
+                        -- Action before the pending query callback rejects a stale left row.
+                        add.action(add); flush(); count(0, true)
                         p[edit.value] = ''; flush()
                         click(left, 'fixture-0374@N00')
                         click(left, 'fixture-0375@N00'); count(2, true)
-                        p.choice = 'none'
-                        p[left.value] = {'fixture-0001@N00'}
-                        add.action(add); flush()
-                        assert(#p[right.items] == (deferred_events and 0 or 1),
-                            'pending None failed to clear prior selections before Add')
+                        p.choice = 'none'; flush(); count(2, true)
+                        click(right, 'fixture-0374@N00'); count(1, true)
+                        click(right, 'fixture-0375@N00'); count(0, true)
                     elseif fixture_kind == 'bound59' then
                         count(59, true)
                         click(left, 'fixture-0007@N00'); count(60, true)

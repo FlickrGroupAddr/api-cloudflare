@@ -27,16 +27,16 @@ def main() -> None:
         assert(not M.matches(shared[2], 'fixture-0374@N00'))
         M.toggle(s, shared[1].id, true)
         assert(M.count(s) == 1 and not s.selected[shared[2].id])
-        M.mode(s, 'none')
+        for id in pairs(s.selected) do M.toggle(s, id, false) end
         assert(M.result(s, 'cancel') == nil)
-        M.mode(s, 'groups')
-        assert(not M.canConfirm(s))
+        assert(M.choice(s) == 'none' and M.canConfirm(s))
+        assert(M.result(s, 'ok').choice == 'none' and #M.result(s, 'ok').ids == 0)
         for i = 1, 60 do assert(M.toggle(s, s.groups[i].id, true)) end
         assert(M.canConfirm(s) and #M.result(s, 'ok').ids == 60)
         assert(M.toggle(s, s.groups[61].id, true))
         assert(not M.canConfirm(s) and M.result(s, 'ok') == nil)
-        M.mode(s, 'none')
-        assert(M.count(s) == 0 and M.canConfirm(s))
+        for id in pairs(s.selected) do M.toggle(s, id, false) end
+        assert(M.count(s) == 0 and M.canConfirm(s) and M.choice(s) == 'none')
         assert(M.matches(s.groups[1], s.groups[1].id))
         assert(M.matches(s.groups[1], 'ARCHITECTURE'))
         assert(not M.matches(s.groups[1], '[%')) -- Literal, not Lua pattern search.
@@ -58,7 +58,11 @@ def main() -> None:
                     break
                 end
             end
-            assert(M.canConfirm(s))
+            assert(M.canConfirm(s) and M.choice(s) == 'groups')
+            local selectedId = next(s.selected)
+            assert(M.toggle(s, selectedId, false))
+            assert(M.count(s) == 0 and not M.canConfirm(s) and M.choice(s) == 'none')
+            assert(M.toggle(s, selectedId, true))
             assert(M.result(s, 'cancel') == nil)
             local oldCount = M.count(s)
             s.query = 'nothing matches'
@@ -81,7 +85,7 @@ def main() -> None:
         assert(not M.valid(s))
         s = M.fixture('bound')
         s.selected['unknown'] = true
-        s.choice = 'groups'
+        s.choice = 'none' -- Retired field cannot bypass unknown-ID validation.
         assert(not M.canConfirm(s))
         assert(M.copy.moderation:find('final moderator decision is unknown',1,true))
         assert(not M.copy.moderation:find('pending',1,true))

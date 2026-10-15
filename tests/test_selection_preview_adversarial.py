@@ -72,10 +72,23 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 return values
             end
             function check(value,message) assert(value,message) end
+            function checkActionTitle(p)
+                local n=#p.selectedItems
+                local expected
+                if activeFixture.bound then
+                    expected=n==1 and "Queue for 1 group" or "Queue for "..n.." groups"
+                elseif n==0 then expected="Save for publish: no groups"
+                else expected=n==1 and "Save for publish: 1 group"
+                    or "Save for publish: "..n.." groups" end
+                check(p.actionTitle==expected,"truthful action title and pluralization")
+                check(not p.actionTitle:find("-",1,true),"action count never negative")
+            end
             function find(items,id)
                 for _,item in ipairs(items) do if item.value==id then return item end end
             end
-            function move(p,key,id,button) p[key]={id}; button.action(); flush() end
+            function move(p,key,id,button)
+                p[key]={id}; button.action(); flush(); checkActionTitle(p)
+            end
             modalNumber=0; summaries={}
             local sdk={
                 LrBinding={makePropertyTable=propertyTable},
@@ -92,6 +105,12 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                         end
                         modalNumber=modalNumber+1
                         local p=options.contents.bind_to_object
+                        check(options.actionBinding.title.bind_to_object==p,
+                            "action title bound to live dialog properties")
+                        check(options.actionBinding.title.key=="actionTitle","action title key")
+                        check(options.actionBinding.enabled.bind_to_object==p and
+                            options.actionBinding.enabled.key=="allowed","enabled guard retained")
+                        check(options.actionVerb==p.actionTitle,"truthful initial title fallback")
                         local lists=collect(options.contents,"simple_list")
                         check(#lists==2,"two native lists")
                         check(lists[1].items=="availableItems" and lists[2].items=="selectedItems",
@@ -101,6 +120,9 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                             "single-selection array contract")
                         check(options.otherVerb==nil,"no Apply search modal action")
                         check(#collect(options.contents,"checkbox")==0,"no checkbox hierarchy")
+                        check(#collect(options.contents,"radio_button")==0,
+                            "selected list owns choice")
+                        check(callbacks.choice==nil,"no mutable choice observer")
                         local edit=collect(options.contents,"edit_field")[1]
                         check(edit.immediate and type(edit.validate)=="function",
                             "per-edit validation")
@@ -108,6 +130,7 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                         check(#buttons==2 and buttons[1].title=="Add →" and
                             buttons[2].title=="← Remove","center arrow actions")
                         flush()
+                        checkActionTitle(p)
                         return scenario(options,p,edit,buttons[1],buttons[2])
                     end,
                 },
@@ -209,7 +232,7 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
             )
             self.assertIn("2 group(s)", lua.globals().summaries[1].text)
 
-    def test_limits_none_and_cancel(self):
+    def test_limits_remove_last_and_explicit_none(self):
         for deferred in (False, True):
             lua = self.run_preview(
                 """function(options,p,edit,add,remove)
@@ -221,14 +244,36 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 check(not p.allowed and #p.selectedItems==61,"61 disabled")
                 move(p,"selectedChoice",ids[61],remove)
                 check(p.allowed and #p.selectedItems==60,"back to60")
-                p.choice="none"; flush()
-                check(p.allowed and #p.selectedItems==0,"None clears all")
-                p.choice="groups"; flush(); check(not p.allowed,"zero groups invalid")
-                return "cancel"
+                for i=60,1,-1 do move(p,"selectedChoice",ids[i],remove) end
+                check(p.allowed and #p.selectedItems==0,"removing last enables unpublished zero")
+                check(activeFixture.selected[ids[1]]==false,"removed ID cleared")
+                return "ok"
             end""",
                 deferred=deferred,
             )
-            self.assertEqual(len(lua.globals().summaries), 0)
+            self.assertEqual(len(lua.globals().summaries), 1)
+            self.assertIn("Choice: none; 0 group(s)", lua.globals().summaries[1].text)
+
+    def test_initial_none_add_groups_and_cancel(self):
+        for deferred in (False, True):
+            for action in ("none", "groups", "cancel"):
+                lua = self.run_preview(
+                    """function(options,p,edit,add,remove)
+                    check(p.allowed and #p.selectedItems==0,"initial none is saveable")
+                    check(options.actionVerb=="Save for publish: no groups","unpublished action")
+                    if requestedAction~="none" then
+                        move(p,"availableChoice",p.availableItems[1].value,add)
+                        check(p.allowed and #p.selectedItems==1,"Add one enables groups")
+                    end
+                    return requestedAction=="cancel" and "cancel" or "ok"
+                end""".replace("requestedAction", '"' + action + '"'),
+                    deferred=deferred,
+                )
+                if action == "cancel":
+                    self.assertEqual(len(lua.globals().summaries), 0)
+                else:
+                    expected = "none; 0" if action == "none" else "groups; 1"
+                    self.assertIn("Choice: " + expected, lua.globals().summaries[1].text)
 
     def test_projection_guards_and_bound59(self):
         for kind in (
@@ -272,6 +317,38 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
             )
             self.assertEqual(len(lua.globals().summaries), 0)
 
+    def test_action_title_tracks_only_selected_additions(self):
+        for kind in ("new", "bound", "existing"):
+            for deferred in (False, True):
+                self.run_preview(
+                    """function(options,p,edit,add,remove)
+                    local before=p.actionTitle
+                    local first,second=p.availableItems[1].value,p.availableItems[2].value
+                    p.availableChoice={first}; flush()
+                    check(p.actionTitle==before,"highlight leaves action title unchanged")
+                    edit.validate(edit,"nothing matches"); flush()
+                    check(p.actionTitle==before,"query leaves action title unchanged")
+                    edit.validate(edit,""); flush()
+                    move(p,"availableChoice",first,add)
+                    local singular=p.actionTitle
+                    p.selectedChoice={first}; flush()
+                    edit.validate(edit,"nothing matches"); flush()
+                    check(p.actionTitle==singular,"selected highlight and query preserve count")
+                    edit.validate(edit,""); flush()
+                    move(p,"availableChoice",second,add)
+                    move(p,"selectedChoice",first,remove)
+                    check(p.actionTitle==singular,"removing one restores singular")
+                    move(p,"selectedChoice",second,remove)
+                    check(p.actionTitle==before,"removing last restores truthful zero")
+                    check(p.allowed==(not activeFixture.bound),"zero enabled guard retained")
+                    move(p,"selectedChoice",second,remove)
+                    check(p.actionTitle==before,"stale Remove cannot create negative count")
+                    return "cancel"
+                end""",
+                    kind=kind,
+                    deferred=deferred,
+                )
+
     def test_deferred_replays_stale_query_and_native_highlights(self):
         self.run_preview(
             """function(options,p,edit,add,remove)
@@ -290,16 +367,16 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
             check(#p.selectedItems==1,"multi-value event rejected")
             p.availableChoice=second; add.action(); flush()
             check(#p.selectedItems==1,"scalar event rejected")
-            p.choice="none"; flush()
-            check(#p.selectedItems==0 and p.allowed,"None clears selected marks")
+            move(p,"selectedChoice",first,remove)
+            check(#p.selectedItems==0 and p.allowed,"remove last restores explicit none")
+            p.selectedChoice={first}; remove.action(); flush()
+            check(#p.selectedItems==0 and p.allowed,"stale repeated Remove is inert")
+            p.choice="groups"; flush()
+            check(#p.selectedItems==0 and p.allowed,"retired choice field cannot block zero save")
             move(p,"availableChoice",first,add)
-            p.availableChoice={second}
-            p.choice="none"
-            add.action(); flush()
-            check(p.choice=="none" and #p.selectedItems==0 and p.allowed,
-                "pending None reconciles before Add and requires fresh highlight")
-            callbacks.choice(p,"choice","groups"); flush()
-            check(p.choice=="none" and p.allowed,"stale radio replay ignored")
+            p.choice="none"; flush()
+            check(#p.selectedItems==1 and p.allowed,"retired choice field cannot clear selections")
+            move(p,"selectedChoice",first,remove)
             edit.validate(edit,"nothing"); edit.validate(edit,""); flush()
             check(#p.availableItems==376,"latest rapid query wins")
             return "cancel"

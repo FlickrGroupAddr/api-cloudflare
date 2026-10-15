@@ -49,11 +49,15 @@ local sdk = {
             if dialogs == 1 then props.kind = currentKind; return "ok" end
             local lists = collect(options.contents, "simple_list")
             local buttons = collect(options.contents, "push_button")
+            check(#collect(options.contents, "radio_button") == 0, "selected list owns choice")
             check(#lists == 2 and #buttons == 2, "two lists and two explicit move buttons")
             check(lists[1].items == "availableItems" and lists[2].items == "selectedItems", "left/right binding")
             check(options.otherVerb == nil, "no distant search action")
             local edit = collect(options.contents, "edit_field")[1]
             check(edit.immediate and type(edit.validate) == "function", "per-change search callback")
+            check(options.actionVerb == props.actionTitle, "truthful initial title fallback")
+            check(options.actionBinding.title.bind_to_object == props
+                and options.actionBinding.title.key == "actionTitle", "live action title binding")
             local function add(id) props.availableChoice = { id }; buttons[1].action() end
             if currentKind == "new" or currentKind == "bound" or currentKind == "existing" then
                 local expected = currentKind == "new" and 376 or 372
@@ -64,7 +68,9 @@ local sdk = {
                 props.availableChoice = { ids[1] }
                 check(#props.selectedItems == 0, "highlight alone never moves")
                 buttons[1].action()
-                check(props.allowed and props.choice == "groups", "Add one enables group mode")
+                check(props.allowed and #props.selectedItems == 1, "Add one enables group mode")
+                check(props.actionTitle == (currentKind == "new" and "Save for publish: 1 group"
+                    or "Queue for 1 group"), "singular action title")
                 for i = 2, 60 do add(ids[i]) end
                 check(props.allowed, "60 additions permit confirmation")
                 add(ids[61])
@@ -72,8 +78,10 @@ local sdk = {
                 props.selectedChoice = { ids[61] }; buttons[2].action()
                 check(props.allowed, "return to60 restores confirmation")
                 if currentKind == "new" then
-                    props.choice = "none"
-                    check(#props.selectedItems == 0 and #props.availableItems == expected, "none clears all additions")
+                    for i = 60, 1, -1 do
+                        props.selectedChoice = { ids[i] }; buttons[2].action()
+                    end
+                    check(#props.selectedItems == 0 and #props.availableItems == expected, "removing last clears all additions")
                     check(props.allowed, "unpublished none permits confirmation")
                 end
             else

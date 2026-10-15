@@ -10,7 +10,7 @@ M.copy = {
 }
 function M.fixture(kind)
     local s = { kind = kind, bound = kind ~= "new", ready = true, groups = {},
-        selected = {}, choice = "none", query = "", photo = "Harbor at dawn / DSC_0042.NEF",
+        selected = {}, query = "", photo = "Harbor at dawn / DSC_0042.NEF",
         album = "Coastal light", scope = "service 12 / Album 34 / synthetic-photo-0042" }
     for i = 1, 376 do
         local topics = { "Architecture", "Birds", "Coast", "Landscape", "Night", "Travel" }
@@ -46,12 +46,11 @@ function M.fixture(kind)
     end)
     if kind == "bound59" then
         s.photo = "LIMIT TEST: 59 preselected eligible groups (synthetic)"
-        s.choice = "groups"
         local eligibleIndex, selected = 0, 0
         for _, g in ipairs(s.groups) do
             if M.code(s, g) == "eligible" then
                 eligibleIndex = eligibleIndex + 1
-                -- Leave the first two visible eligible checkboxes unchecked.
+                -- Leave the first two visible eligible rows unselected.
                 if eligibleIndex > 2 and selected < 59 then
                     s.selected[g.id] = true
                     selected = selected + 1
@@ -88,15 +87,13 @@ function M.count(s)
     for _, v in pairs(s.selected) do if v then n = n + 1 end end
     return n
 end
-function M.mode(s, choice)
-    s.choice = choice
-    if choice == "none" then s.selected = {} end
+function M.choice(s)
+    return M.count(s) == 0 and "none" or "groups"
 end
 function M.toggle(s, id, value)
     for _, g in ipairs(s.groups) do
         if g.id == id and M.code(s, g) == "eligible" then
             s.selected[id] = value == true
-            if value then s.choice = "groups" end
             return true
         end
     end
@@ -114,8 +111,7 @@ function M.canConfirm(s)
             if not eligible then return false end
         end
     end
-    return (not s.bound and s.choice == "none" and n == 0)
-        or (s.choice == "groups" and n >= 1 and n <= 60)
+    return (not s.bound and n == 0) or (n >= 1 and n <= 60)
 end
 function M.matches(g, query)
     query = string.lower(query or "")
@@ -126,6 +122,6 @@ function M.result(s, action)
     local ids = {}
     for id, v in pairs(s.selected) do if v then ids[#ids + 1] = id end end
     table.sort(ids)
-    return { choice = s.choice, ids = ids, scope = s.scope }
+    return { choice = M.choice(s), ids = ids, scope = s.scope }
 end
 return M

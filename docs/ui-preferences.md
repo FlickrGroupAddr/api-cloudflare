@@ -39,3 +39,13 @@ technical scope/debug narration and empty state panels should not crowd
 the selection controls. Preserve recognizable photo/Album context and
 necessary membership/protection guidance. See the dual-list design and
 actual-host evidence for acceptance scope and remaining checks.
+
+## Empty selected list means no additions
+
+Terry approved this refinement on 2026-10-15: remove the group-mode
+radio buttons. The selected list alone owns choice. An empty list
+is a valid unpublished Save, including clearing prior choices;
+bound/existing-public Queue still requires 1-60 groups. Publishing
+without groups must not require opening group selection. This
+supersedes older radio-specific UI wording, not metadata, outbox,
+proof, protection, idempotency or production activation requirements.

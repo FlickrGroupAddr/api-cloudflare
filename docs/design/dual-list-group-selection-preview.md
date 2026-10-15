@@ -27,10 +27,11 @@ put IDs first so the long synthetic group name cannot hide its identity behind
 the name. Readonly current membership and retained/protected intents stay
 separate from both editable lists.
 
-No group additions remains the explicit unpublished default. Adding a group
-switches to groups mode; removing the last group leaves groups mode at zero
-with confirmation disabled. Choosing No group additions clears the selected
-set. Bound and existing-public contexts require 1 through 60 selected groups;
+The selected list is the sole choice: an empty unpublished selection means
+no group additions and Save remains enabled. Removing the last selected
+group clears any previous additions and returns to that valid empty choice.
+There are no mode radio buttons. Bound and existing-public contexts still
+require 1 through 60 selected groups;
 61 disables confirmation without silently truncating the set. Returning a
 selected group to available groups edits only the proposed addition; it never
 removes Flickr membership or clears retained intent/protection.
@@ -41,11 +42,11 @@ Record only synthetic observations. Earlier build 0.0.1.4 evidence remains
 historical and does not qualify the revised view. Check the exact delivered
 version in Plug-in Manager before testing.
 
-1. Open Unpublished: left has 376 groups, right is empty, No group additions
-   is selected and Save is enabled.
+1. Open Unpublished: left has 376 groups, right is empty, no radio buttons
+   appear and Save is enabled.
 2. Highlight one left row: the selected-addition count stays zero. Use Add to
-   move exactly that ID right; it disappears left, count becomes one and groups
-   mode is selected. Highlighting another row alone must not add it.
+   move exactly that ID right; it disappears left, count becomes one and Save
+   stays enabled. Highlighting another row alone must not add it.
 3. Type and erase search characters without leaving the field. Left matches
    update without Apply or closing/reopening the dialog; right remains intact.
    Confirm focus and typed text remain stable.
@@ -55,9 +56,9 @@ version in Plug-in Manager before testing.
 5. Highlight a right row and use Remove: exactly that ID returns left if it
    matches the active query. It may stay hidden by that query, but it is no
    longer counted or shown right. Clearing search restores all available rows.
-6. Choose No group additions: right clears, all eligible groups return left
-   subject to query, and Save is enabled at zero. Cancel and reopen resets
-   search, highlight and selected additions.
+6. Remove the last selected addition: the right list becomes empty and Save
+   remains enabled for an unpublished photo. All eligible groups return left
+   subject to query. Cancel/reopen resets search, highlight and additions.
 7. Open Bound limit test: 59 selected right. Add an available row to 60, another
    to 61, then Remove one to 60. Confirmation is enabled/disabled/enabled.
    Current/protected rows must never appear as available additions.
@@ -73,7 +74,7 @@ version in Plug-in Manager before testing.
 
 The separate fixture continues to use no account credentials, network,
 catalog reads/writes, persistence or real submissions. Production selection
-implementation and owner acceptance remain separate gates.
+implementation and release qualification remain separate gates.
 
 ## Local verification of build 0.0.1.5
 
@@ -124,3 +125,47 @@ checks, 14 independent event scenarios, the explicit 59/60/61 limit
 check, Ruff, Pyright and Adobe SDK 15.3 compilation. Native alignment of
 this cosmetic build is not yet recorded. Existing build 0.0.1.5 owner
 interaction acceptance remains valid and is not requested again.
+
+## Approved empty-selection refinement
+
+On 2026-10-15, Terry approved removing the radio buttons and deriving
+the no-additions choice from an empty selected list. Preview 0.0.1.7
+implements that requested refinement. Saving an empty unpublished
+selection is valid, including clearing an earlier selection; an empty
+bound/existing-public selection remains ineligible for Queue. No fake
+empty batch is sent. Ordinary publication without groups does not
+require opening this dialog. All protection, availability, exact-ID,
+one-through-60 nonempty batch and cancel semantics remain unchanged.
+
+## Contextual action labels
+
+Terry requested that the action button describe what the current choice
+will do, including its selected-group count. The native SDK documents
+action-button bindings through `LrDialogs.presentModalDialog` and the
+bindable push-button attributes. The preview binds its title as well
+as its enabled state. Unpublished labels are Save for publish: no
+groups, Save for publish: 1 group, or Save for publish: N groups.
+Bound/existing-public labels are Queue for 1 group or Queue for N
+groups; zero remains disabled. Search and highlight changes alone
+never change the selected count or cause a submission.
+
+These labels retain the actual action boundary: Save records the
+group choice; ordinary Publish remains separate. Publish-to-Flickr
+wording belongs only on an action that actually initiates publication.
+No publication runtime is introduced by this label change.
+
+## Local verification of build 0.0.1.7
+
+The integrated Python/Lua suite passed 249 tests, including seven
+adversarial event methods and 102 revised structural checks. Fourteen
+independent synchronous/deferred scenarios, pure model/isolation,
+explicit 59/60/61 limits and deferred-entry checks passed. Ruff, Pyright
+and Adobe SDK 15.3 compilation passed. Twenty-four related architecture
+authority/interaction/moderation/API contract tests passed.
+
+The [independent review](../evidence/empty-selection-review-2026-10-15.md)
+records the exact model/view digests and count-aware title checks.
+These are offline results; native title redraw and the revised empty
+Save/Queue affordances are not claimed as observed for this build.
+The owner's semantic approval is recorded separately and does not need
+to be requested again. No publication, intake or dispatch was activated.
