@@ -242,3 +242,15 @@ uncertain/incomplete activity and suppresses only fully accounted bot-only burst
 Never read card prose inside the monitor. If an old-style alert is already queued,
 check its activity bounds; when every event is by `bot`, no further card inspection
 is needed. This preference applies in future sessions as well as this one.
+
+## Lightroom native automation
+
+For LrC host tests, read the installed computer-use skill and follow
+`docs/operations/lightroom-automation.md`. Use the supported Node REPL / sky API
+with `scripts/lightroom_automation.mjs` to launch once or reuse a returned window.
+Startup can falsely report no targetable window even when Lightroom has started;
+re-enumerate and rehydrate before deciding to launch or repeat an input. Preserve
+intentional Escape stops; never bypass them with resets or another automation
+route. Observe after each action and keep screenshot payloads, catalog names,
+photo metadata and credentials out of tracked evidence. Launcher success does
+not replace each workflow's fixture, consent, and release qualification gates.

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "ticket": "0033",
+  "date": "2026-10-15",
+  "result": "passed",
+  "host": {
+    "application": "Adobe Lightroom Classic",
+    "version": "15.6",
+    "cameraRaw": "18.7",
+    "build": "202609251514-f839cde9",
+    "source": "native About dialog observed through supported computer-use API"
+  },
+  "liveChecks": {
+    "startupFalseNegativeObserved": true,
+    "falseNegativeRecovery": "Fresh documented app enumeration returned the already launched window; rehydration and native control succeeded without relaunching.",
+    "runningApplicationReuse": {
+      "passed": true,
+      "launchCalls": 0,
+      "stages": ["enumerating", "reusing", "rehydrating", "ready"]
+    },
+    "coldStartAfterNormalClose": {
+      "passed": true,
+      "launchCalls": 1,
+      "elapsedMsIncludingObservation": 12696,
+      "stages": ["enumerating", "launching", "waiting_for_window", "rehydrating", "ready"]
+    },
+    "nativeHelpMenuOpened": true,
+    "nativeAboutOpenedAndClosed": true,
+    "installedFgaPlugin": {
+      "identity": "FGA-LrC15.lrplugin",
+      "versionDisplayed": "0.2.0.1",
+      "managerOpenedAndClosed": true,
+      "storedCredentialReadOnlyVerification": "Connected",
+      "newInstallationOrCredentialEntryPerformed": false
+    },
+    "stateRefreshedAfterActions": true,
+    "postDialogRefreshRecovery": "After a usable-window refresh error, fresh enumeration and rehydration confirmed the dialog had closed; input was not repeated.",
+    "finalApplicationState": "running; About and Plugin Manager dialogs closed"
+  },
+  "automatedChecks": {
+    "launcherTestsPassed": 18,
+    "launcherTestsFailed": 0,
+    "nodeSyntaxCheck": "passed",
+    "independentSourceReview": "no substantive findings",
+    "cancellationCoverage": "mock tests preserve original Escape/error and abort identity; no emergency stop bypass"
+  },
+  "scope": {
+    "catalogEditsOrUploadsRequested": false,
+    "flickrWritesPerformed": false,
+    "productionDeploymentPerformed": false,
+    "allWorkflowTestsQualified": false,
+    "dependentCards": ["0022", "0027", "0029"],
+    "remaining": "Dependent workflow fixtures and acceptance tests remain on their own cards. Launcher recovery does not waive those gates."
+  },
+  "privacy": "No screenshots, catalog names, photo metadata, credentials, user account identifiers, or machine window IDs are retained in this receipt."
+}
