@@ -1,6 +1,19 @@
 # FGA hostname handoff to the selected Cloudflare account
 
-## Current state - 2026-09-13
+## Domain registration completed - confirmed 2026-10-15
+
+Terry confirmed that the registration for `flickrgroupaddr.com` has moved to
+Cloudflare. His supplied Cloudflare **Domain Registration** screenshot shows
+registrar **Cloudflare**, status **Active**, and expiration **August 14, 2036**.
+This records the owner's confirmation and dashboard evidence supplied on
+2026-10-15; it does not assert the precise transfer execution time.
+
+Implementation board ticket **#0019** is **Completed**, with Terry's
+2026-10-15 transfer confirmation. The registrar-transfer handoff is resolved.
+This completes the registration move separately from the earlier DNS account
+move recorded below.
+
+## DNS account move completed - 2026-09-13
 
 The approved DNS account move is complete. Terry added `flickrgroupaddr.com` to
 his sixbucks Cloudflare account and changed its registered nameservers at Amazon
@@ -14,9 +27,10 @@ The owner also supplied its active Cloudflare dashboard confirmation. The
 previous target-zone-missing handoff is resolved. This establishes delegation
 and account activation, not application deployment or release conformance.
 
-Amazon remains the registrar. The later registrar transfer is separate from this
-completed DNS move and does not block application work. No further registered
-nameserver change is required for the current destination account.
+At completion of this DNS move, Amazon remained the registrar; that separate
+registration transfer did not block application work. Its subsequent completion
+is recorded above. The September handoff required no further registered
+nameserver change for the destination account.
 
 ## Existing access and verified inspection token
 
@@ -54,7 +68,7 @@ not an application runtime binding. Source-record preservation remains a
 historical unverified fact; the destination account contains no existing DNS
 records for the initial Worker connection to replace.
 
-## Current application handoff
+## Application handoff recorded 2026-09-13
 
 The [initial persistent deployment](initial-disabled-deployment.md) is now
 complete. The Worker is connected to the apex with working TLS and the current
