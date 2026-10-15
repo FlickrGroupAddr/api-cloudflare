@@ -18,7 +18,7 @@ Earlier 15.5.1 host results are historical evidence.
 | Submission readiness | [Readiness assessment](../planning/group-selection-submission-readiness.md) | Selection-preview review and durable local outbox proof |
 | Local outbox candidate | `probes/FGA-Outbox-Probe.lrplugin` | Use a new empty `FGA-Outbox-Probe.lrcat`; qualify rollback/restart behavior |
 | Rendition preflight | `clients/lightroom/publisher`, unregistered | Review the isolated policy/SDK adapter before provider integration |
-| Controlled first addition | [Runbook](first-controlled-group-addition.md), fixed pause adapter and isolated scheduler tests | Hosted pause rehearsal, exact-artifact qualification, owner-selected pair and explicit write activation |
+| Controlled first addition | [Runbook](first-controlled-group-addition.md), fixed pause adapter and isolated scheduler tests | Exact-artifact qualification, owner-selected pair and explicit write activation |
 
 No deployment, production migration, image upload or group submission was performed
 by this batch. The existing-photo flag defaults to `0` and its native action is
@@ -27,8 +27,8 @@ responses; they do not supply a live Flickr compatibility or hosted clock pass.
 
 ## Group browser host check
 
-Reload the existing release bundle in Plug-in Manager; its current code remains in
-Lightroom's encrypted secure store. Open **Library > Plug-in Extras >
+Reload the existing release bundle in Plug-in Manager. Secure-store keys are
+unchanged, so an existing Plugin Code does not need replacing. Open **Library > Plug-in Extras >
 FlickrGroupAddr: Browse writable groups...**. Confirm complete names/IDs, snapshot
 status and observation time, explicit reload, responsiveness and closure during
 loading. The September observation of 373 groups is historical, not an expected
@@ -81,7 +81,11 @@ normal readback do not prove abrupt-stop, restored-catalog or power-loss behavio
 ## Verification
 
 The [local evidence record](../evidence/lrc15-parallel-local-2026-10-15.json)
-contains the actual integration command results. It is local/component evidence,
-not complete hosted release qualification. Required host interaction remains
+records 207 Python/Lua tests, 150 runtime tests, static checks, generated API
+verification and Adobe compilation of 21 Lua files. The
+[disposable hosted pause proof](../evidence/controlled-trial-pause-hosted-2026-10-15.json)
+also passed all nine assertions and confirmed cleanup in
+[CI run 38752805316](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/38752805316).
+These are component results, not complete hosted release qualification. Required host interaction remains
 pending; the attempted desktop check was cancelled before Lightroom input ran.
 The first controlled production addition retains its separate owner consent gate.

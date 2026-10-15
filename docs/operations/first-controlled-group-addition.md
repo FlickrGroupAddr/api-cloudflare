@@ -225,19 +225,18 @@ These are local SQLite and fake-provider observations, not a hosted REST atomici
 pass. Rehearse the same fixed REST batch against disposable hosted D1 fixtures,
 including forced audit failure and stale revisions, before production use.
 
-The staged `scripts/controlled_trial_pause_hosted.py` supplies that disposable
+The `scripts/controlled_trial_pause_hosted.py` script supplies that disposable
 drill, including all migrations through `0014_photo_memberships.sql`, exact
 created-ID journaling, stale/audit-failure rollback checks, read-only inspection
 after a simulated lost response, zero submission/dispatch rows and deletion of
 only the newly created database. The
-[2026-10-15 receipt](../evidence/controlled-trial-pause-hosted-2026-10-15.json)
-records **unavailable, not passed**: the originally supplied operator token file
-was absent, and the existing supported project operator authentication also
-returned `operator_auth_unavailable`. Both stopped before any provider request
-or resource creation. No browser login, default-profile fallback or new credential
-search was performed. That receipt remains historical evidence of the local
-attempt and retains the source hashes actually used; it is not relabeled after
-later source changes. The absent token-file path itself is not a gate.
+[2026-10-15 hosted receipt](../evidence/controlled-trial-pause-hosted-2026-10-15.json)
+records **passed**, with all nine assertions true and cleanup confirmed.
+[CI run 38752805316](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/38752805316)
+tested source commit `5f19773` using the dedicated test credentials.
+The earlier [local authentication failure](../evidence/controlled-trial-pause-local-auth-unavailable-2026-10-15.json)
+is retained separately: it made no provider request or resource. That local
+credential availability issue did not prevent the dedicated CI proof.
 
 The dedicated **Controlled pause proof** workflow uses the repository's existing
 `FGA_CLOUDFLARE_CI_TOKEN` secret and `FGA_CLOUDFLARE_ACCOUNT_ID` variable through
@@ -249,8 +248,8 @@ uses pinned checkout/setup-uv/upload actions and locked Python dependencies,
 and uploads only the exact sanitized proof receipt even on failure. Its private
 created-ID journal is excluded from artifact upload. The workflow is a scoped
 disposable batch/cleanup proof, not full release qualification or live-write
-activation. A successful workflow receipt must still be reviewed and retained
-before marking hosted pause atomicity proved.
+activation. The successful receipt has been reviewed and retained; it proves
+the fixed pause batch's hosted atomicity and cleanup for the recorded schema.
 
 Prepare a private JSON plan with exactly these fields: `schemaVersion` (1),
 `accountId`, `databaseId`, `fgaUserId`, fresh UUID `operationId`,
@@ -302,14 +301,16 @@ with dispatch disabled; and no POST with either deployment or user gate paused.
 The provider peer uses synthetic responses; no external request is possible.
 The test's namespace adapter invokes the normal consumer but does not prove
 Cloudflare alarm delivery, configuration propagation or hosted runtime timing.
-`run_scheduled_sweep_local_proof.py` adapts imports into private staging without
-editing the implementation checkout. The existing status-cleanup/sweep test
-must explicitly set dispatch enabled when integrating this conditional.
+Run the integrated candidate with
+`node --test tests/controlled_dispatch_sweep.test.mjs`. The intake and
+status-cleanup sweep fixtures explicitly enable dispatch for their recovery
+checks.
 
-**Engineering remains open until integration, appropriate regression checks,
-hosted operator batch verification and fresh full exact-artifact qualification are
-complete.** Only afterward present the packet for Terry's separate pair-selection
-and activation decision. Local proof does not authorize deployment or execution.
+**Fresh full exact-artifact qualification remains required before production
+deployment or execution.** Integration, local regressions and the fixed operator
+batch's hosted proof are complete for this candidate. Terry can review this
+packet and select the intended pair; live activation remains a separate explicit
+decision after all release prerequisites are satisfied.
 
 ### Audited current-path limitations
 
