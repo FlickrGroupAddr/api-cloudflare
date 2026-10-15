@@ -57,3 +57,18 @@ preferred, but two move buttons between lists are explicitly acceptable.
 This is a requested interaction revision, not final approval of either view.
 The [revised prototype plan](../design/dual-list-group-selection-preview.md)
 records the candidate and its own outstanding native checks.
+
+## Owner-reported native dual-list result
+
+On 2026-10-15, Terry confirmed loading preview 0.0.1.5 through Reload
+Plug-in, explicitly approved the two-list interaction and reported dynamic
+filtering plus Add/Remove as intuitive and responsive. His screenshot
+shows only the upper dialog, so list behavior here is attributed to his
+report rather than independently inferred from pixels. No measured latency,
+full keyboard sweep, 61-boundary host result or existing-public case is
+claimed for this build. The earlier H01-H15 table remains historical.
+
+Current owner interaction approval: **true** for the dual-list/live-filter
+flow. Technical-text simplification and equal-width, centered move buttons
+were requested as follow-up. The earlier checkbox approval-false entries
+do not override this later explicit approval.

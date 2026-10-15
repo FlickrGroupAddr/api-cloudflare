@@ -19,7 +19,7 @@ in `.selectionpreview`. Do not overwrite or silently install it into the
 production bundle path. No automatic installer is provided. Remove/disable
 this entry through Plug-in Manager after review.
 
-Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.5**
+Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.6**
 shows available groups on the left and selected additions on the right.
 Search above the left list filters literal name/ID text on every edit,
 including deletion, without reopening the modal. The right list always shows
@@ -35,14 +35,25 @@ clears every selected addition for an unpublished fixture. A bound photo needs
 1–60 additions; 61 disables confirmation. Confirmation displays a transient
 summary and discards it. Reopening starts clean.
 
-This is a source-backed SDK prototype, pending native review on Lightroom
-Classic 15.6. SDK 15.3 documents bound `simple_list` item/value arrays,
-single-selection lists, push-button actions, and per-edit validation with
-`immediate = true`. The local Lua 5.1 tests simulate those contracts; they do
-not establish native list rebinding, focus retention, keyboard behavior, label
-clipping, scrolling, sizing, or typing latency with 376 rows. The SDK does not
-establish safe automatic one-click movement when replacing a list's items;
-this build uses explicit move buttons as Terry accepted on 2026-10-15.
+Terry approved the two-list interaction on 2026-10-15 after confirming that
+build 0.0.1.5's live search and Add/Remove controls were intuitive and responsive
+in Lightroom Classic 15.6. Build 0.0.1.6 refines the copy and layout: one short
+preview notice, clear photo/Album context, and no internal scope, debug refresh
+instruction, or general timestamp header. Unpublished fixtures omit the empty
+membership panel because they perform no membership read. Bound and existing
+fixtures retain the read-only membership and protected submission records,
+including exact IDs, observation details, and permanent protection explanations.
+The equal-width move buttons sit between the two list boxes, centered vertically
+within their shared row; the search and headings occupy a separate row. This
+uses the SDK's numeric width, horizontal fill, and `place_vertical = 0.5`
+layout properties; native alignment still needs review after reload.
+
+The revised build still needs native presentation review; the prior owner
+acceptance does not establish its sizing, focus, keyboard accessibility, or
+long-label clipping. The local Lua 5.1 tests simulate documented SDK 15.3
+`simple_list` item/value arrays, button actions, and per-edit validation with
+`immediate = true`. This fixture remains separate from production eligibility,
+catalog validation, and submission behavior.
 
 See `docs/design/photo-group-selection-preview.md` for storyboard and gates.
 Run `uv run --frozen python <path-to-tests/test_selection_preview.py>` from the

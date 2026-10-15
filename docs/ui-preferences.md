@@ -26,3 +26,16 @@ privacy requirements. No typography deployment was made while recording this not
 
 References: [preconnect](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/rel/preconnect)
 and [font-display](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@font-face/font-display).
+
+## Lightroom group-selection interaction
+
+Terry approved the dual-list interaction on 2026-10-15 after using native
+preview 0.0.1.5: available groups on the left, all selected additions on
+the right, live filtering above the left list, and explicit Add/Remove
+buttons between the lists. He found live filtering and the buttons
+intuitive and responsive. Use equal-width buttons centered vertically
+against the list boxes. Keep text useful to the photographer; unnecessary
+technical scope/debug narration and empty state panels should not crowd
+the selection controls. Preserve recognizable photo/Album context and
+necessary membership/protection guidance. See the dual-list design and
+actual-host evidence for acceptance scope and remaining checks.

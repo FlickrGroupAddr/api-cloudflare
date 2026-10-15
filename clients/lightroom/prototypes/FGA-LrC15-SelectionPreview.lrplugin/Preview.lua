@@ -66,11 +66,11 @@ local function show(s)
             -- items change. Highlights never move rows; only explicit buttons do.
             p.availableChoice, p.selectedChoice = {}, {}
             p.availableItems, p.selectedItems = available, selected
-            p.searchSummary = string.format("%d available matches / %d eligible groups. Selected additions stay on the right.", #available, total)
+            p.searchSummary = string.format("%d available matches / %d eligible groups", #available, total)
         end
         local function sync()
             p.allowed = M.canConfirm(s)
-            p.summary = string.format("%d selected / 60 maximum. Search filters only available groups.", M.count(s))
+            p.summary = string.format("%d selected / 60 maximum", M.count(s))
         end
         p:addObserver("choice", function(_, _, value)
             if updating then return end
@@ -139,21 +139,20 @@ local function show(s)
             readonly = { text(s.kind == "stale"
                 and "Prior observation is STALE, for diagnosis only. Current membership is Unavailable."
                 or "Current memberships and retained intents: Unavailable. No partial rows displayed.", 2) }
-        elseif s.bound then
-            status = "Complete writable groups, fresh membership and retained history: " .. M.observedAt
-        else
-            status = "Not yet published by this FGA collection. Writable groups: " .. M.observedAt
-            readonly = { text("No Flickr membership request for this unpublished fixture.") }
+        elseif not s.bound then
+            status = "Not yet published. Choose additions for this FGA Album."
         end
         refreshLists()
         sync()
         local contents = { bind_to_object = p, spacing = 8, fill_horizontal = 1,
-            text("FIXTURE PREVIEW — every confirmation produces only an in-memory summary."),
-            text("Photo: " .. s.photo), text("FGA Album: " .. s.album), text("Scope: " .. s.scope),
-            text(status, 3),
-            text("Currently in Flickr groups / existing or protected submission records (read-only)"),
-            f:scrolled_view { height = 125, width = 740, f:column(readonly) },
+            text("Preview only — nothing is saved or submitted."),
+            text("Photo: " .. s.photo), text("FGA Album: " .. s.album),
         }
+        if status then contents[#contents + 1] = text(status, 3) end
+        if s.bound then
+            contents[#contents + 1] = text("Current memberships and submission records (read-only)")
+            contents[#contents + 1] = f:scrolled_view { height = 125, width = 740, f:column(readonly) }
+        end
         if not s.bound then
             contents[#contents + 1] = f:row {
                 f:radio_button { title = "No group additions", value = bind "choice", checked_value = "none" },
@@ -161,11 +160,10 @@ local function show(s)
             }
         end
         contents[#contents + 1] = text("Changing selections never removes membership, cancels an intent, or clears protection.", 2)
-        contents[#contents + 1] = text("Highlight one group, then use Add → or ← Remove. Search filters only available groups.", 2)
         contents[#contents + 1] = f:row { spacing = 12,
-            f:column { spacing = 4,
-                f:static_text { title = "Available groups — find name or exact ID:" },
-                f:edit_field { value = bind "query", immediate = true, width_in_chars = 44,
+            f:column { spacing = 4, width = 325,
+                f:static_text { title = "Available groups — search name or ID:", width = 325 },
+                f:edit_field { value = bind "query", immediate = true, width = 325,
                     validate = function(_, value)
                         -- The edit-properties reference explicitly guarantees
                         -- validation on every change with immediate=true.
@@ -174,23 +172,26 @@ local function show(s)
                         return true, value
                     end,
                 },
-                f:simple_list { items = bind "availableItems", value = bind "availableChoice",
-                    allows_multiple_selection = false, width = 325, height = 220 },
             },
-            f:column { spacing = 8,
-                f:push_button { title = "Add →", action = function() move("availableChoice", true) end },
-                f:push_button { title = "← Remove", action = function() move("selectedChoice", false) end },
+            f:spacer { width = 90 },
+            f:static_text { title = "Selected additions", width = 325 },
+        }
+        contents[#contents + 1] = f:row { spacing = 12,
+            f:simple_list { items = bind "availableItems", value = bind "availableChoice",
+                allows_multiple_selection = false, width = 325, height = 220 },
+            -- SDK node layout place_vertical=.5 centers this column in the
+            -- list row's free height, independently of the search/header row.
+            f:column { spacing = 8, width = 90, place_vertical = 0.5,
+                f:push_button { title = "Add →", width = 90, fill_horizontal = 1,
+                    action = function() move("availableChoice", true) end },
+                f:push_button { title = "← Remove", width = 90, fill_horizontal = 1,
+                    action = function() move("selectedChoice", false) end },
             },
-            f:column { spacing = 4,
-                f:static_text { title = "Selected additions", width_in_chars = 40 },
-                f:static_text { title = "Always shows every selected addition." },
-                f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
-                    allows_multiple_selection = false, width = 325, height = 220 },
-            },
+            f:simple_list { items = bind "selectedItems", value = bind "selectedChoice",
+                allows_multiple_selection = false, width = 325, height = 220 },
         }
         contents[#contents + 1] = f:static_text { title = bind "searchSummary", width_in_chars = 96 }
         contents[#contents + 1] = f:static_text { title = bind "summary", width_in_chars = 96 }
-        contents[#contents + 1] = text("Refresh: close this fixture and reopen a complete bound/new fixture from the launcher.")
         local answer = LrDialogs.presentModalDialog {
             title = "FlickrGroupAddr — Group additions (FIXTURE PREVIEW)", resizable = true,
             actionVerb = s.bound and "Queue selected additions" or "Save for publish",

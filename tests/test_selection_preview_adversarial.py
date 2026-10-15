@@ -119,6 +119,62 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
         self.assertEqual(lua.globals().modalNumber, 1)
         return lua
 
+    def test_concise_context_and_readonly_safety(self):
+        for kind in ("new", "bound", "existing", "stale", "contradictory"):
+            self.run_preview(
+                """function(options,p,edit,add,remove)
+                local texts=collect(options.contents,"static_text")
+                local photo,album,notice=false,false,false
+                local protected,later,identity,unavailable=false,false,false,false
+                for _,item in ipairs(texts) do
+                    local title=item.title
+                    if type(title)=="string" then
+                        photo=photo or title=="Photo: "..activeFixture.photo
+                        album=album or title=="FGA Album: "..activeFixture.album
+                        notice=notice or title=="Preview only — nothing is saved or submitted."
+                        protected=protected or
+                            title:find("will not submit this exact pair again",1,true)~=nil
+                        later=later or title:find("Membership was later observed",1,true)~=nil
+                        identity=identity or title:find("fixture-0003@N00",1,true)~=nil
+                        unavailable=unavailable or title:lower():find("unavailable",1,true)~=nil
+                        check(not title:find("Scope:",1,true),"internal scope absent")
+                        check(not title:find("Refresh:",1,true),"debug refresh instruction absent")
+                        check(not title:find("Complete writable groups, fresh membership",1,true),
+                            "internal freshness header absent")
+                    end
+                end
+                check(photo and album and notice,"clear photo/Album and fixture boundary")
+                check(add.width==remove.width and add.width==90 and
+                    add.fill_horizontal==1 and remove.fill_horizontal==1,"equal button widths")
+                local rows=collect(options.contents,"row")
+                local centered=false
+                for _,row in ipairs(rows) do
+                    if row[1] and row[1].kind=="simple_list" then
+                        check(#row==3 and row[3].kind=="simple_list","lists share one row")
+                        check(row[2].kind=="column" and row[2][1]==add and row[2][2]==remove,
+                            "buttons between the list boxes")
+                        centered=row[2].place_vertical==0.5
+                    end
+                end
+                check(centered,"button column centered in list row independently of headers")
+                local panels=collect(options.contents,"scrolled_view")
+                if activeFixture.kind=="new" then
+                    check(#panels==0,"unpublished has no empty membership panel")
+                    check(#p.availableItems==376 and p.allowed,"unpublished functionality retained")
+                else
+                    check(#panels==1 and panels[1].height==125,"bound read-only panel retained")
+                    if activeFixture.kind=="bound" or activeFixture.kind=="existing" then
+                        check(protected and later and identity,"protection and ID retained")
+                    else
+                        check(unavailable and not p.allowed,"unavailable and fail-closed")
+                    end
+                end
+                return "cancel"
+            end""",
+                kind=kind,
+                deferred=True,
+            )
+
     def test_live_query_and_exact_id_moves(self):
         for deferred in (False, True):
             lua = self.run_preview(

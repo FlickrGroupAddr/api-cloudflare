@@ -1,7 +1,7 @@
 # Dual-list group-selection preview
 
-Date: 2026-10-15. Ticket #0027. Status: requested fixture revision; native host
-and owner interaction acceptance pending.
+Date: 2026-10-15. Ticket #0027. Status: two-list interaction accepted by Terry;
+copy/layout follow-up and remaining mechanical checks are separate.
 
 ## Owner request and chosen candidate
 
@@ -89,3 +89,38 @@ records the source digest and query/radio race corrections. Its reusable harness
 is `clients/lightroom/prototypes/tests/test_dual_list_review.py`; pass the
 fixture bundle directory and `SelectionModel.lua` path as its two arguments
 through the repository's `uv run --frozen python` environment.
+
+## Owner acceptance and copy/layout follow-up
+
+On 2026-10-15, Terry explicitly approved the two-list interaction and asked
+to simplify the technical text. He separately confirmed that dynamic
+filtering and the Add/Remove buttons were intuitive and responsive in the
+actual Lightroom Classic 15.6 preview. This is owner acceptance of that
+interaction, not a measured latency benchmark or completion of every
+mechanical acceptance scenario. Do not request the same interaction approval
+again. Remaining mechanical verification stays with the implementing agent.
+
+The follow-up copy/layout build must keep the useful photo/Album identity
+and protected-state guidance while removing unnecessary fixture/debug
+explanation and empty unpublished membership space. Terry also requested
+equal-width Add/Remove buttons vertically centered against the two list
+boxes. These refinements do not change selection or submission semantics.
+
+This resolves #0024's owner interaction prerequisite. Existing-photo
+qualification remains a separate integration dependency; no intake,
+deployment, Flickr write or publisher activation follows from UX approval.
+
+## Delivered follow-up: build 0.0.1.6
+
+Build 0.0.1.6 shortens the preview notice and preserves useful photo/Album
+identity. It omits the empty membership panel for unpublished fixtures and
+removes general technical scope/refresh narration. Bound-photo readonly
+membership and protected-submission facts remain. The two move buttons
+use equal 90-pixel widths and a centered column in a row containing only
+the two list boxes; search and headings occupy a separate row.
+
+Local verification passed 247 Python/Lua tests, 75 revised control-model
+checks, 14 independent event scenarios, the explicit 59/60/61 limit
+check, Ruff, Pyright and Adobe SDK 15.3 compilation. Native alignment of
+this cosmetic build is not yet recorded. Existing build 0.0.1.5 owner
+interaction acceptance remains valid and is not requested again.
