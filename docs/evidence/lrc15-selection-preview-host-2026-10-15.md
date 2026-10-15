@@ -159,3 +159,13 @@ from the displayed available rows. The available count changes from 376 to
 and the action reads Save for publish: 3 groups. This confirms the observed
 three-row native batch Add with correct counts and action title. Batch Remove
 and Shift-range gestures are not established by this image.
+
+### Native right-list Shift range before Remove
+
+Terry explicitly reported Shift-clicking a range on 2026-10-15. His screenshot
+shows synthetic Architecture 019 and 043 highlighted together on the right,
+while 001 remains unhighlighted. The detail reads 2 highlighted groups, but
+the selected count and Save action both remain at 3, and the left count stays
+373 / 376. This establishes the reported native right-list Shift-range gesture
+and confirms that highlighting alone does not remove additions. No Remove
+result is established by this screenshot.
