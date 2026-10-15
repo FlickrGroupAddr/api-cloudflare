@@ -1,5 +1,50 @@
 # FGA-LrC15 development handoff - 2026-10-15
 
+## End-of-day sign-off: 2026-10-15
+
+Terry ended the day's work after accepting selection preview **0.0.1.12** and
+moving **0027 to Completed** himself. The board state was verified through
+localswim-cli. This checkpoint supersedes pending interaction-review statements
+in the earlier handoffs below; retain those as historical component evidence.
+
+The accepted fixture interaction includes aligned two-list selection, names before
+NSIDs, live filtering with an explicit FILTERED count and Clear filter, selected
+count beneath the right list, no radio buttons, valid empty unpublished choices,
+contextual singular/plural action titles, and native multi-select batch Add/Remove.
+Owner screenshots establish noncontiguous highlights, batch Add, a reported
+right-list Shift range and batch Remove. Do not ask Terry to repeat those checks.
+The [design](../design/dual-list-group-selection-preview.md) and
+[native evidence](../evidence/lrc15-selection-preview-host-2026-10-15.md) hold the
+details and bounded verification claims. Latest functional preview commit:
+`a8ad1f7`; subsequent commits record observations and owner approval.
+
+The 60-selected-additions limit remains owner-accepted. Flickr's Pro limit has
+exceptions for groups allowing unlimited posting; do not describe 60 as an
+absolute provider membership ceiling. The preview is still fixture-only, with
+no real publication, membership changes, submission, or catalog persistence.
+
+### Where to resume
+
+1. Start with **0023: Browse and verify existing public Flickr photos**, currently
+   Ready for Work, bot-owned. Its recorded prerequisite cards 0022, 0031 and 0032
+   are Completed. Review the
+   [hosted-thumbnail handoff](hosted-thumbnail-handoff-2026-10-15.md), current source
+   and remaining hosted/native qualification before activating the disabled path.
+2. Then work **0024: Connect Lightroom group selection to submission and status**,
+   Ready for Work, bot-owned. Its UI dependency 0027 and outbox dependency 0029
+   are Completed; 0023 remains its unfinished dependency. Integrate the accepted
+   interaction rather than reopening its design or repeating fixture sign-off.
+3. **0025** remains the controlled production-addition gate: finish qualification,
+   obtain the exact owner-selected photo/group pair and explicit live activation
+   consent. **0026**, new-photo publishing, remains Backlog and depends on 0024.
+
+No new implementation task was started at sign-off. No new production deployment,
+live Flickr write, or automation was authorized by this stop-for-the-day request.
+At the next work session, follow normal board health/priority and current-source
+checks before resuming; board state may have changed since this checkpoint.
+
+## Earlier development handoff (historical)
+
 Latest update: [approved timing decision and disabled hosted-thumbnail candidate](hosted-thumbnail-handoff-2026-10-15.md). The original clock/transport owner decisions below have been resolved; exact hosted/native qualification and interaction review remain.
 
 The subsequent [parallel implementation and native-host handoff](lrc15-parallel-handoff-2026-10-15.md) records release 0.2.0 build3, successful actual-host group browsing, new fixture receipts and the disabled upload-authorization candidate. Use that update for current acceptance state; the source-only batch evidence below remains historical.

@@ -344,3 +344,8 @@ closure; subsequent production integration is tracked separately by 0024.
 Automatic approval review rejected the bot's requested Completed transition
 because that lane is reserved for Terry. The card therefore remains Ready for
 Review pending the owner's board move; no further design approval is required.
+
+On 2026-10-15, Terry moved 0027 to Completed himself; the board state was
+verified. This resolves the pending owner board move above. He designated
+this completion as the day's sign-off point; resume from the
+[development handoff](../operations/lrc15-development-handoff-2026-10-15.md).
