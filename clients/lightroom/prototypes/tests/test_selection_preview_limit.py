@@ -67,6 +67,7 @@ def main() -> None:
         local sdk = {
             LrBinding = {makePropertyTable = propertyTable},
             LrView = {bind = function(key) return key end,
+                share = function(key) return {shared = key} end,
                 osFactory = function() return factory end},
             LrTasks = {startAsyncTask = function(fn) fn() end},
             LrFunctionContext = {callWithContext = function(_, fn) return fn({}) end},
@@ -83,9 +84,12 @@ def main() -> None:
                     assert(options.title == 'FlickrGroupAddr — Group additions (FIXTURE PREVIEW)')
                     local lists = collect(options.contents, 'simple_list')
                     local buttons = collect(options.contents, 'push_button')
-                    assert(#lists == 2 and #buttons == 2)
+                    assert(#lists == 2 and #buttons == 3)
+                    local byTitle = {}
+                    for _, button in ipairs(buttons) do byTitle[button.title] = button end
                     assert(lists[1].items == 'availableItems' and lists[2].items == 'selectedItems')
-                    assert(buttons[1].title == 'Add →' and buttons[2].title == '← Remove')
+                    local add, remove = byTitle['Add →'], byTitle['← Remove']
+                    assert(add and remove and byTitle['Clear filter'])
                     assert(#p.availableItems == 313 and #p.selectedItems == 59)
                     assert(p.availableItems[1].value == 'fixture-0007@N00')
                     assert(p.availableItems[2].value == 'fixture-0013@N00')
@@ -93,17 +97,17 @@ def main() -> None:
                     assert(p.actionTitle == 'Queue for 59 groups')
                     p.availableChoice = { 'fixture-0007@N00' }
                     assert(#p.selectedItems == 59) -- Highlight alone never moves a row.
-                    buttons[1].action()
+                    add.action()
                     assert(p.allowed and p.summary:find('60 selected',1,true))
                     assert(p.actionTitle == 'Queue for 60 groups')
                     assert(#p.selectedItems == 60 and #p.availableItems == 312)
                     p.availableChoice = { 'fixture-0013@N00' }
-                    buttons[1].action()
+                    add.action()
                     assert(not p.allowed and p.summary:find('61 selected',1,true))
                     assert(p.actionTitle == 'Queue for 61 groups')
                     assert(#p.selectedItems == 61 and #p.availableItems == 311)
                     p.selectedChoice = { 'fixture-0013@N00' }
-                    buttons[2].action()
+                    remove.action()
                     assert(p.allowed and p.summary:find('60 selected',1,true))
                     assert(p.actionTitle == 'Queue for 60 groups')
                     assert(#p.selectedItems == 60 and #p.availableItems == 312)
@@ -117,7 +121,7 @@ def main() -> None:
         assert(dialogs == 2)
         """
     )
-    assert "build = 8" in (bundle / "Info.lua").read_text(encoding="utf-8")
+    assert "build = 9" in (bundle / "Info.lua").read_text(encoding="utf-8")
     print("PASS: synthetic bound59 model and dual-list actions: 59/60/61/60, cancel")
 
 

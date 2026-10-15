@@ -299,6 +299,12 @@ not a quota. Separate independent implementation, verification, documentation
 and review when useful. No separate per-ticket delegation approval is needed;
 this does not authorize other tickets or unrelated work.
 
+Always specify both the selected model and reasoning effort explicitly in
+every subagent spawn call. Also identify that model/effort pair in the
+user-facing delegation update so Terry can see the choice; do not rely on
+defaults, inheritance or a model name without its effort level. Terry
+reaffirmed this requirement on 2026-10-15.
+
 Set the chosen model and effort explicitly when spawning. Use a fresh context
 when required for overrides and supply the task, authority, file ownership,
 constraints and handoff criteria. Preserve unrelated work and avoid conflicting

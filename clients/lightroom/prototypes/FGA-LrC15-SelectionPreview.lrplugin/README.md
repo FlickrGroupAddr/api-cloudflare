@@ -19,7 +19,7 @@ in `.selectionpreview`. Do not overwrite or silently install it into the
 production bundle path. No automatic installer is provided. Remove/disable
 this entry through Plug-in Manager after review.
 
-Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.8**
+Choose a fixture, try the controls, and cancel to discard. Build **0.0.1.9**
 shows available groups on the left and selected additions on the right.
 Search above the left list filters literal name/ID text on every edit,
 including deletion, without reopening the modal. The right list always shows
@@ -29,13 +29,32 @@ this avoids treating native highlight changes during list updates as new
 addition requests. Both lists stay sorted by display name. Rows show the name
 first and the exact Flickr group NSID in brackets at the end.
 
-Build 0.0.1.8 lets both list boxes share the available dialog width equally,
-including when the dialog grows. The search follows the left list width, and
-the compact 90-pixel Add/Remove column stays centered between the list boxes.
-Expandable nodes use documented `fill_horizontal` sizing instead of fixed
-numeric widths; equal header/search `width_in_chars` minima and equal native
-list minima keep the left and right sides aligned. The fixed buttons retain
-`place_vertical = 0.5` within the list row.
+Build 0.0.1.9 keeps a bold **FILTERED** message and the available-match/eligible count
+directly below the query whenever it contains any characters, including spaces.
+The query field shows the active literal query; the status tooltip repeats its
+full text. **Clear filter**, directly beside the query field, restores all
+available rows immediately in the same
+dialog. With an empty query, the status says **All available** and Clear filter
+is disabled. Counts explicitly distinguish available matches from all eligible
+groups, including selected additions in the eligible total.
+Loading or unavailable projections instead show their data state and mark counts
+unknown in the tooltip; a missing projection never appears as a complete empty
+list. The status reserves a 36-pixel wrapped area for two regular native text
+lines. Font scaling and actual clipping still require host review.
+Filtering and clearing preserve the selected set and confirmation title.
+
+Each side now owns its heading and list in one column, so their edges follow
+the same container instead of independently sized rows. Both columns have the
+native list's 450-pixel minimum and equal `fill_horizontal` growth; the filter
+row, including Clear filter, fills the left side, and the selected heading is
+centered over its list.
+Documented `LrView.share` header heights align both lists and the compact
+90-pixel Add/Remove column. The buttons retain `place_vertical = 0.5` inside
+the 220-pixel list region. Numeric widths remain only on fixed controls.
+This replaces build 8's separate header/list rows: equal fill fractions did
+not compensate for their different intrinsic minimum widths. No dynamic width
+binding, custom drawing, or unsupported control styling is used. The documented
+system bold font and explicit wording make filter state independent of color.
 
 Highlight a row to read its full name and exact NSID in the wrapped detail
 below the lists. Hovering either list also shows that highlighted group's

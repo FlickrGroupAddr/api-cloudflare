@@ -94,3 +94,19 @@ dialog width, retaining a compact centered move-button column. The
 documented SDK supports a whole-view tooltip, but no per-item hover
 callback was identified for simple_list. Full highlighted identity must
 remain accessible independently of a clipped row or row-specific hover.
+
+## Native width/filter visibility feedback
+
+On 2026-10-15, Terry reported preview 0.0.1.8 was better but did not use
+all horizontal space. His screenshot shows filter 04, 14 available
+matches / 376 eligible groups, one selected row and Save for publish:
+1 group. Names precede NSIDs, but the query and side heading do not
+align exactly with the list edges and right margin remains. This is
+an observed partial width improvement, not a complete native resize
+qualification. No hover or full highlighted-detail outcome is inferred
+from the image.
+
+Terry requested a conspicuous active-filter indication to prevent
+mistaking filtered-out groups for missing groups. That requests a
+native filter/status and layout refinement; it does not reopen his
+accepted two-list, explicit-move, empty-save or contextual-title choices.

@@ -93,6 +93,7 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
         local sdk = {
             LrBinding = {makePropertyTable = properties},
             LrView = {bind = function(key) return key end,
+                share = function(key) return {shared = key} end,
                 osFactory = function() return factory end},
             LrTasks = {startAsyncTask = function(fn) fn() end},
             LrFunctionContext = {callWithContext = function(_, fn) return fn({}) end},
@@ -114,7 +115,7 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(observers.choice == nil and p.choice == nil, 'mutable UI choice remains')
                     local left, right = lists[1], lists[2]
                     assert(left.width == nil and right.width == nil, 'fixed list width')
-                    assert(left.fill_horizontal == .5 and right.fill_horizontal == .5)
+                    assert(left.fill_horizontal == 1 and right.fill_horizontal == 1)
                     assert(left.height == right.height)
                     assert(options.contents.width == nil and options.contents.fill_horizontal == 1)
                     local function ancestors(view, target, path)
@@ -127,30 +128,55 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                             if result then return result end
                         end
                     end
-                    for _, list in ipairs(lists) do
-                        for _, parent in ipairs(ancestors(options.contents, list)) do
-                            assert(parent.width == nil and parent.fill_horizontal == 1,
-                                'list ancestor cannot consume full modal width')
-                        end
+                    local leftParents = ancestors(options.contents, left)
+                    local rightParents = ancestors(options.contents, right)
+                    local leftSide = leftParents[#leftParents]
+                    local rightSide = rightParents[#rightParents]
+                    local outer = leftParents[#leftParents-1]
+                    assert(outer == rightParents[#rightParents-1] and #outer == 3)
+                    assert(outer.fill_horizontal == 1 and outer.width == nil)
+                    assert(outer[1] == leftSide and outer[3] == rightSide)
+                    for _, side in ipairs({leftSide, rightSide}) do
+                        assert(side.width == nil and side.fill_horizontal == .5,
+                            'equal growing side columns')
+                        assert(side[1].fill_horizontal == 1 and side[1].width == nil)
+                        assert(side[1].height.shared == 'selectionHeaderHeight')
                     end
+                    assert(leftParents[1] == options.contents and options.contents.width == nil)
+                    assert(outer[2].width == 90
+                        and outer[2][1].height.shared == 'selectionHeaderHeight')
+                    assert(rightSide[1][1].alignment == 'center'
+                        and rightSide[1][1].fill_horizontal == 1)
                     assert(not left.allows_multiple_selection)
                     assert(not right.allows_multiple_selection)
                     local edit = find(options.contents, 'edit_field')[1]
                     assert(edit.width == nil and edit.fill_horizontal == 1)
                     local editParents = ancestors(options.contents, edit)
                     assert(editParents[#editParents].width == nil)
-                    assert(editParents[#editParents].fill_horizontal == .5)
+                    assert(editParents[#editParents].fill_horizontal == 1)
+                    assert(editParents[#editParents] == leftSide[1][2]
+                        and leftSide[1][2][1] == edit)
+                    assert(leftSide[1][2][2].title == 'Clear filter')
                     assert(edit.immediate == true, 'query must notify every change')
-                    local add, remove
+                    local add, remove, clear
                     for _, button in ipairs(find(options.contents, 'push_button')) do
                         if button.title == 'Add →' then add = button end
                         if button.title == '← Remove' then remove = button end
+                        if button.title == 'Clear filter' then clear = button end
                     end
                     assert(add and remove, 'explicit center move buttons required')
+                    assert(clear and clear.enabled == 'filterActive'
+                        and #find(options.contents, 'push_button') == 3,
+                        'explicit filter clear action')
+                    local status = leftSide[1][3]
+                    assert(status.title == 'filterStatus' and status.font == '<system/bold>')
+                    assert(status.height_in_lines == -1 and status.height == 36,
+                        'wrapped filter cue reserves two-line height')
                     assert(add.width == 90 and remove.width == add.width)
                     local buttonParents = ancestors(options.contents, add)
                     local center = buttonParents[#buttonParents]
-                    assert(center.width == 90 and center.place_vertical == .5)
+                    assert(center.place_vertical == .5 and center[1] == add and center[2] == remove)
+                    assert(outer[2][2].height == left.height and outer[2][2][1] == center)
                     assert(observers[left.value] and observers[right.value],
                         'highlight must reveal full name/NSID')
                     if fixture_kind == 'new' then

@@ -92,7 +92,8 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
             modalNumber=0; summaries={}
             local sdk={
                 LrBinding={makePropertyTable=propertyTable},
-                LrView={osFactory=function() return factory end,bind=function(key) return key end},
+                LrView={share=function(key) return {shared=key} end,
+                    osFactory=function() return factory end,bind=function(key) return key end},
                 LrFunctionContext={callWithContext=function(_,fn) return fn({}) end},
                 LrPathUtils={child=function(a,b) return a.."/"..b end},
                 LrTasks={startAsyncTask=function(fn) fn() end},
@@ -127,11 +128,15 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                         check(edit.immediate and type(edit.validate)=="function",
                             "per-edit validation")
                         local buttons=collect(options.contents,"push_button")
-                        check(#buttons==2 and buttons[1].title=="Add →" and
-                            buttons[2].title=="← Remove","center arrow actions")
+                        check(#buttons==3,"Clear and two center arrow actions")
+                        local byTitle={}
+                        for _,button in ipairs(buttons) do byTitle[button.title]=button end
+                        check(byTitle["Add →"] and byTitle["← Remove"] and byTitle["Clear filter"],
+                            "explicit actions identified by title")
                         flush()
                         checkActionTitle(p)
-                        return scenario(options,p,edit,buttons[1],buttons[2])
+                        return scenario(options,p,edit,byTitle["Add →"],byTitle["← Remove"],
+                            byTitle["Clear filter"])
                     end,
                 },
             }
@@ -167,19 +172,17 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                     end
                 end
                 check(photo and album and notice,"clear photo/Album and fixture boundary")
-                check(add.width==remove.width and add.width==90 and
-                    add.fill_horizontal==1 and remove.fill_horizontal==1,"equal button widths")
-                local rows=collect(options.contents,"row")
-                local centered=false
-                for _,row in ipairs(rows) do
-                    if row[1] and row[1].kind=="simple_list" then
-                        check(#row==3 and row[3].kind=="simple_list","lists share one row")
-                        check(row[2].kind=="column" and row[2][1]==add and row[2][2]==remove,
-                            "buttons between the list boxes")
-                        centered=row[2].place_vertical==0.5
-                    end
+                check(add.width==remove.width and add.width==90,"equal button widths")
+                local outer
+                for _,row in ipairs(collect(options.contents,"row")) do
+                    if row[1] and row[1].kind=="column" and row[1][2] and
+                        row[1][2].kind=="simple_list" then outer=row end
                 end
-                check(centered,"button column centered in list row independently of headers")
+                check(outer and #outer==3,"one row owns both side columns and center")
+                check(outer[2].width==90 and outer[2][2].height==220,"fixed center list region")
+                local centered=outer[2][2][1]
+                check(centered[1]==add and centered[2]==remove and
+                    centered.place_vertical==0.5,"move buttons centered within list region")
                 local panels=collect(options.contents,"scrolled_view")
                 if activeFixture.kind=="new" then
                     check(#panels==0,"unpublished has no empty membership panel")
@@ -206,28 +209,37 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                 check(options.resizable and options.contents.fill_horizontal==1,
                     "dialog and contents accept horizontal growth")
                 for _,list in ipairs(lists) do
-                    check(list.width==nil and list.fill_horizontal==0.5,
+                    check(list.width==nil and list.fill_horizontal==1,
                         "equal expandable native list minima without fixed width")
                     check(list.tooltip=="highlightDetail","whole-list highlight tooltip")
                 end
-                check(edit.width==nil and edit.width_in_chars==32 and edit.fill_horizontal==1,
+                check(edit.width==nil and edit.width_in_chars==24 and edit.fill_horizontal==1,
                     "search follows expandable left header")
-                local rows=collect(options.contents,"row")
-                local header,listrow
-                for _,row in ipairs(rows) do
-                    if row[1] and row[1].kind=="column" then header=row end
-                    if row[1]==lists[1] then listrow=row end
+                local outer
+                for _,row in ipairs(collect(options.contents,"row")) do
+                    if row[1] and row[1].kind=="column" and row[1][2]==lists[1] then outer=row end
                 end
-                check(header.fill_horizontal==1 and listrow.fill_horizontal==1,
-                    "header and lists fill dialog")
-                check(header[1].width==nil and header[1].fill_horizontal==0.5 and
-                    header[3].width==nil and header[3].fill_horizontal==0.5,
-                    "equal header fill")
-                check(header[1][1].width_in_chars==header[1][2].width_in_chars and
-                    header[3].width_in_chars==header[1][1].width_in_chars,
-                    "equal header minima align with equal list minima")
-                check(header[2].width==90 and listrow[2].width==90 and
-                    listrow[2].place_vertical==0.5,"compact centered button column")
+                check(outer and outer.fill_horizontal==1 and outer.width==nil,"row fills dialog")
+                local left,right,center=outer[1],outer[3],outer[2]
+                check(left[2]==lists[1] and right[2]==lists[2],"each side owns its list")
+                check(left.width==nil and right.width==nil and left.fill_horizontal==0.5 and
+                    right.fill_horizontal==0.5,"equal expandable side columns")
+                check(left[1][2][1]==edit and left[1].fill_horizontal==1 and
+                    right[1].fill_horizontal==1,"query and headers follow side edges")
+                check(left[1][2][2].title=="Clear filter" and left[1][2].fill_horizontal==1,
+                    "Clear directly beside edit in the same growing row")
+                check(left[1].height.shared=="selectionHeaderHeight" and
+                    right[1].height.shared==left[1].height.shared and
+                    center[1].height.shared==left[1].height.shared,
+                    "shared header height aligns lists")
+                check(right[1][1].title=="Selected additions" and right[1][1].alignment=="center"
+                    and right[1][1].fill_horizontal==1,"heading centered across selected list")
+                check(center.width==90 and center[2].height==lists[1].height and
+                    center[2][1].place_vertical==0.5,"compact centered button column")
+                check(left[1][3].font=="<system/bold>" and left[1][3].title=="filterStatus" and
+                    left[1][3].tooltip=="searchSummary","persistent bold textual filter cue")
+                check(left[1][3].height_in_lines==-1 and left[1][3].height==36,
+                    "wrapped filter status reserves stable two-line space")
                 local detail
                 for _,view in ipairs(collect(options.contents,"static_text")) do
                     if view.title=="highlightDetail" then detail=view end
@@ -409,6 +421,85 @@ class SelectionPreviewAdversarialTests(unittest.TestCase):
                     check(p.allowed==(not activeFixture.bound),"zero enabled guard retained")
                     move(p,"selectedChoice",second,remove)
                     check(p.actionTitle==before,"stale Remove cannot create negative count")
+                    return "cancel"
+                end""",
+                    kind=kind,
+                    deferred=deferred,
+                )
+
+    def test_filter_status_clear_and_deferred_highlights(self):
+        for kind in (
+            "new",
+            "bound",
+            "existing",
+            "bound59",
+            "empty",
+            "loading",
+            "stale",
+            "unavailable",
+            "contradictory",
+        ):
+            for deferred in (False, True):
+                self.run_preview(
+                    """function(options,p,edit,add,remove,clear)
+                    local total=#p.availableItems+#p.selectedItems
+                    local available=#p.availableItems
+                    local selected=#p.selectedItems
+                    local title=p.actionTitle
+                    check(clear.enabled=="filterActive","Clear enabled follows filter state")
+                    local unknown=activeFixture.kind=="loading" or activeFixture.kind=="stale" or
+                        activeFixture.kind=="unavailable" or activeFixture.kind=="contradictory"
+                    local state=activeFixture.kind=="loading" and "Loading group data"
+                        or "Group data unavailable"
+                    check(not p.filterActive and p.filterStatus==(unknown and state or
+                        string.format("All available: %d / %d eligible groups",available,total)),
+                        "empty filter truthful even with selected or unavailable groups")
+                    for _,query in ipairs({" ","  ","[%.*","no possible match"}) do
+                        edit.validate(edit,query)
+                        local expected=0
+                        for _,group in ipairs(activeFixture.groups) do
+                            local protected=activeFixture.bound and
+                                (group.member or group.state or group.block)
+                            if not unknown and not protected
+                                and not activeFixture.selected[group.id]
+                                and string.find(string.lower(group.name.." "..group.id),
+                                    string.lower(query),1,true) then expected=expected+1 end
+                        end
+                        check(p.filterActive and p.filterStatus==(unknown and "FILTERED — "..state
+                            or string.format(
+                            "FILTERED: %d available matches / %d eligible groups",expected,total)),
+                            "any characters activate a literal filter with truthful counts")
+                        check(p.searchSummary:find(query,1,true),"tooltip retains literal query")
+                        if unknown then
+                            check(p.searchSummary:find("counts are unknown",1,true)
+                                and not p.allowed,"unknown counts; confirmation disabled")
+                        end
+                        check(#p.selectedItems==selected and p.actionTitle==title,
+                            "filter preserves selected set and confirmation title")
+                        clear.action()
+                        check(p.query=="" and not p.filterActive and #p.availableItems==available,
+                            "Clear restores available rows synchronously in place")
+                        check(#p.selectedItems==selected and p.actionTitle==title,
+                            "Clear preserves selections and title")
+                        flush()
+                    end
+                    if available>0 then
+                        local id=p.availableItems[1].value
+                        p.availableChoice={id}
+                        p.query="no-match" -- a property event may still be pending
+                        clear.action()
+                        add.action(); flush()
+                        check(#p.selectedItems==selected and not activeFixture.selected[id],
+                            "Clear invalidates stale highlights before Add with deferred observers")
+                        move(p,"availableChoice",id,add)
+                        local after=p.actionTitle
+                        edit.validate(edit,"no possible match")
+                        check(#p.selectedItems==selected+1 and p.actionTitle==after,
+                            "selected right stays visible through filtering")
+                        clear.action(); flush()
+                        check(#p.availableItems==available-1 and p.actionTitle==after,
+                            "Clear excludes selected rows and retains action title")
+                    end
                     return "cancel"
                 end""",
                     kind=kind,

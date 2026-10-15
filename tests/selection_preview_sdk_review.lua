@@ -37,7 +37,7 @@ local function collect(view, kind, found)
 end
 local sdk = {
     LrBinding = { makePropertyTable = propertyTable },
-    LrView = { bind = function(key) return key end, osFactory = function() return factory end },
+    LrView = { share = function(key) return {shared=key} end, bind = function(key) return key end, osFactory = function() return factory end },
     LrTasks = { startAsyncTask = function(fn) fn() end },
     LrFunctionContext = { callWithContext = function(_, fn) return fn({}) end },
     LrPathUtils = { child = function(left, right) return left .. "/" .. right end },
@@ -50,7 +50,11 @@ local sdk = {
             local lists = collect(options.contents, "simple_list")
             local buttons = collect(options.contents, "push_button")
             check(#collect(options.contents, "radio_button") == 0, "selected list owns choice")
-            check(#lists == 2 and #buttons == 2, "two lists and two explicit move buttons")
+            check(#lists == 2 and #buttons == 3, "two lists, Clear and two explicit move buttons")
+            local byTitle = {}
+            for _, button in ipairs(buttons) do byTitle[button.title] = button end
+            local addButton, removeButton, clearButton = byTitle["Add →"], byTitle["← Remove"], byTitle["Clear filter"]
+            check(addButton and removeButton and clearButton, "all explicit actions present")
             check(lists[1].items == "availableItems" and lists[2].items == "selectedItems", "left/right binding")
             check(options.otherVerb == nil, "no distant search action")
             local edit = collect(options.contents, "edit_field")[1]
@@ -58,16 +62,25 @@ local sdk = {
             check(options.actionVerb == props.actionTitle, "truthful initial title fallback")
             check(options.actionBinding.title.bind_to_object == props
                 and options.actionBinding.title.key == "actionTitle", "live action title binding")
-            local function add(id) props.availableChoice = { id }; buttons[1].action() end
+            local function add(id) props.availableChoice = { id }; addButton.action() end
             if currentKind == "new" or currentKind == "bound" or currentKind == "existing" then
                 local expected = currentKind == "new" and 376 or 372
                 check(#props.availableItems == expected, "all eligible groups available")
                 check(props.allowed == (currentKind == "new"), "zero boundary matches photo mode")
+                check(not props.filterActive and props.filterStatus == string.format(
+                    "All available: %d / %d eligible groups", expected, expected), "complete initial filter status")
+                local title = props.actionTitle
+                edit.validate(edit, "no possible match")
+                check(props.filterActive and #props.availableItems == 0 and props.filterStatus == string.format(
+                    "FILTERED: 0 available matches / %d eligible groups", expected), "visible active filter and counts")
+                clearButton.action()
+                check(not props.filterActive and props.query == "" and #props.availableItems == expected
+                    and props.actionTitle == title and #props.selectedItems == 0, "clear in place preserves selection title")
                 local ids = {}
                 for i = 1, 61 do ids[i] = props.availableItems[i].value end
                 props.availableChoice = { ids[1] }
                 check(#props.selectedItems == 0, "highlight alone never moves")
-                buttons[1].action()
+                addButton.action()
                 check(props.allowed and #props.selectedItems == 1, "Add one enables group mode")
                 check(props.actionTitle == (currentKind == "new" and "Save for publish: 1 group"
                     or "Queue for 1 group"), "singular action title")
@@ -75,11 +88,11 @@ local sdk = {
                 check(props.allowed, "60 additions permit confirmation")
                 add(ids[61])
                 check(not props.allowed, "61 additions disable confirmation")
-                props.selectedChoice = { ids[61] }; buttons[2].action()
+                props.selectedChoice = { ids[61] }; removeButton.action()
                 check(props.allowed, "return to60 restores confirmation")
                 if currentKind == "new" then
                     for i = 60, 1, -1 do
-                        props.selectedChoice = { ids[i] }; buttons[2].action()
+                        props.selectedChoice = { ids[i] }; removeButton.action()
                     end
                     check(#props.selectedItems == 0 and #props.availableItems == expected, "removing last clears all additions")
                     check(props.allowed, "unpublished none permits confirmation")

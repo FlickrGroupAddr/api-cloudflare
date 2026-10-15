@@ -192,3 +192,53 @@ and scope. Actual native equal sizing, expansion on resize, wrapping and
 tooltip behavior remain to be observed; the SDK's default list sizing
 is not simulated by the test harness. Earlier owner screenshots already
 verify 3/2/1/0 title redraw in the preceding empty-selection build.
+
+## Active-filter visibility and alignment refinement
+
+Terry's native build 0.0.1.8 screenshot showed improved name visibility
+but remaining unused width and mismatched search/header/list alignment.
+It also showed query 04, 14 available matches, 376 eligible groups and
+one selected group without a conspicuous active-filter cue. He requested
+a hard-to-miss indication and delegated the native UI treatment.
+
+The revised candidate puts the available side's heading, query, active
+state/count and list in one layout column; the selected side follows
+the same structure. The fixed centered move-button region remains
+between the list boxes. Equal growth and aligned header/list edges are
+the intended result; pixel sizing and resize behavior still require
+actual-host observation, not just structural model tests.
+
+While any query characters exist, use a bold FILTERED status with the
+query and an honestly labeled available-match/eligible-total count.
+The eligible denominator includes selected groups; it is not mislabeled
+as the count of unselected available groups. A nearby Clear filter
+resets the literal query immediately without reopening the dialog or
+changing the selected set, confirmation count or action title. Clear
+also refreshes transient highlights so queued query notifications
+cannot revive an old Add target. No filter does not imply unavailable
+data; a no-match filter is distinct from a genuinely empty snapshot.
+
+## Delivered active-filter candidate: build 0.0.1.9
+
+The available side now has its heading, edit/Clear row, bold filter
+status and list in one column. The selected side and fixed center
+controls use the same shared header height. This addresses the separate
+rows' different intrinsic sizing; native gap and alignment improvement
+still need observation. The status uses documented system bold and
+wrapped text with a reserved 36-pixel height. Font scaling/clipping
+remain native checks, not simulated layout guarantees.
+
+Clear filter sits directly beside the edit field, resets the query and
+transient highlights immediately, and preserves selected IDs, count
+and action title. The FILTERED text and eligible-labelled denominator
+stay explicit; unknown/loading states retain unknown counts rather
+than claiming a complete 0/0 group result. No color-only cue or
+undocumented native background painting is used.
+
+The integrated Python/Lua suite passed 251 tests, including nine
+canonical adversarial methods and 119 structural checks. Eighteen
+independent synchronous/deferred scenarios, the explicit limit test,
+Ruff, Pyright and Adobe SDK 15.3 compilation passed. The independent
+[review receipt](../evidence/filter-visibility-review-2026-10-15.md)
+records the exact Preview.lua digest. These are offline checks;
+no native full-width, clipping, focus or visual-prominence pass is claimed.

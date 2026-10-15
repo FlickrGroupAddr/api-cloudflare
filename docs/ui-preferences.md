@@ -61,3 +61,20 @@ edge, with normal native margins. Both lists should grow with the dialog
 instead of retaining fixed widths and a large unused right margin.
 Preserve readable full name/NSID details when a long row clips. A whole
 list tooltip is not a documented per-row hover capability.
+
+## Make active group filters conspicuous
+
+On 2026-10-15, Terry reported the risk of looking for a known group while
+an unrelated filter remained active. Any query characters, including
+literal spaces, must produce an obvious persistent FILTERED cue near
+the field. Show the current query, matching available count and eligible
+total, and provide a nearby one-click Clear filter. The right selected
+set remains unfiltered. Empty results must explain that the filter has
+no matches rather than implying group membership or discovery is empty.
+
+The chosen native treatment uses explicit bold text and clear recovery,
+without relying on color or changing native list colors. This is a
+design recommendation informed by [visibility of system status](https://www.nngroup.com/articles/visibility-system-status/) and the
+[W3C explanation of conveying information beyond color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html), checked
+2026-10-15. These principles inform this native design; no full
+accessibility-conformance or screen-reader result is claimed.

@@ -56,6 +56,7 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
         local sdk = {
             LrBinding = {makePropertyTable = properties},
             LrView = {bind = function(key) return key end,
+                share = function(key) return {shared = key} end,
                 osFactory = function() return factory end},
             LrTasks = {startAsyncTask = function(fn) fn() end},
             LrFunctionContext = {callWithContext = function(_, fn) return fn({}) end},
@@ -75,14 +76,18 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                     assert(not right.allows_multiple_selection)
                     local edit = find(options.contents, 'edit_field')[1]
                     assert(edit.immediate == true, 'query must notify every change')
-                    local add, remove
+                    local add, remove, clear
                     for _, button in ipairs(find(options.contents, 'push_button')) do
                         if button.title == 'Add →' then add = button end
                         if button.title == '← Remove' then remove = button end
+                        if button.title == 'Clear filter' then clear = button end
                     end
                     assert(add and remove, 'explicit center move buttons required')
-                    assert(observers[left.value] == nil and observers[right.value] == nil,
-                        'native highlight must never mutate selected additions')
+                    assert(clear and clear.enabled == 'filterActive'
+                        and #find(options.contents, 'push_button') == 3,
+                        'explicit filter clear action')
+                    assert(observers[left.value] and observers[right.value],
+                        'native highlight observers expose read-only full group detail')
                     local function ids(list)
                         local result = {}
                         for _, row in ipairs(p[list.items]) do
@@ -96,6 +101,11 @@ def run(bundle: Path, model: Path, fixture: str, deferred: bool) -> None:
                         local before = #p[right.items]
                         p[list.value] = {id}; flush()
                         assert(#p[right.items] == before, 'highlight caused automatic move')
+                        local present = ids(list)[id]
+                        if present then
+                            assert(p.highlightDetail:find(id, 1, true),
+                                'highlight detail preserves exact ID')
+                        end
                         local button = list == left and add or remove
                         button.action(button); flush()
                     end
