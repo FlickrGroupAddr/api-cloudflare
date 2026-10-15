@@ -138,3 +138,14 @@ the observed geometry and visible state only, not general resize qualification.
 Terry requested one final wording correction: prefix the count with FILTERED:.
 Build 0.0.1.11 implements that correction; no native observation of build 11
 is claimed by this build 10 screenshot.
+
+## Native multi-selection before Add: build 0.0.1.12 candidate
+
+On 2026-10-15, Terry supplied a before-Add screenshot following the build 12
+handoff. Three noncontiguous synthetic Architecture rows (001, 019 and 043)
+are visibly highlighted on the available side. The detail reports 3 highlighted
+groups; the selected list remains empty, its count is 0 selected / 60 maximum,
+and the action remains Save for publish: no groups. The empty filter shows
+376 matches / 376 total. This confirms native noncontiguous highlighting and
+highlighting without implicit movement. The image does not identify the exact
+modifier gesture, establish Shift-range behavior, or show the Add result.
