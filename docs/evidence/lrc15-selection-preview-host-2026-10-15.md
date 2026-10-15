@@ -149,3 +149,13 @@ and the action remains Save for publish: no groups. The empty filter shows
 376 matches / 376 total. This confirms native noncontiguous highlighting and
 highlighting without implicit movement. The image does not identify the exact
 modifier gesture, establish Shift-range behavior, or show the Add result.
+
+### Native batch Add result
+
+Terry's next screenshot, explicitly after clicking Add, shows the same three
+synthetic Architecture IDs (001, 019 and 043) in the right list and absent
+from the displayed available rows. The available count changes from 376 to
+373 matches / 376 total, the right count becomes 3 selected / 60 maximum,
+and the action reads Save for publish: 3 groups. This confirms the observed
+three-row native batch Add with correct counts and action title. Batch Remove
+and Shift-range gestures are not established by this image.
