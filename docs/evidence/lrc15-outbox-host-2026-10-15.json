@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "evidence": "lrc15_catalog_outbox_bounded_host_observation",
+  "date": "2026-10-15",
+  "ticket": "#0029",
+  "reviewStatus": "ready_for_review",
+  "ownerAcceptance": false,
+  "observerAttribution": {
+    "receipts": "Independent receipt-review subagent parsed complete JSON and computed SHA2-256 digests from the exact closed receipt files.",
+    "lifecycle": "Primary agent independently observed native host UI and application state; supplied sanitized lifecycle facts to receipt reviewer.",
+    "fixture": "Primary agent observed a newly created disposable fixture with All Photographs count 0. Its private location is intentionally omitted."
+  },
+  "scope": {
+    "qualifiedHost": {
+      "contextValid": true,
+      "major": 15,
+      "minor": 6,
+      "revision": 0,
+      "buildVersion": "202609251514-f839cde9"
+    },
+    "qualifiedProbeVersion": "0.0.2.6",
+    "qualifiedRunId": "probe-813776723389046-1",
+    "observed": [
+      "receipt_preflight",
+      "synchronous_private_gate_and_exact_immediate_readback",
+      "callback_error_rollback",
+      "exact_run_value_after_independently_observed_normal_shutdown_and_reopen"
+    ],
+    "notQualified": [
+      "production_outbox",
+      "abrupt_process_stop",
+      "power_loss",
+      "catalog_backup_restore",
+      "catalog_copy_recovery",
+      "storage_full",
+      "timeout_contention",
+      "concurrent_compare_and_set",
+      "record_count_and_byte_bounds",
+      "all_upload_dispatch_and_handoff_crash_points"
+    ]
+  },
+  "probeSourceProvenance": {
+    "bundle": "probes/FGA-Outbox-Probe.lrplugin",
+    "sessionStartingCommit": "713db96",
+    "sessionStartingCommitIsQualifiedBuildCommit": false,
+    "note": "Primary agent owns final integration commit provenance. These digests identify local bundle source inspected after build 6 was installed; native plug-in loading/version confirmation is primary-observer evidence.",
+    "digestAlgorithm": "SHA2-256",
+    "files": [
+      {
+        "name": "Probe.lua",
+        "digest": "05214af8b150bbc15799e06242dfd49983699076964dcdb019bda7542a675333"
+      },
+      {
+        "name": "Info.lua",
+        "digest": "fa12382eb1d84f9ae84b9580f37f8c57de529cb120c973d9540b7194224030cc"
+      },
+      {
+        "name": "Preflight.lua",
+        "digest": "5fabfa9e1fd0555505e9a03994d49ffa8159e6af7d9cd90bd1a50b6c9652d871"
+      },
+      {
+        "name": "Write.lua",
+        "digest": "80e47b8e214103f022f3c6a3a5c8618d718478d4d6dcbc06a63aa55536d667e3"
+      },
+      {
+        "name": "Verify.lua",
+        "digest": "28bde23ad0c9c7223383d4e7638eacc13f5f1df6f84a5a99f9eaf10821d4cd93"
+      }
+    ]
+  },
+  "failedEarlierObservations": [
+    {
+      "probeVersion": "0.0.2.4",
+      "runId": "probe-813775734814462-1",
+      "result": "probe_unavailable",
+      "closedReceiptCount": 0,
+      "qualification": "unconfirmed",
+      "temporaryFileMetadataOnly": [
+        {
+          "stage": "same_session",
+          "byteLength": 446,
+          "lastWriteTimeUtc": "2026-10-15T16:48:54.9817085Z"
+        },
+        {
+          "stage": "failure",
+          "byteLength": 440,
+          "lastWriteTimeUtc": "2026-10-15T16:48:55.0419055Z"
+        }
+      ],
+      "note": "Temporary contents were not read. Neither catalog-write absence nor rollback is inferred."
+    },
+    {
+      "probeVersion": "0.0.2.5",
+      "operation": "no_catalog_receipt_preflight",
+      "result": "receipt_move_result_failed",
+      "nativeDialog": {
+        "errorType": "string",
+        "write": "boolean/truthy",
+        "close": "boolean/truthy",
+        "move": "boolean/falsey"
+      },
+      "qualification": "receipt_path_failed"
+    }
+  ],
+  "pathTrialConclusion": "The SDK child/native-path build 6 trial changed the observed preflight move result from false to true. This supports the corrected receipt path on the tested host; it does not establish a universal undocumented slash restriction or a catalog durability guarantee.",
+  "receipts": [
+    {
+      "fileName": "FGA-Outbox-Probe-probe-813776594484230-1-preflight.json",
+      "byteLength": 442,
+      "lastWriteTimeUtc": "2026-10-15T17:03:14.667031Z",
+      "digestAlgorithm": "SHA2-256",
+      "digest": "56ec98b4809174fe69c51813b2638211d2fadcb784b0c798e71a9b8353532162",
+      "document": {
+        "schemaVersion": 2,
+        "probe": "catalog_outbox",
+        "probeVersion": "0.0.2.6",
+        "writeTime": "2026-10-15T17:03:14Z",
+        "host": {
+          "contextValid": true,
+          "major": 15,
+          "minor": 6,
+          "revision": 0,
+          "buildVersion": "202609251514-f839cde9"
+        },
+        "runId": "probe-813776594484230-1",
+        "stage": "preflight",
+        "outcome": "passed",
+        "reasonCode": "receipt_path_available",
+        "stageTerminal": true,
+        "terminal": true,
+        "restartIndependentlyVerified": false,
+        "crashQualified": false,
+        "powerLossQualified": false
+      }
+    },
+    {
+      "fileName": "FGA-Outbox-Probe-probe-813776723389046-1-same_session.json",
+      "byteLength": 446,
+      "lastWriteTimeUtc": "2026-10-15T17:05:23.7247376Z",
+      "digestAlgorithm": "SHA2-256",
+      "digest": "be114c94a14dc1ef48502256038910a1f3abaea850c3652495319af60904fe7e",
+      "document": {
+        "schemaVersion": 2,
+        "probe": "catalog_outbox",
+        "probeVersion": "0.0.2.6",
+        "writeTime": "2026-10-15T17:05:23Z",
+        "host": {
+          "contextValid": true,
+          "major": 15,
+          "minor": 6,
+          "revision": 0,
+          "buildVersion": "202609251514-f839cde9"
+        },
+        "runId": "probe-813776723389046-1",
+        "stage": "same_session",
+        "outcome": "passed",
+        "reasonCode": "exact_readback_matched",
+        "stageTerminal": true,
+        "terminal": false,
+        "restartIndependentlyVerified": false,
+        "crashQualified": false,
+        "powerLossQualified": false
+      }
+    },
+    {
+      "fileName": "FGA-Outbox-Probe-probe-813776723389046-1-rollback.json",
+      "byteLength": 445,
+      "lastWriteTimeUtc": "2026-10-15T17:05:23.8330103Z",
+      "digestAlgorithm": "SHA2-256",
+      "digest": "cbfebab1c6f1df0a593acde375d7fbea87633bc70ee95e03ddf9ae1082c0d9ec",
+      "document": {
+        "schemaVersion": 2,
+        "probe": "catalog_outbox",
+        "probeVersion": "0.0.2.6",
+        "writeTime": "2026-10-15T17:05:23Z",
+        "host": {
+          "contextValid": true,
+          "major": 15,
+          "minor": 6,
+          "revision": 0,
+          "buildVersion": "202609251514-f839cde9"
+        },
+        "runId": "probe-813776723389046-1",
+        "stage": "rollback",
+        "outcome": "passed",
+        "reasonCode": "callback_rollback_observed",
+        "stageTerminal": true,
+        "terminal": true,
+        "restartIndependentlyVerified": false,
+        "crashQualified": false,
+        "powerLossQualified": false
+      }
+    },
+    {
+      "fileName": "FGA-Outbox-Probe-probe-813776723389046-1-restart.json",
+      "byteLength": 441,
+      "lastWriteTimeUtc": "2026-10-15T17:09:12.0971524Z",
+      "digestAlgorithm": "SHA2-256",
+      "digest": "3436dec786338a3bec10b0e69be43e3c592245e72ad3dba0ba8dd98c4cc8ce12",
+      "document": {
+        "schemaVersion": 2,
+        "probe": "catalog_outbox",
+        "probeVersion": "0.0.2.6",
+        "writeTime": "2026-10-15T17:09:12Z",
+        "host": {
+          "contextValid": true,
+          "major": 15,
+          "minor": 6,
+          "revision": 0,
+          "buildVersion": "202609251514-f839cde9"
+        },
+        "runId": "probe-813776723389046-1",
+        "stage": "restart",
+        "outcome": "matched",
+        "reasonCode": "exact_run_record_found",
+        "stageTerminal": true,
+        "terminal": true,
+        "restartIndependentlyVerified": false,
+        "crashQualified": false,
+        "powerLossQualified": false
+      }
+    }
+  ],
+  "externalNormalRestartObservation": {
+    "runId": "probe-813776723389046-1",
+    "restartIndependentlyObserved": true,
+    "normalRestartPersistenceAcceptedForBoundedFixture": true,
+    "events": [
+      {
+        "timeUtc": "2026-10-15T17:06:32.037Z",
+        "action": "normal_close_requested",
+        "method": "Alt+F4"
+      },
+      {
+        "timeUtc": "2026-10-15T17:06:54.355Z",
+        "action": "shutdown_observed",
+        "applicationRunning": false,
+        "windowCount": 0
+      },
+      {
+        "timeUtc": "2026-10-15T17:07:58.811Z",
+        "action": "same_fixture_reopened",
+        "launchCount": 1,
+        "allPhotographsCount": 0,
+        "note": "A launcher false no-window error was followed by re-enumeration and binding the new window; no second launch."
+      },
+      {
+        "timeUtc": "2026-10-15T17:09:12Z",
+        "action": "exact_run_verify_receipt_written",
+        "timeSource": "receipt writeTime; second resolution"
+      }
+    ],
+    "machineReceiptFlagsRemainFalse": true,
+    "crashQualified": false,
+    "powerLossQualified": false,
+    "restoreQualified": false
+  },
+  "reviewerConclusion": {
+    "accepted": "Complete schema-2 build-0.0.2.6 receipts have valid UTC time and exact host/build context. Same-session and rollback share a fresh run distinct from preflight and the failed build-4 run. The matching restart receipt follows the independently observed normal host lifecycle for the same empty fixture.",
+    "boundary": "Ready for review of the bounded #0029 catalog-property host proof only. This does not accept a production outbox, establish arbitrary crash/power-loss durability, or resolve restore/copy ambiguity.",
+    "productionRestoreRule": "Absent or older pre-dispatch state after restoration cannot establish that no image dispatch occurred. An explicit restore/copy recovery gate and available hosted reconciliation remain required.",
+    "remainingGates": "Abrupt-stop and restore proof, production bounds/schema/revision/compare-and-set, stale callback fencing, storage-full/unavailable behavior, catalog switching, selection handoff ordering, and upload/handoff crash points remain explicit separate work."
+  }
+}

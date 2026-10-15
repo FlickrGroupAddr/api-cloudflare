@@ -15,7 +15,7 @@ files, dialogs, properties = {}, {}, {}
 catalogPath = "C:/Temp/FGA-Outbox-Probe.lrcat"
 gateResult, rollback, failReceipt, mutations = "executed", true, false, 0
 _PLUGIN = {}
-local catalog = {}
+catalog = {}
 function catalog:getPath() return catalogPath end
 function catalog:getPropertyForPlugin(_, field) return properties[field] end
 function catalog:setPropertyForPlugin(_, field, value)
@@ -33,7 +33,7 @@ function catalog:withPrivateWriteAccessDo(callback, options)
     end
     return "executed"
 end
-local modules = {
+modules = {
     LrApplication = {
         activeCatalog = function() return catalog end,
         versionTable = function()
@@ -49,12 +49,22 @@ local modules = {
         end,
     },
     LrDialogs = {message = function(a,b,c) table.insert(dialogs, a..b..c) end},
-    LrPathUtils = {leafName = function(path) return string.match(path, "[^/]+$") end},
+    LrPathUtils = {
+        leafName = function(path) return string.match(path, "[^/\\]+$") end,
+        child = function(parent, name)
+            assert(parent == "C:\\Temp" and not string.find(name, "[/\\]"))
+            return parent .. "\\" .. name
+        end,
+    },
     LrTasks = {pcall = pcall, startAsyncTask = function(callback) callback() end},
     LrFileUtils = {
-        exists = function(path) return files[path] ~= nil end,
-        createAllDirectories = function(path) assert(path == "C:/Temp/") return true end,
+        exists = function(path)
+            assert(not string.find(path, "/"))
+            return files[path] and "file" or false
+        end,
+        createAllDirectories = function(path) assert(path == "C:\\Temp") return true end,
         move = function(src, dest)
+            assert(not string.find(src, "/") and not string.find(dest, "/"))
             if files[dest] or not files[src] then return false end
             files[dest], files[src] = files[src], nil
             return true
@@ -66,7 +76,7 @@ function import(name)
     return modules[name]
 end
 io = {open = function(path, mode)
-    local expected = "^C:/Temp/FGA%-Outbox%-Probe%-probe%-%d+%-%d+%-[%w_]+%.json%.tmp$"
+    local expected = "^C:\\Temp\\FGA%-Outbox%-Probe%-probe%-%d+%-%d+%-[%w_]+%.json%.tmp$"
     assert(mode == "wb" and string.match(path, expected))
     if failReceipt then error("SECRET synthetic error with private path") end
     local file = {}
@@ -93,6 +103,13 @@ class OutboxProbeTests(unittest.TestCase):
             if path.endswith(".json")
         ]
 
+    def test_every_bundle_lua_file_compiles_under_lua51(self):
+        root = Path(os.environ.get("FGA_OUTBOX_PROBE_ROOT", Path(__file__).resolve().parents[1]))
+        compile_lua = self.lua.eval("function(source) return assert(loadstring(source)) end")
+        for path in (root / "probes/FGA-Outbox-Probe.lrplugin").glob("*.lua"):
+            with self.subTest(file=path.name):
+                compile_lua(path.read_text("utf-8"))
+
     def test_correlated_write_rollback_and_verify_without_restart_overclaim(self):
         self.probe.write()
         self.probe.verify()
@@ -103,7 +120,7 @@ class OutboxProbeTests(unittest.TestCase):
             self.assertTrue(receipt["stageTerminal"])
             self.assertEqual(receipt["terminal"], receipt["stage"] != "same_session")
             self.assertEqual(receipt["writeTime"], "2026-10-15T18:30:00Z")
-            self.assertEqual(receipt["probeVersion"], "0.0.2.4")
+            self.assertEqual(receipt["probeVersion"], "0.0.2.6")
             self.assertEqual(receipt["host"]["buildVersion"], "202609251514-f839cde9")
             self.assertFalse(receipt["restartIndependentlyVerified"])
             self.assertFalse(receipt["crashQualified"])
@@ -168,6 +185,147 @@ class OutboxProbeTests(unittest.TestCase):
         self.assertEqual(self.receipts(), [])
         self.assertEqual(self.lua.globals().mutations, 1)
         self.assertNotIn("SECRET", "".join(self.lua.globals().dialogs.values()))
+
+    def dialog_text(self):
+        return "".join(self.lua.globals().dialogs.values())
+
+    def test_preflight_never_calls_catalog_and_preserves_existing_property(self):
+        self.lua.execute("""
+            properties.syntheticOutboxProbeV2 = "SECRET prior run"
+            modules.LrApplication.activeCatalog = function() error("SECRET catalog called") end
+        """)
+        self.probe.preflight()
+        self.assertEqual(self.lua.globals().mutations, 0)
+        self.assertEqual(self.lua.globals().properties.syntheticOutboxProbeV2, "SECRET prior run")
+        self.assertEqual(self.receipts()[0]["stage"], "preflight")
+        self.assertEqual(self.receipts()[0]["reasonCode"], "receipt_path_available")
+        self.assertIn("file close: boolean/truthy", self.dialog_text())
+        self.assertIn("file move: boolean/truthy", self.dialog_text())
+        self.assertIn("source is file: true; destination exists: false", self.dialog_text())
+        self.assertNotIn("SECRET", self.dialog_text())
+
+    def test_actual_missing_apis_and_io_failures_have_closed_diagnostics(self):
+        cases = [
+            ("io = nil", "receipt_open", "nil", "preflight"),
+            ("io.open = nil", "receipt_open", "nil", "preflight"),
+            (
+                'io.open = function() return nil, "SECRET private path" end',
+                "receipt_open",
+                "nil",
+                "preflight",
+            ),
+            ("modules.LrFileUtils.exists = nil", "allocate_identity", "nil", "preflight"),
+            ("modules.LrFileUtils.move = nil", "receipt_move", "nil", "preflight"),
+            (
+                'modules.LrFileUtils.move = function() return false, "SECRET" end',
+                "receipt_move_result",
+                "nil",
+                "preflight",
+            ),
+            ("catalog.getPropertyForPlugin = nil", "get_property", "nil", "write"),
+            ("catalog.withPrivateWriteAccessDo = nil", "private_gate", "nil", "write"),
+            ("catalog.setPropertyForPlugin = nil", "set_property", "nil", "write"),
+        ]
+        for injection, stage, _, command in cases:
+            with self.subTest(injection=injection):
+                self.setUp()
+                self.lua.execute(injection)
+                self.probe[command]()
+                self.assertIn("Stage: " + stage + "; error type: string", self.dialog_text())
+                self.assertNotIn("SECRET", self.dialog_text())
+                self.assertEqual(self.lua.globals().mutations, 0)
+
+    def test_write_and_close_falsey_returns_are_diagnosed_without_move(self):
+        for method in ("write", "close"):
+            with self.subTest(method=method):
+                self.setUp()
+                self.lua.execute(
+                    """
+                    local open = io.open
+                    io.open = function(path, mode)
+                        local file = open(path, mode)
+                        file.METHOD = function() return nil, "SECRET private path" end
+                        return file
+                    end
+                """.replace("METHOD", method)
+                )
+                self.probe.preflight()
+                self.assertEqual(self.receipts(), [])
+                self.assertIn("Stage: receipt_" + method + "_result", self.dialog_text())
+                self.assertIn("file " + method + ": nil/falsey", self.dialog_text())
+                self.assertIn("file move: not_called", self.dialog_text())
+                self.assertNotIn("SECRET", self.dialog_text())
+
+    def test_error_object_is_classified_without_tostring(self):
+        self.lua.execute("""
+            io.open = function() error(setmetatable({}, {
+                __tostring = function() error("SECRET must not stringify") end
+            })) end
+        """)
+        self.probe.preflight()
+        self.assertIn("Stage: receipt_open; error type: table", self.dialog_text())
+        self.assertNotIn("SECRET", self.dialog_text())
+
+    def test_preflight_preserves_prior_incomplete_receipt(self):
+        path = r"C:\Temp\FGA-Outbox-Probe-probe-123456789000000-1-preflight.json.tmp"
+        self.lua.globals().files[path] = "PRIOR"
+        self.probe.preflight()
+        self.assertEqual(self.lua.globals().files[path], "PRIOR")
+        self.assertTrue(self.receipts()[0]["runId"].endswith("-2"))
+
+    def test_verify_preserves_prior_incomplete_restart_receipt(self):
+        self.probe.write()
+        run_id = self.receipts()[0]["runId"]
+        path = rf"C:\Temp\FGA-Outbox-Probe-{run_id}-restart.json.tmp"
+        self.lua.globals().files[path] = "PRIOR"
+        self.probe.verify()
+        self.assertEqual(self.lua.globals().files[path], "PRIOR")
+        self.assertNotIn("restart", {r["stage"] for r in self.receipts()})
+        self.assertIn("verification_receipt_incomplete", {r["reasonCode"] for r in self.receipts()})
+
+    def test_sdk_cannot_see_closed_source_is_reported_without_move(self):
+        self.lua.execute("""
+            modules.LrFileUtils.exists = function() return false end
+        """)
+        self.probe.preflight()
+        self.assertEqual(self.receipts(), [])
+        self.assertIn("Stage: receipt_source_check", self.dialog_text())
+        self.assertIn("source is file: false", self.dialog_text())
+        self.assertIn("file move: not_called", self.dialog_text())
+
+    def test_destination_collision_after_allocation_is_preserved_without_move(self):
+        self.lua.execute("""
+            local open = io.open
+            io.open = function(path, mode)
+                local file = open(path, mode)
+                file.close = function()
+                    files[string.sub(path, 1, -5)] = "PRIOR"
+                    return true
+                end
+                return file
+            end
+        """)
+        self.probe.preflight()
+        self.assertIn("Stage: receipt_destination_check", self.dialog_text())
+        self.assertIn("destination exists: true", self.dialog_text())
+        self.assertIn("file move: not_called", self.dialog_text())
+        for path, body in self.lua.globals().files.items():
+            if path.endswith(".json"):
+                self.assertEqual(body, "PRIOR")
+
+    def test_move_reason_is_type_only_with_fixed_category(self):
+        self.lua.execute("""
+            modules.LrFileUtils.move = function()
+                return false, setmetatable({}, {
+                    __tostring = function() error("SECRET must not stringify") end
+                })
+            end
+        """)
+        self.probe.preflight()
+        self.assertEqual(self.receipts(), [])
+        self.assertIn("Stage: receipt_move_result", self.dialog_text())
+        self.assertIn("move reason type: table; move category: sdk_move_failed", self.dialog_text())
+        self.assertNotIn("SECRET", self.dialog_text())
 
     def test_repeated_verify_preserves_prior_receipt_and_refuses_overwrite(self):
         self.probe.write()

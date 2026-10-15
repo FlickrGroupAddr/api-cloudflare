@@ -22,6 +22,7 @@ local function chooseFixture()
         for _, row in ipairs({
             { "new", "Unpublished photo in one FGA Album" },
             { "bound", "FGA-bound photo: memberships and retained intents" },
+            { "bound59", "Bound limit test: 59 preselected eligible additions (synthetic)" },
             { "existing", "Existing public Flickr photo: verified fixture binding" },
             { "loading", "Loading complete projections" },
             { "empty", "Complete empty writable-group snapshot and memberships" },
@@ -71,9 +72,14 @@ local function show(s)
                 p[key] = s.selected[group.id] == true
                 p:addObserver(key, function()
                     if updating then return end
+                    -- SDK notifications may be deferred or repeated. A queued
+                    -- no-op must not overwrite a newer radio-button choice.
+                    if (p[key] == true) == (s.selected[group.id] == true) then return end
                     M.toggle(s, group.id, p[key])
                     updating = true
-                    p.choice = s.choice
+                    -- Only checking a group changes the radio mode. An
+                    -- unchecked notification must not replace a newer choice.
+                    if p[key] == true then p.choice = s.choice end
                     updating = false
                     sync()
                 end)

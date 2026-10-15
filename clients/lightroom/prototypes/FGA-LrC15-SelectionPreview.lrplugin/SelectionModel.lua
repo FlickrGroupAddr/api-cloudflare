@@ -44,6 +44,21 @@ function M.fixture(kind)
     table.sort(s.groups, function(a, b)
         return a.name == b.name and a.id < b.id or a.name < b.name
     end)
+    if kind == "bound59" then
+        s.photo = "LIMIT TEST: 59 preselected eligible groups (synthetic)"
+        s.choice = "groups"
+        local eligibleIndex, selected = 0, 0
+        for _, g in ipairs(s.groups) do
+            if M.code(s, g) == "eligible" then
+                eligibleIndex = eligibleIndex + 1
+                -- Leave the first two visible eligible checkboxes unchecked.
+                if eligibleIndex > 2 and selected < 59 then
+                    s.selected[g.id] = true
+                    selected = selected + 1
+                end
+            end
+        end
+    end
     return s
 end
 function M.valid(s)

@@ -254,3 +254,42 @@ intentional Escape stops; never bypass them with resets or another automation
 route. Observe after each action and keep screenshot payloads, catalog names,
 photo metadata and credentials out of tracked evidence. Launcher success does
 not replace each workflow's fixture, consent, and release qualification gates.
+
+## Codex agent configuration
+
+Terry approved this task-based model and effort policy on 2026-10-15:
+
+- Parent default and ordinary implementation/test subagents: GPT-6.1 Sol
+  (`gpt-6.1-sol`) with Medium reasoning (`medium`).
+- Authentication, SQL transactions, recovery and concurrency review:
+  GPT-6.1 Sol with High reasoning (`high`).
+- Narrow mechanical documentation edits, file inventories and prescribed test
+  execution: GPT-6 Luna (`gpt-6-luna`) with Low reasoning (`low`). Keep code
+  interpretation, safety conclusions and integration with a Sol agent.
+- Particularly stubborn architecture or debugging problems: selectively use
+  GPT-6 Astra (`gpt-6-astra`) with Medium reasoning (`medium`).
+
+These role-based choices supersede the earlier requirement that every subagent
+use Sol Medium. A typical eight-agent batch may use five Sol Medium, one Sol
+High and two Luna Low, but assign by actual work rather than filling a quota.
+Do not escalate effort or model indiscriminately; the primary owns integration,
+required verification, commits/pushes and truthful handoff.
+
+Use Standard speed for the parent and all subagents. Subagents inherit the root
+session's service tier. Keep `service_tier = "default"` in the user Codex
+configuration; do not re-enable Fast mode unless Terry requests it. Terry
+confirmed switching the active session to Standard on 2026-10-15.
+
+## Subagents on authorized tickets
+
+Terry authorizes practical parallel work on authorized tickets: one primary
+agent plus up to eight concurrently active direct subagents, nine total active
+agents, maximum depth 1. Subagents must not spawn subagents. Eight is a ceiling,
+not a quota. Separate independent implementation, verification, documentation
+and review when useful. No separate per-ticket delegation approval is needed;
+this does not authorize other tickets or unrelated work.
+
+Set the chosen model and effort explicitly when spawning. Use a fresh context
+when required for overrides and supply the task, authority, file ownership,
+constraints and handoff criteria. Preserve unrelated work and avoid conflicting
+edits; keep desktop input under one primary operator.
