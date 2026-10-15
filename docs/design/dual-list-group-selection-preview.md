@@ -325,3 +325,13 @@ The explicit 59/60/61 boundary check and 18 filter/clear scenarios passed.
 Ruff lint/format, Pyright, whitespace checks and Adobe SDK 15.3 Lua compilation
 passed. The harness supplies selected-ID arrays; it does not synthesize native
 Ctrl/Shift gestures or establish native focus/anchor behavior.
+
+### Owner acceptance of native batch interaction
+
+On 2026-10-15, Terry approved the multi-select interaction after native evidence
+of noncontiguous available highlights, a three-row Add, an explicitly reported
+right-list Shift range, and a two-row Remove leaving one addition with the
+correct singular action label. The observations are recorded in
+[the host evidence](../evidence/lrc15-selection-preview-host-2026-10-15.md).
+The interaction is accepted for integration; no further owner repetition of
+this batch Add/Remove check is required. Production qualification remains separate.

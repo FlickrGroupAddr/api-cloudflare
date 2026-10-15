@@ -169,3 +169,15 @@ the selected count and Save action both remain at 3, and the left count stays
 373 / 376. This establishes the reported native right-list Shift-range gesture
 and confirms that highlighting alone does not remove additions. No Remove
 result is established by this screenshot.
+
+### Native batch Remove and owner acceptance
+
+On 2026-10-15, Terry supplied the result after the right-list range selection
+and said Looks good to me. Synthetic Architecture 019 and 043 are back in the
+available list; only 001 remains in selected additions. The available count is
+375 matches / 376 total, the right count is 1 selected / 60 maximum, and the
+action reads Save for publish: 1 group. This confirms the observed two-row
+native batch Remove and correct singular action label. Terry approved the
+multi-select interaction. No further owner clicks are needed for this scoped
+check; this does not establish every modifier gesture on both lists or full
+production workflow qualification.
