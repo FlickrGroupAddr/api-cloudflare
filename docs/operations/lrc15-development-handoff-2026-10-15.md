@@ -25,6 +25,19 @@ no real publication, membership changes, submission, or catalog persistence.
 
 ### Where to resume
 
+**Terry's final priority for the next session, Friday 2026-10-16: address the
+Needs Terry card 0025 first.** Review the controlled-addition runbook together
+and ask him to select the exact existing public Flickr photo and destination
+group (photopage/group-page links, with exact IDs resolved and confirmed).
+This resolves the immediate owner-selection handoff only. Do not promise the
+entire trial can close before 0024 and exact-artifact qualification are complete.
+Live write activation remains a separate approval after the evidence packet
+and bounded stop/recovery procedure are reviewable. Do not ask for that approval
+prematurely. Keep real trial identifiers in the private worksheet/board rather
+than these public notes. No overnight run or scheduled reminder was created.
+
+After that owner-input step, the implementation order is:
+
 1. Start with **0023: Browse and verify existing public Flickr photos**, currently
    Ready for Work, bot-owned. Its recorded prerequisite cards 0022, 0031 and 0032
    are Completed. Review the

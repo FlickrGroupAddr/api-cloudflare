@@ -9,8 +9,12 @@ through preparation. Preserve the zero-dispatch baseline; preparation itself
 makes no production request or provider mutation.
 
 Implementation ticket #0025 depends on #0024, connecting Lightroom group
-selection to submission and status. Its current board state was backlog when
-inspected read-only on 2026-10-15. This runbook does not close either ticket.
+selection to submission and status. At the 2026-10-15 end-of-day checkpoint,
+0025 is Needs Terry and 0024 is Ready for Work. Terry requested that the next
+session on 2026-10-16 begin with this owner-input handoff: review this runbook
+and select the exact public photo/group pair. That selection does not authorize
+live activation or waive 0024 and exact-artifact qualification. This runbook
+does not close either ticket.
 
 ## Scope and owner inputs
 
