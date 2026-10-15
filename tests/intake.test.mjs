@@ -16,7 +16,7 @@ test("real native bindings verify photos and admit one authenticated batch",asyn
  let base="",external=0;
  const mf=new Miniflare({modules:true,script:await readFile(path.join(directory,"bundle/worker.js"),"utf8"),compatibilityDate:"2026-07-30",compatibilityFlags:["nodejs_compat","global_fetch_strictly_public"],host:"127.0.0.1",port:0,cf:false,logRequests:false,telemetry:{enabled:false},d1Databases:["DB"],durableObjects:{COORD:{className:"ProbePartitionWake",useSQLite:true}},
  secretsStoreSecrets:{FLICKR_APPLICATION:{store_id:"intake-store",secret_name:"application"},FLICKR_GRANT:{store_id:"intake-store",secret_name:"grant"}},
- bindings:{PROOF_TOKEN:"synthetic-control",PROOF_BUILD:"local",FGA_READ_ENABLED:"1",FGA_INTAKE_ENABLED:"1",FGA_MAX_GROUP_IDS_PER_BATCH:"60"},
+ bindings:{PROOF_TOKEN:"synthetic-control",PROOF_BUILD:"local",FGA_READ_ENABLED:"1",FGA_INTAKE_ENABLED:"1",FGA_DISPATCH_ENABLED:"1",FGA_MAX_GROUP_IDS_PER_BATCH:"60"},
  async outboundService(request){if(new URL(request.url).origin!==base||new URL(request.url).pathname!=="/probe/peer"){external++;throw new Error("unexpected_external_request");}return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:await request.arrayBuffer()});}});
  try {
   base=String(await mf.ready).replace(/\/$/,"");const db=await mf.getD1Database("DB");

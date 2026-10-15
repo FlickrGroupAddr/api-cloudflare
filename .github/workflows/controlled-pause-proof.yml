@@ -1,0 +1,42 @@
+name: Controlled pause proof
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fga-controlled-pause-proof
+  cancel-in-progress: false
+jobs:
+  prove:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.5'
+      - name: Install locked Python dependencies
+        run: uv sync --frozen
+      - name: Require dedicated hosted-test credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.ci_release_preflight
+      - name: Verify one disposable D1 pause transaction and cleanup
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.controlled_trial_pause_hosted --from-env --output-directory .coordination-runs/controlled-pause-proof
+      - name: Retain sanitized pause-proof receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: controlled-trial-pause-hosted-evidence
+          if-no-files-found: ignore
+          include-hidden-files: true
+          path: .coordination-runs/controlled-pause-proof/docs/evidence/controlled-trial-pause-hosted-2026-10-15.json

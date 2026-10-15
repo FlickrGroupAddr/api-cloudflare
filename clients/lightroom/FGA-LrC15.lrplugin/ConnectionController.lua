@@ -196,4 +196,34 @@ function Controller.verifyStored(properties)
     beginVerification(properties)
 end
 
+-- Each browser task obtains the current identity, then the discovery client
+-- applies the secure-store rotation gate. Credentials never enter UI properties.
+function Controller.discoveryDependencies()
+    return {
+        retrieve = retrieve,
+        httpGet = LrHttp.get,
+        httpPost = LrHttp.post,
+        encode = json.encode,
+        decode = function(body)
+            local value, position, decodeError = json.decode(body, 1, json.null)
+            if decodeError ~= nil or type(position) ~= "number"
+                or string.find(string.sub(body, position), "%S") then return nil end
+            return value
+        end,
+        sleep = LrTasks.sleep,
+        expectedInstallationId = prefs.installationId,
+        jsonNull = json.null,
+        logState = function(state)
+            local allowed = {
+                loading = true, available = true, empty = true, refreshing = true,
+                stale = true, unavailable = true, cancelled = true,
+            }
+            local safe = allowed[state] and state or "unavailable"
+            if loggingEnabled then
+                pcall(function() logger:info("discovery state=" .. safe) end)
+            end
+        end,
+    }
+end
+
 return Controller

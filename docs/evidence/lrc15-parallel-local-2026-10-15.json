@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "scope": "local_synthetic_parallel_integration",
+  "startedAt": "2026-10-15T14:34:34.019562+00:00",
+  "hostTarget": "Lightroom Classic15.6",
+  "hostBuild": "202609251514-f839cde9",
+  "sdk": "15.3-Apr2026",
+  "actualHostAcceptancePassed": false,
+  "fullHostedReleaseQualified": false,
+  "productionDeploymentPerformed": false,
+  "checks": {
+    "typescript": {
+      "passed": true
+    },
+    "api_projection": {
+      "passed": true
+    },
+    "python_lua_regression": {
+      "passed": true,
+      "testCount": 207
+    },
+    "runtime_regression": {
+      "passed": true,
+      "testCount": 150
+    },
+    "selection_model": {
+      "passed": true
+    },
+    "ruff": {
+      "passed": true
+    },
+    "format": {
+      "passed": true
+    },
+    "pyright": {
+      "passed": true
+    },
+    "adobe_lua_compiler": {
+      "passed": true,
+      "sourceFiles": 21
+    }
+  },
+  "candidateSourceSha2_256": "60485b06f52372b61d6cd12fc5b2e6f47924ad1aa33d2daac4da7ff04594f095",
+  "completedAt": "2026-10-15T14:34:59.723051+00:00",
+  "allLocalChecksPassed": true
+}

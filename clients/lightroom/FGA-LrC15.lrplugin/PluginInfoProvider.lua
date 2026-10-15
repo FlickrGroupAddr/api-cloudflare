@@ -69,7 +69,7 @@ local function sectionsForTopOfDialog(factory, properties)
                     },
                 },
                 factory:static_text {
-                    title = "This release performs only the read-only connection check. It cannot publish or add a photo to a Flickr group.",
+                    title = "Verify your connection here. Browse writable groups through Library > Plug-in Extras > FlickrGroupAddr: Browse writable groups. Publishing and group additions are unavailable in this release.",
                     width_in_chars = 72,
                     height_in_lines = -1,
                     fill_horizontal = 1,

@@ -18,14 +18,18 @@ read-only refresh of the linked Flickr account succeeded with 373 writable
 groups. Submission intake, dispatch, and both durable write gates remain
 paused. The [sanitized production record](docs/evidence/group-discovery-production-2026-09-18.json)
 retains the exact artifact and live check results. The Lightroom group browser
-is separate follow-on work.
+is included in the development candidate below and awaits host acceptance.
 
 The Lightroom Classic 15 release bundle is
 [`clients/lightroom/FGA-LrC15.lrplugin`](clients/lightroom/FGA-LrC15.lrplugin).
-Add that directory in Lightroom Classic 15's Plug-in Manager. Version 0.1.0 stores
-the one-time Plugin Code in `LrPasswords` and performs only the qualified
-current-installation read; it has no publishing or Flickr group-write entry
-point.
+Add that directory in Lightroom Classic 15's Plug-in Manager. The 0.2.0 build 1
+candidate preserves the existing `LrPasswords` namespace and adds a read-only
+writable-group browser under Library > Plug-in Extras. Its current host target is
+Lightroom Classic 15.6 with SDK 15.3; actual host acceptance remains pending.
+See the [2026-10-15 development handoff](docs/operations/lrc15-development-handoff-2026-10-15.md)
+for the separate fixture selection preview, gated existing-photo implementation,
+local outbox probe, publisher preflight and controlled-addition preparation.
+Publishing and Flickr group-write entry points remain unavailable.
 
 FGA client builds are tied to the Lightroom Classic major version they were
 qualified against. `FGA-LrC15` supports Lightroom Classic 15.x. It may happen to

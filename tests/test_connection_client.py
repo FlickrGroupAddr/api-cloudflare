@@ -10,8 +10,7 @@ from typing import Any, cast
 from lupa.lua51 import LuaRuntime, lua_type
 
 SOURCE = (
-    Path(__file__).resolve().parents[1]
-    / "clients/lightroom/FGA-LrC15.lrplugin/ConnectionCore.lua"
+    Path(__file__).resolve().parents[1] / "clients/lightroom/FGA-LrC15.lrplugin/ConnectionCore.lua"
 )
 PLUGIN_ROOT = SOURCE.parent
 CREDENTIAL = "ABCD-" * 12 + "ABC0"
@@ -90,8 +89,10 @@ class ConnectionClientTests(unittest.TestCase):
         )
         self.assertEqual(manifest["LrPluginName"], "FGA-LrC15")
         self.assertEqual(manifest["LrPluginInfoProvider"], "PluginInfoProvider.lua")
+        self.assertEqual(manifest["VERSION"], {"major": 0, "minor": 2, "revision": 0, "build": 1})
         self.assertEqual(
-            manifest["VERSION"], {"major": 0, "minor": 1, "revision": 0, "build": 4}
+            manifest["LrLibraryMenuItems"][0]["file"],
+            "RunGroupBrowser.lua",
         )
 
     def test_store_precedes_clear_and_confirms_exact_retrieval(self):
@@ -134,17 +135,13 @@ class ConnectionClientTests(unittest.TestCase):
 
     def test_safe_get_has_exact_url_and_single_bearer_header(self):
         outcome = self.plain(
-            self.core.verifyCredential(
-                CREDENTIAL, self.get(self.response()), self.decode, None
-            )
+            self.core.verifyCredential(CREDENTIAL, self.get(self.response()), self.decode, None)
         )
         self.assertEqual(outcome["state"], "connected")
         self.assertEqual(outcome["installationId"], INSTALLATION_ID)
         self.assertEqual(len(self.calls), 1)
         url, headers, timeout = self.calls[0]
-        self.assertEqual(
-            url, "https://flickrgroupaddr.com/api/v001/installations/current"
-        )
+        self.assertEqual(url, "https://flickrgroupaddr.com/api/v001/installations/current")
         self.assertNotIn("?", url)
         self.assertEqual(
             headers,
@@ -177,8 +174,9 @@ class ConnectionClientTests(unittest.TestCase):
             return first_ok, marker, second_ok, state
             """
         )
-        self.assertEqual((first_ok, marker, second_ok, state),
-                         (True, "waiting_for_http", True, "connected"))
+        self.assertEqual(
+            (first_ok, marker, second_ok, state), (True, "waiting_for_http", True, "connected")
+        )
 
     def test_success_shape_and_expected_identity_are_exhaustive(self):
         cases = (
@@ -246,9 +244,7 @@ class ConnectionClientTests(unittest.TestCase):
             self.core.verifyCredential(CREDENTIAL, failed_request, self.decode, None)
         )
         server = self.plain(
-            self.core.verifyCredential(
-                CREDENTIAL, self.get("", 503), self.decode, None
-            )
+            self.core.verifyCredential(CREDENTIAL, self.get("", 503), self.decode, None)
         )
         self.assertEqual(transport["state"], "retryable")
         self.assertEqual(server["state"], "retryable")
@@ -261,9 +257,7 @@ class ConnectionClientTests(unittest.TestCase):
             )
             return None, info
 
-        outcome = self.plain(
-            self.core.verifyCredential(CREDENTIAL, sdk_error, self.decode, None)
-        )
+        outcome = self.plain(self.core.verifyCredential(CREDENTIAL, sdk_error, self.decode, None))
         self.assertEqual(outcome["state"], "retryable")
         self.assertEqual(outcome["message"], "Lightroom network error: cannotConnectToHost.")
         self.assertEqual(outcome["diagnostic"], "cannotConnectToHost")
@@ -271,9 +265,7 @@ class ConnectionClientTests(unittest.TestCase):
 
         def unknown_error(*_):
             info = self.headers(0)
-            info["error"] = self.lua.table_from(
-                {"errorCode": CREDENTIAL}, recursive=True
-            )
+            info["error"] = self.lua.table_from({"errorCode": CREDENTIAL}, recursive=True)
             return None, info
 
         unknown = self.plain(
@@ -312,22 +304,16 @@ class ConnectionClientTests(unittest.TestCase):
     def test_results_never_contain_the_plugin_code(self):
         outcomes = [
             self.plain(
-                self.core.verifyCredential(
-                    CREDENTIAL, self.get(self.response()), self.decode, None
-                )
+                self.core.verifyCredential(CREDENTIAL, self.get(self.response()), self.decode, None)
             ),
             self.plain(
-                self.core.verifyCredential(
-                    CREDENTIAL, self.get("", 503), self.decode, None
-                )
+                self.core.verifyCredential(CREDENTIAL, self.get("", 503), self.decode, None)
             ),
         ]
         for outcome in outcomes:
             self.assertNotIn(CREDENTIAL, repr(outcome))
 
-    def controller(
-        self, body: str, status: int, challenge: str | None = None
-    ) -> tuple[Any, Any]:
+    def controller(self, body: str, status: int, challenge: str | None = None) -> tuple[Any, Any]:
         lua = cast(Any, LuaRuntime)(
             unpack_returned_tuples=True, register_eval=False, register_builtins=False
         )
@@ -418,9 +404,7 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(globals_.mockCalls, 1)
         self.assertEqual(globals_.mockLastUrl, self.core.CURRENT_URL)
         self.assertEqual(globals_.mockLastTimeout, 30)
-        self.assertEqual(
-            globals_.mockStores[1]["key"], "fga.installation.current"
-        )
+        self.assertEqual(globals_.mockStores[1]["key"], "fga.installation.current")
         self.assertIsNone(globals_.mockStores[1]["salt"])
         self.assertEqual(
             globals_.mockStores[1]["pluginId"],
@@ -460,9 +444,7 @@ class ConnectionClientTests(unittest.TestCase):
         )
         controller.storeAndVerify(properties)
         globals_ = lua.globals()
-        self.assertEqual(
-            globals_.mockStorage["fga.installation.current"], ""
-        )
+        self.assertEqual(globals_.mockStorage["fga.installation.current"], "")
         self.assertTrue(properties["canStore"])
         self.assertIn("invalid", properties["status"].lower())
         self.assertNotIn(CREDENTIAL, properties["status"])
@@ -493,9 +475,7 @@ class ConnectionClientTests(unittest.TestCase):
             }
             """
         )
-        provider = lua.execute(
-            (PLUGIN_ROOT / "PluginInfoProvider.lua").read_text(encoding="utf-8")
-        )
+        provider = lua.execute((PLUGIN_ROOT / "PluginInfoProvider.lua").read_text(encoding="utf-8"))
         globals_ = lua.globals()
         sections = provider.sectionsForTopOfDialog(globals_.factory, globals_.properties)
         section = sections[1]
@@ -504,9 +484,7 @@ class ConnectionClientTests(unittest.TestCase):
         self.assertEqual(section["synopsis"]["key"], "status")
         self.assertTrue(same_table(section["synopsis"]["bind_to_object"], globals_.properties))
         self.assertTrue(same_table(column["bind_to_object"], globals_.properties))
-        self.assertEqual(
-            globals_.properties["pluginCodeUrl"], "https://flickrgroupaddr.com/admin/"
-        )
+        self.assertEqual(globals_.properties["pluginCodeUrl"], "https://flickrgroupaddr.com/admin/")
         self.assertEqual(globals_.properties["status"], "No Plugin Code is stored.")
         self.assertEqual(column[2]["value"], "pluginCodeUrl")
         self.assertEqual(column[4]["value"], "pluginCode")

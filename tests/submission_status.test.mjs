@@ -96,7 +96,7 @@ test("an active row with a permanent block is rejected rather than rendered elig
 test("failed status bookkeeping cleanup cannot starve the durable work sweep",async t=>{
  const f=fixture(t),prepare=f.db.prepare;let wakes=0;
  f.db.prepare=sql=>{if(sql.startsWith("DELETE FROM status_read_events"))throw Error("synthetic maintenance failure");return prepare(sql);};
- f.env.FGA_ADMIN_ENABLED="0";f.env.FGA_INTAKE_ENABLED="1";
+ f.env.FGA_ADMIN_ENABLED="0";f.env.FGA_INTAKE_ENABLED="1";f.env.FGA_DISPATCH_ENABLED="1";
  f.env.COORD={idFromName:id=>id,get:()=>({fetch:async(_url,init)=>{assert.equal(JSON.parse(init.body).source,"sweep");wakes++;return new Response(null,{status:204});}})};
  await f.worker.scheduled({},f.env);assert.equal(wakes,1);
 });

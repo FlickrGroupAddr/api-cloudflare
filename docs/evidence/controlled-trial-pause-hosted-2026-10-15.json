@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "scope": "new_disposable_hosted_d1_only",
+  "startedAt": "2026-10-15T14:26:33.444962+00:00",
+  "migrationHead": "0014_photo_memberships.sql",
+  "migrationSha2_256": "b494b72c3f71c9faa7e6472ac34e0687432b4179166580ed0838eb9c4ee68ef2",
+  "adapterSha2_256": "421dd4104118b6960afa11ffa1a169abd5bad278bf77ad6b4d7e73f1175665c2",
+  "hostedProofSha2_256": "e44eaba0e94ea948f5f605b3a0e9ebaccc775307fe221d10871a039c8459ff8b",
+  "python": "3.14.7",
+  "providerTransport": "official_D1_REST_query_batch",
+  "providerLibraryVersion": "urllib_python_standard_library",
+  "migrationDigestAlgorithm": "sha256(name + NUL + content + NUL, ordered filenames)",
+  "pyprojectSha2_256": "36c79d4a033535fe270b347739609e420a41a2b3f99f93add88765876436b90d",
+  "uvLockSha2_256": "aa94ded3cda190efe788d8b1028bcf57fab22495c19113b1ad8ce1a1d0adafba",
+  "checks": {},
+  "cleanupConfirmed": true,
+  "passed": false,
+  "unavailableReason": "operator_auth_unavailable",
+  "operatorAuthErrorClass": "RuntimeError",
+  "resourceCreationAttempted": false,
+  "completedAt": "2026-10-15T14:26:34.588418+00:00"
+}
