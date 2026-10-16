@@ -357,6 +357,19 @@ class ExistingPhotoClientTests(unittest.TestCase):
         """)
         return browser, globals_.context
 
+    def test_browser_module_defers_default_sdk_imports_and_client_require(self):
+        self.lua.execute("""
+            function import() error("unexpected_sdk_import") end
+            function require() error("unexpected_client_require") end
+        """)
+        browser = self.lua.execute((PLUGIN / "ExistingPhotoBrowser.lua").read_text())
+        self.assertEqual(browser.THUMBNAIL_BYTES, 262144)
+        self.assertEqual(browser.PAGE_BYTES, 1310720)
+        self.assertEqual(browser.THUMBNAIL_TIMEOUT, 15)
+        self.assertTrue(callable(browser.new))
+        self.assertTrue(callable(browser.run))
+        self.assertTrue(callable(browser.validImage))
+
     def test_browser_cancel_removes_only_transient_cache(self):
         with tempfile.TemporaryDirectory() as directory:
             browser, context = self.prepare_browser(directory)

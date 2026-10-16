@@ -114,3 +114,53 @@ missing scoped timing decision. The latter document has a newer resolved-status
 note at `:85`. Accepted ADR0060 controls: the remaining task is qualification of
 the accepted observed-time profile, not reopening the already accepted stall
 limitation. This review changed no source or existing documentation.
+
+## Browser factory follow-up for native fixture 0.0.1.5
+
+The primary agent reported that fixture 0.0.1.4 stopped at `load_browser` on
+Lightroom Classic 15.6 because `setfenv` was unavailable, before any request or
+page presentation. This is primary-observer evidence, not a host observation
+made by this reviewer. That failure does not qualify browser behavior or
+transport.
+
+Reviewed `ExistingPhotoBrowser.lua:7` now constructs an explicit
+`Browser.new(sdk, client)` instance. The fixture loads the actual release module
+and supplies its narrow SDK adapters and actual client directly
+(`probes/FGA-ExistingPhoto-Qualification.lrplugin/Qualification.lua:140`). It no
+longer rewrites environments, globals or module caches to substitute dependencies.
+Reading the presence of standard functions in sanitized diagnostics is not an
+environment mutation. No new networking, credential or catalog capability was
+introduced by the factory.
+
+The default `Browser.run` API remains a lazy singleton
+(`ExistingPhotoBrowser.lua:226`): it imports the documented SDK modules and
+requires the existing client only on first use. The singleton retains the prior
+busy guard. Explicit fixture instances keep their own busy/cancellation state.
+Complete-page staging, per-image/client and aggregate page bounds, opaque
+temporary files, cleanup registration, failed-deletion refusal, cancellation
+checks, selected-row verification and read-only membership behavior remain in
+the instance implementation. The default image validator still delegates to the
+same client validator. The source candidate's transport qualification gate
+remains required before a browser request.
+
+Review caught compounded UTF-8 encoding in three UI literals during the wrapper
+rewrite. The owner corrected the ellipsis and observation separators to plain
+ASCII; the final source was inspected explicitly as UTF-8. No remaining material
+behavior or security defect was found in the factory/fixture change.
+
+Independent final verification:
+`uv run --frozen python -m unittest tests.test_existing_photo_qualification_native tests.test_existing_photo_client`
+passed 42 tests, zero failed. This includes the explicit factory with
+`setfenv=nil`, lazy module loading, fixture scenarios and existing cache/protocol
+checks. These are actual Lua 5.1 tests with injected SDK/HTTP adapters; they do
+not prove the supported native host, `LrHttp` transport or production behavior.
+The primary agent owns the release version increment and subsequent host Reload.
+This reviewer performed no host action or runtime-source edit.
+
+SHA2-256 digests of the final reviewed sources:
+
+| File | Digest |
+| --- | --- |
+| `clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoBrowser.lua` | `c879fc04f84667661a1073ab526ef094644292cbc21f1504f6b38ae0b2a38aad` |
+| `probes/FGA-ExistingPhoto-Qualification.lrplugin/Qualification.lua` | `114edef625417f2b792579a18a6514302ead5341abd85b60cc3172c4f6262feb` |
+| `probes/FGA-ExistingPhoto-Qualification.lrplugin/Info.lua` | `47e2c3755256bf17619c8ebf97fc9a1103cf1ae582382b5d538c0adb5ceadf63` |

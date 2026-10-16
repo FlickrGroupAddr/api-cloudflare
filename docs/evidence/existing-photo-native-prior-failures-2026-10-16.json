@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "scope": "historical failed synthetic fixture builds",
+  "runs": [
+    {
+      "provenance": {
+        "schemaVersion": 1,
+        "fixtureVersion": "0.0.1.3",
+        "releaseVersion": "0.2.0.5",
+        "date": "2026-10-16",
+        "sourceSha2_256": {
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/Info.lua": "a52eb35692af32c6e586d5bd0bb20b297f221919bbe8adf9ec3e35f8c6fb144b",
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/Run.lua": "2641a454c0f6e54ccb749e22246eb74cb269d9bab1f6f061a4bfd595189c2b63",
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/Qualification.lua": "2c7f164b94f2c9110d73c2a5d83826642b8b74a8846e33c0f8038ddf86c12183",
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/synthetic.png": "2ef1b0a6e1d4e437e5ea7d12fc2b288235d25ed4aa72c087c9caa820c055a66e",
+          "clients/lightroom/FGA-LrC15.lrplugin/Info.lua": "8330d535395278cefbc0bceb7679272756bceff764c35514231dbbe7d907a808",
+          "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoClient.lua": "2fcd68afae4f933ce83e25aa4cf8c734971f25a5ae12855c23c6f3f68bcfdc54",
+          "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoBrowser.lua": "f56f9d0be4b1b29e4404a4ff991d70d14907a91f46b014618fb8e0be53c9501c",
+          "clients/lightroom/FGA-LrC15.lrplugin/dkjson.lua": "197cb50834c642f84b4cf99fe724932c50e6d9c92faec7ad89aa25e91df4d481"
+        }
+      },
+      "receipt": {
+        "scenario": "success",
+        "cacheClean": false,
+        "productionQualified": false,
+        "schemaVersion": 1,
+        "nativeTransportQualified": false,
+        "host": {
+          "minor": 6,
+          "revision": 0,
+          "major": 15,
+          "buildVersion": "202609251514-f839cde9"
+        },
+        "reasonCode": "fixture_runtime_error",
+        "outcome": "failed",
+        "terminal": true,
+        "probeVersion": "0.0.1.3",
+        "probe": "existing_photo_synthetic",
+        "runId": "fixture-813856442391098",
+        "releaseVersion": "0.2.0.5"
+      }
+    },
+    {
+      "provenance": {
+        "schemaVersion": 1,
+        "fixtureVersion": "0.0.1.4",
+        "releaseVersion": "0.2.0.5",
+        "date": "2026-10-16",
+        "sourceSha2_256": {
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/Info.lua": "70d3e10b4ff8314af990466d8a8cdf7904050e6d845c41871a55ac55b690a714",
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/Run.lua": "e4314d20af105873419bf7c045096f91505fb7ecabc913f32f8dc2afb8860cab",
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/Qualification.lua": "4a8e063d0603b80f7f10d4e57ea4a2ed82b695511398c0446b0799cf37e91a41",
+          "probes/FGA-ExistingPhoto-Qualification.lrplugin/synthetic.png": "2ef1b0a6e1d4e437e5ea7d12fc2b288235d25ed4aa72c087c9caa820c055a66e",
+          "clients/lightroom/FGA-LrC15.lrplugin/Info.lua": "8330d535395278cefbc0bceb7679272756bceff764c35514231dbbe7d907a808",
+          "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoClient.lua": "2fcd68afae4f933ce83e25aa4cf8c734971f25a5ae12855c23c6f3f68bcfdc54",
+          "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoBrowser.lua": "f56f9d0be4b1b29e4404a4ff991d70d14907a91f46b014618fb8e0be53c9501c",
+          "clients/lightroom/FGA-LrC15.lrplugin/dkjson.lua": "197cb50834c642f84b4cf99fe724932c50e6d9c92faec7ad89aa25e91df4d481"
+        }
+      },
+      "receipt": {
+        "completePages": true,
+        "standardFunctions": {
+          "globalTable": true,
+          "setfenv": false,
+          "setmetatable": true,
+          "loadfile": true
+        },
+        "cancelledStates": 0,
+        "emptyStates": 0,
+        "cacheClean": false,
+        "cleanupFailureInjected": false,
+        "schemaVersion": 1,
+        "requests": 0,
+        "proofs": 0,
+        "reasonCode": "fixture_runtime_error",
+        "outcome": "failed",
+        "errorType": "string",
+        "runId": "fixture-813857064411688",
+        "availableStates": 0,
+        "membershipDialogs": 0,
+        "productionQualified": false,
+        "nativeTransportQualified": false,
+        "phase": "load_browser",
+        "memberships": 0,
+        "terminal": true,
+        "host": {
+          "minor": 6,
+          "revision": 0,
+          "major": 15,
+          "buildVersion": "202609251514-f839cde9"
+        },
+        "releaseVersion": "0.2.0.5",
+        "probeVersion": "0.0.1.4",
+        "scenario": "success",
+        "failurePhase": "load_browser",
+        "pagesPresented": 0,
+        "probe": "existing_photo_synthetic",
+        "thumbnails": 0,
+        "discoveries": 0
+      }
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-# FGA-LrC15 Lightroom plug-in 0.2.0, build 1
+# FGA-LrC15 Lightroom plug-in 0.2.0, build 6
 
 This `.lrplugin` directory is the production release bundle for Lightroom
 Classic 15. It stores one installation
@@ -58,7 +58,7 @@ Rotation is intentionally fail-closed in this slice. A nonempty rotation
 candidate blocks fallback to the prior current code and requires completion or
 cancellation through the accepted browser workflow.
 
-## Disabled selection/submission candidate: 0.2.0.5
+## Disabled selection/submission candidate: 0.2.0.6
 
 This build contains independently reviewed selection, separate catalog-photo and
 binding-only outbox stores, complete eligibility/status readers, and the accepted
@@ -68,3 +68,12 @@ is enabled. Missing host scope/metadata/task/credential/proof/POST/recovery adap
 must be qualified before registration; storing an intent acknowledgement never
 means Flickr has added the photo. See [the controller design](../../../docs/design/group-selection-controller.md)
 and [integration review](../../../docs/evidence/group-selection-integration-review-2026-10-16.md).
+
+Build 6 adds the reviewed `ExistingPhotoGroupWorkflow` composition and an
+explicit browser dependency factory while preserving lazy default SDK imports.
+The separate synthetic native fixture passed ten scenarios on Lightroom
+Classic 15.6; see [the native evidence](../../../docs/evidence/existing-photo-native-synthetic-2026-10-16.json).
+The workflow's actual protocol/controller/dialog/store composition passed
+offline tests and [independent review](../../../docs/evidence/existing-photo-group-workflow-review-2026-10-16.md).
+These results do not qualify real HTTP or catalog crash/recovery adapters.
+The existing-public-photo command remains unregistered and production-disabled.

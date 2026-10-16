@@ -77,3 +77,60 @@ binding. Binding provenance is never rewritten to select a client workflow.
 The original publisher-bound path may use `{workflow="publisher_bound"}`; an
 upload-origin binding in that path keeps its existing proof behavior. Unknown
 workflow context fails closed.
+
+## Existing-public-photo workflow composition candidate
+
+`ExistingPhotoGroupWorkflow.run(context,deps)` composes the actual browser,
+protocol clients, eligibility assembler, binding-only catalog outbox, selection
+controller and accepted native dialog. It remains unregistered and declares
+`PRODUCTION_QUALIFIED=false`. The caller owns one documented asynchronous SDK
+task and function context; this module creates no task or menu entry.
+
+Before any module loading, credential read, request, dialog or write, the
+caller must explicitly supply every capability assertion: `hostTask`,
+`thumbnailTransport`, `readTransport`, `proofTransport`, `batchTransport`,
+`catalogOutbox`, `currentIdentity`, and `credentialBoundary`. These assertions
+are composition inputs, not evidence of qualification. Missing adapters or
+assertions produce `qualification_required` and no work.
+
+Required host adapters are `call` (LrTasks.pcall), secure `retrieve`, qualified
+`httpGet` and proof `httpPost`, bounded relative-path `batchPost`, strict
+`decode`/`encode` and shared `jsonNull`, cancellable `sleep`, `cancelled`,
+monotonic `now`, unique `newHandoffId`, `currentIdentity`, and `activeCatalog`,
+plus the exact `catalog`, `plugin`, and existing `batchClient` module. The
+existing batch adapter is injected because it remains outside the release
+bundle. `currentIdentity` returns the authenticated installation ID and current
+linked Flickr revision; it is not inferred from photo or catalog metadata.
+
+The existing browser returns only `(binding,membershipObservation)` on success;
+it does not return the selected photo title. The composition therefore displays
+the exact Flickr photo ID as its context. It identifies the Album as absent and
+creates no photo UUID, catalog photo, publish record, or Album entity. It
+preserves binding provenance, including `fga_direct_upload`, while explicitly
+passing `workflow="existing_public_photo"` to force fresh final public-photo
+proof before queue handoff.
+
+One invocation captures installation/link/catalog/credential context and checks
+it before and after every transport call. It reuses complete browser membership
+results, loads a fresh complete writable-group snapshot and complete verified
+history, and opens the selector only after eligibility assembly succeeds. It
+uses the separately implemented binding-only store's exact scope and private
+catalog outbox. Existing pending handoffs stop the invocation with
+`reconciliation_required` and their original non-secret IDs. Reopening never
+creates a replacement handoff or automatically replays the batch. Failed reads
+return `unavailable`; cancelled dialogs leave the outbox unchanged; a lost batch
+response retains the original prepared snapshot and returns `unresolved`.
+
+Synthetic tests execute all actual Lua cores, including the existing browser
+and native selection dialog through mocked documented SDK controls. They cover
+the preserved upload-origin proof edge, durable snapshot before one POST,
+missing capability refusal, stale/incomplete reads, identity changes, cancel,
+and unresolved handoff identity across reopen. They do not qualify native HTTP,
+thumbnail cache, host lifetime, outbox durability, production registration or
+live dispatch.
+
+Workflow identity fencing validates exactly `{installationId,linkedFlickrRevision}`
+with an opaque installation ID and positive safe-integer link revision before
+credential reads or requests and at every later fence. A post-outbox-gate fence
+also checks rotation, credential and cancellation before returning pending IDs;
+a yielding catalog gate cannot expose them under changed workflow context.
