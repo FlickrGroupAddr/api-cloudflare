@@ -7,7 +7,7 @@ for(const route of ROUTES){
  const method=route.method.toLowerCase();if(paths[route.pathPattern]?.[method])throw new Error("Duplicate route");
  const noStore={description:"Always no-store",schema:{type:"string",const:"no-store"}};
  const responses={};
- for(const status of route.successStatuses)responses[status]={description:["admin","plugin_code","status_admin"].includes(route.handler)?"Administrative operation result":route.handler==="current"?"Current installation":["binding","upload_photo_binding"].includes(route.handler)?"Fresh verified photo binding":"Complete ordered admission snapshot",headers:{"Cache-Control":noStore},...(status===204?{}:{content:{"application/json":{schema:route.response}}})};
+ for(const status of route.successStatuses)responses[status]={description:["admin","plugin_code","status_admin"].includes(route.handler)?"Administrative operation result":route.handler==="current"?"Current installation":["binding","upload_photo_binding","upload_ambiguity_resolution"].includes(route.handler)?"Fresh verified photo binding":"Complete ordered admission snapshot",headers:{"Cache-Control":noStore},...(status===204?{}:{content:{"application/json":{schema:route.response}}})};
  for(const status of route.handler==="current"?[400,401,405,503]:[400,401,403,404,405,409,412,413,415,422,428,429,500,503])responses[status]={description:status===401&&route.auth!=="browser_session"?"Missing authentication has an empty body and bare Bearer challenge; invalid credentials return the error representation.":"Request rejected",headers:{"Cache-Control":noStore,...(route.auth!=="browser_session"&&[400,401,403].includes(status)?{"WWW-Authenticate":{description:"Present for authentication-envelope and insufficient-scope errors; not for application validation errors.",schema:{type:"string"}}}:{}),...(status===405?{Allow:{schema:{type:"string",const:[...new Set(ROUTES.filter(r=>r.pathPattern===route.pathPattern).map(r=>r.method))].sort().join(", ")}}}:{})},content:{"application/json":{schema:ERROR_SCHEMA}}};
  responses[400].description="Application errors use JSON/no-store. ADR 0054 permits the bounded early provider duplicate-Authorization rejection to use non-JSON HTTP 400 without application headers; it cannot redirect, set session cookies, expose application data or serve the shell.";
  responses[400].content["text/html"]={schema:{type:"string"}};
@@ -48,6 +48,12 @@ for(const route of ROUTES){
   paths[route.pathPattern][method].description="Disabled upload-origin proof candidate. Current installation and exact upload authorization only. Fresh exact-photo/current-owner observation may verify a private upload. First commit is 201 with Location; identical committed tuple returns current common binding with 200 without another proof or revision inflation. A different photo conflicts. No image upload, album write or group admission occurs.";
   responses[201].headers.Location={description:"Relative URI of this authorization's photo-binding resource",schema:{type:"string"}};
   responses[503].description="Missing/failed or unavailable Flickr observations are retryable and include Retry-After. No binding/provenance is committed on failure.";
+  responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
+ }
+ if(route.handler==="upload_ambiguity_resolution"){
+  paths[route.pathPattern][method].description="Disabled explicit ambiguous-upload resolution. Photographer-selected exact photo under the current installation and upload authorization receives fresh current-owner proof; private photos are allowed. Immutable reconciliation provenance records the explicit choice without claiming byte identity. Same committed tuple returns 200 without another proof or event; a conflicting tuple is rejected. No image upload, album/group write or catalog mutation occurs.";
+  responses[201].headers.Location={description:"Relative URI of this authorization's ambiguity-resolution resource",schema:{type:"string"}};
+  responses[503].description="Missing or unavailable provider proof is retryable; no association or provenance is committed.";
   responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
  }
  if(route.handler==="upload_authorization"){

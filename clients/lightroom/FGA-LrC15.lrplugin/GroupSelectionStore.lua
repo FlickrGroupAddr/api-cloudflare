@@ -307,16 +307,21 @@ function Module.new(options)
         return validScope(scope) and type(options.activeCatalog) == "function"
             and options.activeCatalog() == catalog and photo:getRawMetadata("uuid") == scope.photoUuid
     end
-    local function run(scope,operation)
+    local function run(scope,operation,operationCurrent)
         if type(protect) ~= "function" or catalog == nil or photo == nil or plugin == nil
-            or not validScope(scope) then return failure("scope_invalid") end
+            or not validScope(scope) or (operationCurrent ~= nil and type(operationCurrent) ~= "function") then
+            return failure("scope_invalid")
+        end
+        local function guardedScope()
+            return inScope(scope) and (operationCurrent == nil or operationCurrent() == true)
+        end
         local result,expectedSelection,expectedOutbox,completed
         local callbackOpen=true
         local ok,gate=protect(function()
-            if not inScope(scope) then return "scope_invalid" end
+            if not guardedScope() then return "scope_invalid" end
             return catalog:withPrivateWriteAccessDo(function()
                 -- Fence a callback that unexpectedly runs after a queued/aborted return.
-                if not callbackOpen or not inScope(scope) then error("scope_invalid") end
+                if not callbackOpen or not guardedScope() then error("scope_invalid") end
                 local selectionRaw=photo:getPropertyForPlugin(plugin,Module.SELECTION_FIELD)
                 local outboxRaw=catalog:getPropertyForPlugin(plugin,Module.OUTBOX_FIELD)
                 local selections=readDocument(selectionRaw,false,scope.photoUuid)
@@ -337,6 +342,7 @@ function Module.new(options)
                     if #expectedOutbox > Module.MAX_OUTBOX_BYTES then result=failure("storage_full"); return end
                 end
                 -- All validation/encoding/bounds checks precede either write.
+                if not guardedScope() then error("scope_invalid") end
                 if selectionChanged then photo:setPropertyForPlugin(plugin,Module.SELECTION_FIELD,expectedSelection) end
                 if outboxChanged then catalog:setPropertyForPlugin(plugin,Module.OUTBOX_FIELD,expectedOutbox) end
                 completed=true
@@ -348,7 +354,7 @@ function Module.new(options)
         if gate ~= "executed" then return failure("write_unconfirmed") end
         if not completed then return result or failure("write_unconfirmed") end
         local readOk,matched=protect(function()
-            return inScope(scope) and photo:getPropertyForPlugin(plugin,Module.SELECTION_FIELD) == expectedSelection
+            return guardedScope() and photo:getPropertyForPlugin(plugin,Module.SELECTION_FIELD) == expectedSelection
                 and catalog:getPropertyForPlugin(plugin,Module.OUTBOX_FIELD) == expectedOutbox
         end)
         if not readOk or not matched then return failure("write_unconfirmed") end
@@ -450,7 +456,8 @@ function Module.new(options)
             return {state="ready",handoffs=handoffs}
         end)
     end
-    function Store:confirm(scope,handoffId,expectedRevision,ack)
+    -- Optional operationCurrent must be a non-yielding current-session read.
+    function Store:confirm(scope,handoffId,expectedRevision,ack,operationCurrent)
         if not validScope(scope) then return failure("scope_invalid") end
         scope=clone(scope)
         if not opaque(handoffId) or not integer(expectedRevision,1) then return failure("handoff_invalid") end
@@ -486,7 +493,7 @@ function Module.new(options)
                 for _,row in ipairs(ack.submissions) do table.insert(record.submissions,clone(row)) end
             end
             return {state="confirmed",selectionConsumed=consume,handoff=clone(record)},consume,true
-        end)
+        end,operationCurrent)
     end
     return Store
 end

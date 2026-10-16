@@ -3,6 +3,7 @@ import { GROUP_ROUTES } from "./group_registry.ts";
 import { PHOTO_ROUTES } from "./photo_registry.ts";
 import { UPLOAD_AUTHORIZATION_ROUTES } from "./upload_authorization_registry.ts";
 import { UPLOAD_PHOTO_BINDING_ROUTES } from "./upload_photo_binding.ts";
+import { UPLOAD_AMBIGUITY_RESOLUTION_ROUTES } from "./upload_ambiguity_resolution.ts";
 import { PLUGIN_CODE_ROUTES } from "./plugin_code_registry.ts";
 import { ADMIN_ROUTES } from "./admin_registry.ts";
 import { MAX_GROUP_IDS } from "./admission.ts";
@@ -37,6 +38,7 @@ export const ROUTES = [
  ...PHOTO_ROUTES,
  ...UPLOAD_AUTHORIZATION_ROUTES,
  ...UPLOAD_PHOTO_BINDING_ROUTES,
+ ...UPLOAD_AMBIGUITY_RESOLUTION_ROUTES,
  ...ADMIN_ROUTES,
  ...STATUS_ROUTES,
  ...PLUGIN_CODE_ROUTES,

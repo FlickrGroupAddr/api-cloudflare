@@ -307,15 +307,19 @@ function Module.new(options)
             and identity.installationId == scope.installationId
             and identity.linkedFlickrRevision == scope.linkedFlickrRevision
     end
-    local function run(scope,operation)
+    local function run(scope,operation,operationCurrent)
         if type(protect) ~= "function" or catalog == nil or plugin == nil
-            or (options.workflow ~= nil and options.workflow ~= Module.WORKFLOW) then return failure("scope_invalid") end
+            or (options.workflow ~= nil and options.workflow ~= Module.WORKFLOW)
+            or (operationCurrent ~= nil and type(operationCurrent) ~= "function") then return failure("scope_invalid") end
+        local function guardedCurrent()
+            return current(scope) and (operationCurrent == nil or operationCurrent() == true)
+        end
         local result,expected,completed
         local callbackOpen=true
         local ok,gate=protect(function()
-            if not current(scope) then return "scope_invalid" end
+            if not guardedCurrent() then return "scope_invalid" end
             return catalog:withPrivateWriteAccessDo(function()
-                if not callbackOpen or not current(scope) then error("scope_invalid") end
+                if not callbackOpen or not guardedCurrent() then error("scope_invalid") end
                 local raw=catalog:getPropertyForPlugin(plugin,Module.OUTBOX_FIELD)
                 local document=readDocument(raw)
                 if not document then result=failure("stored_invalid"); return end
@@ -327,6 +331,7 @@ function Module.new(options)
                     if not validDocument(document) then error("stored_invalid") end
                     expected=encodeDocument(document)
                     if #expected > Module.MAX_OUTBOX_BYTES then result=failure("storage_full"); return end
+                    if not guardedCurrent() then error("scope_invalid") end
                     catalog:setPropertyForPlugin(plugin,Module.OUTBOX_FIELD,expected)
                 end
                 completed=true
@@ -338,7 +343,7 @@ function Module.new(options)
         if gate ~= "executed" then return failure("write_unconfirmed") end
         if not completed then return result or failure("write_unconfirmed") end
         local readOk,matched=protect(function()
-            return current(scope) and catalog:getPropertyForPlugin(plugin,Module.OUTBOX_FIELD) == expected
+            return guardedCurrent() and catalog:getPropertyForPlugin(plugin,Module.OUTBOX_FIELD) == expected
         end)
         return readOk and matched and result or failure("write_unconfirmed")
     end
@@ -396,7 +401,9 @@ function Module.new(options)
             return {state="ready",handoffs=handoffs}
         end)
     end
-    function Store:confirm(scope,handoffId,expectedRevision,ack)
+    -- Optional operationCurrent is a non-yielding session fence, evaluated within
+    -- the private write callback as well as at entry and exact readback.
+    function Store:confirm(scope,handoffId,expectedRevision,ack,operationCurrent)
         if not validScope(scope) then return failure("scope_invalid") end
         scope=clone(scope)
         if not opaque(handoffId) or not integer(expectedRevision,1) then return failure("handoff_invalid") end
@@ -419,7 +426,7 @@ function Module.new(options)
             record.submissions=newArray()
             for _,row in ipairs(ack.submissions) do table.insert(record.submissions,clone(row)) end
             return {state="confirmed",selectionConsumed=consumed,handoff=clone(record)},true
-        end)
+        end,operationCurrent)
     end
     return Store
 end

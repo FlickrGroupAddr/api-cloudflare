@@ -31,7 +31,7 @@ The controller requires these injected adapters:
 | `client` | Bundled `clients/lightroom/FGA-LrC15.lrplugin/GroupSubmissionClient.lua`, an exact copy of the retained canonical compatibility source `clients/lightroom/GroupSubmissionClient.lua`. |
 | `call` | Documented `LrTasks.pcall` from the owning asynchronous task. Raw Lua 5.1 `pcall` cannot protect yielding SDK network calls. |
 | `prove(photoId,linkedRevision)` | Safe hosted existing-public-photo proof; returns a validated binding. It cannot render, upload or add to Flickr groups. |
-| `now()` | Monotonic seconds. Existing-public proof starts immediately before proof and must remain younger than 15 seconds after the durable snapshot and before POST. Nonnumeric, nonfinite, backward and expired readings refuse the handoff. |
+| `now()` | Observed seconds from the SDK adapter's documented `LrDate.currentTime` wall clock. Existing-public proof starts immediately before proof and its observed age must remain younger than 15 seconds after the durable snapshot and before POST. Nonnumeric, nonfinite, backward and expired readings refuse the handoff. An undetected wall adjustment can defeat this local estimate; the FGA API backend's current-revision and database proof-age checks remain authoritative. See the [adapter map clock scope](group-workflow-adapter-map-2026-10-16.md#clock-source-and-guarantee). |
 | `newHandoffId()` | Unique non-secret durable correlation ID, independent of request idempotency. The store rejects reuse. No entropy or authorization claim follows from this ID. |
 | `credential()` | Supplies the installation credential at request time; never puts it in model, recovery, return value or dialog. |
 | `post`, `encode`, `decode`, `jsonNull` | Qualified fixed-origin, redirect-safe, bounded host transport and strict JSON adapters. `post` returns body and `{status=number}`; JSON null must retain an explicit sentinel shared with the store. |
@@ -96,7 +96,7 @@ assertions produce `qualification_required` and no work.
 Required host adapters are `call` (LrTasks.pcall), secure `retrieve`, qualified
 `httpGet` and proof `httpPost`, bounded relative-path `batchPost`, strict
 `decode`/`encode` and shared `jsonNull`, cancellable `sleep`, `cancelled`,
-monotonic `now`, unique `newHandoffId`, `currentIdentity`, and `activeCatalog`,
+observed wall-time `now`, unique `newHandoffId`, `currentIdentity`, and `activeCatalog`,
 plus the exact `catalog`, `plugin`, and existing `batchClient` module. The
 existing batch adapter is injected explicitly from the release bundle. A
 byte-equality packaging test guards drift from its retained canonical source. `currentIdentity` returns the authenticated installation ID and current

@@ -83,12 +83,12 @@ export async function commitBinding(db:SqlStore,auth:AdmissionAuth,snapshot:Gran
   sql(`INSERT INTO photo_bindings(binding_id,user_id,photo_id,owner_nsid,link_revision,verification_revision,source_kind) SELECT ?8,?3,?7,?4,CAST(?5 AS INTEGER),1,'existing_public' WHERE NOT EXISTS(SELECT 1 FROM photo_bindings WHERE photo_id=?7)`),
   sql(`UPDATE photo_bindings SET verification_revision=verification_revision+1,link_revision=CAST(?5 AS INTEGER),verified_at_us=${NOW_US_SQL} WHERE photo_id=?7 AND binding_id<>?8 AND verification_revision<9007199254740991`),
   sql(`INSERT INTO photo_binding_events(event_id,binding_id,verification_revision,kind) SELECT lower(hex(randomblob(16))),binding_id,verification_revision,'existing_public_verified' FROM photo_bindings WHERE photo_id=?7`),
-  sql(`SELECT binding_id AS fgaPhotoBindingId,photo_id AS flickrPhotoId,source_kind,link_revision AS linkedFlickrRevision,verification_revision AS verificationRevision,strftime('%Y-%m-%dT%H:%M:',verified_at_us/1000000,'unixepoch')||printf('%09.6f',(verified_at_us%60000000)/1000000.0)||'Z' AS verifiedAt,binding_id=?8 AS created FROM photo_bindings WHERE photo_id=?7`),
+  sql(`SELECT binding_id AS fgaPhotoBindingId,photo_id AS flickrPhotoId,CASE WHEN EXISTS(SELECT 1 FROM upload_ambiguity_resolution_events r JOIN upload_photo_binding_events origin ON origin.authorization_id=r.authorization_id WHERE origin.binding_id=photo_bindings.binding_id AND r.binding_origin=1) THEN 'reconciled_upload' ELSE source_kind END AS source_kind,link_revision AS linkedFlickrRevision,verification_revision AS verificationRevision,strftime('%Y-%m-%dT%H:%M:',verified_at_us/1000000,'unixepoch')||printf('%09.6f',(verified_at_us%60000000)/1000000.0)||'Z' AS verifiedAt,binding_id=?8 AS created FROM photo_bindings WHERE photo_id=?7`),
   sql("DELETE FROM transaction_guards WHERE transaction_id=?9")
  ]);
  const row=results[4].results[0] as unknown as {fgaPhotoBindingId:string;flickrPhotoId:string;source_kind:string;linkedFlickrRevision:number;verificationRevision:number;verifiedAt:string;created:number};
  const {source_kind,created,...body}=row;
- return {created:created===1,body:{schemaVersion:1,...body,sourceKind:source_kind==="existing_public"?"existing_public_flickr_photo":"fga_direct_upload"}};
+ return {created:created===1,body:{schemaVersion:1,...body,sourceKind:source_kind==="existing_public"?"existing_public_flickr_photo":source_kind==="reconciled_upload"?"photographer_reconciled_ambiguous_upload":"fga_direct_upload"}};
 }
 
 // For the authenticated lifecycle service; never exposed as a credential-input HTTP route.

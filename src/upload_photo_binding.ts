@@ -4,7 +4,7 @@ import { linkedGrant, sameGrant, withGrant, signedRead, rejectCurrentGrant,
   type GrantSnapshot, type SecretReads, type FlickrFetch } from './flickr_reads.ts';
 import { PHOTO_ID, photoObject, boundedPhotoRead, photoReadBody } from './existing_photo_discovery.ts';
 
-export interface UploadPhotoBindingEnv extends SecretReads { DB: SqlStore; FGA_UPLOAD_PHOTO_BINDING_ENABLED?: string; }
+export interface UploadPhotoBindingEnv extends SecretReads { DB: SqlStore; FGA_UPLOAD_PHOTO_BINDING_ENABLED?: string; FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED?: string; }
 interface Credential { userId: string; versionId: string; revision: string; }
 interface Authorization { photoId: string | null; }
 interface Binding { fgaPhotoBindingId: string; flickrPhotoId: string; source_kind: string;
@@ -18,7 +18,7 @@ export const UPLOAD_PHOTO_BINDING_REQUEST_SCHEMA = { type: 'object', additionalP
 export const UPLOAD_PHOTO_BINDING_RESPONSE_SCHEMA = { type: 'object', additionalProperties: false,
   required: ['schemaVersion', 'fgaPhotoBindingId', 'sourceKind', 'flickrPhotoId', 'linkedFlickrRevision', 'verificationRevision', 'verifiedAt'],
   properties: { schemaVersion: { const: 1 }, fgaPhotoBindingId: ID_SCHEMA,
-    sourceKind: { type: 'string', enum: ['fga_direct_upload', 'existing_public_flickr_photo'] }, flickrPhotoId: ID_SCHEMA,
+    sourceKind: { type: 'string', enum: ['fga_direct_upload', 'existing_public_flickr_photo', 'photographer_reconciled_ambiguous_upload'] }, flickrPhotoId: ID_SCHEMA,
     linkedFlickrRevision: REVISION, verificationRevision: REVISION, verifiedAt: { type: 'string', format: 'date-time' } } } as const;
 export const UPLOAD_PHOTO_BINDING_ROUTES = [{ id: 'uploadPhotoBinding', method: 'PUT',
   pathPattern: '/api/v001/upload-authorizations/{uploadAuthorizationId}/photo-binding', owner: 'fga_api_backend',
@@ -40,18 +40,18 @@ async function authorization(db: SqlStore, auth: AdmissionAuth, userId: string, 
   return db.prepare(`SELECT photo_id photoId FROM upload_authorizations WHERE authorization_id=? AND installation_id=? AND user_id=?`)
     .bind(id, auth.installationId, userId).first<Authorization>();
 }
-const PROJECTION = `SELECT b.binding_id fgaPhotoBindingId,b.photo_id flickrPhotoId,b.source_kind,
+const PROJECTION = `SELECT b.binding_id fgaPhotoBindingId,b.photo_id flickrPhotoId,CASE WHEN EXISTS(SELECT 1 FROM upload_ambiguity_resolution_events r JOIN upload_photo_binding_events origin ON origin.authorization_id=r.authorization_id WHERE origin.binding_id=b.binding_id AND r.binding_origin=1) THEN 'reconciled_upload' ELSE b.source_kind END source_kind,
   b.link_revision linkedFlickrRevision,b.verification_revision verificationRevision,
   strftime('%Y-%m-%dT%H:%M:',b.verified_at_us/1000000,'unixepoch')||printf('%09.6f',(b.verified_at_us%60000000)/1000000.0)||'Z' verifiedAt
   FROM upload_photo_binding_events e JOIN photo_bindings b ON b.binding_id=e.binding_id`;
-function success(row: Binding, created: boolean, authorizationId: string): Response {
+function success(row: Binding, created: boolean, authorizationId: string, resolution: boolean): Response {
   if (!Number.isSafeInteger(row.linkedFlickrRevision) || row.linkedFlickrRevision < 1
     || !Number.isSafeInteger(row.verificationRevision) || row.verificationRevision < 1) throw new BindingError('upstream_unavailable');
   const { source_kind, ...body } = row;
   return Response.json({ schemaVersion: 1, ...body,
-    sourceKind: source_kind === 'existing_public' ? 'existing_public_flickr_photo' : 'fga_direct_upload' },
+    sourceKind: source_kind === 'existing_public' ? 'existing_public_flickr_photo' : source_kind === 'reconciled_upload' ? 'photographer_reconciled_ambiguous_upload' : 'fga_direct_upload' },
   { status: created ? 201 : 200, headers: { ...SECURITY,
-    ...(created ? { Location: `/api/v001/upload-authorizations/${encodeURIComponent(authorizationId)}/photo-binding` } : {}) } });
+    ...(created ? { Location: `/api/v001/upload-authorizations/${encodeURIComponent(authorizationId)}/${resolution ? 'ambiguity-resolution' : 'photo-binding'}` } : {}) } });
 }
 function failure(code: string): Response {
   if (code === 'invalid_token') return errorResponse(401, code, 'Invalid installation credential.', true);
@@ -87,7 +87,7 @@ async function observe(env: UploadPhotoBindingEnv, auth: AdmissionAuth, grant: G
 }
 
 async function commit(env: UploadPhotoBindingEnv, auth: AdmissionAuth, current: Credential, grant: GrantSnapshot,
-  authorizationId: string, photoId: string, isPublic: number): Promise<Response> {
+  authorizationId: string, photoId: string, isPublic: number, resolution: boolean): Promise<Response> {
   const db = env.DB, bindingId = crypto.randomUUID(), tx = crypto.randomUUID();
   const params = [auth.installationId, auth.credentialDigest, current.userId, current.versionId, current.revision,
     grant.ownerNsid, grant.revision, grant.generation, authorizationId, photoId, bindingId, tx, isPublic];
@@ -114,18 +114,28 @@ async function commit(env: UploadPhotoBindingEnv, auth: AdmissionAuth, current: 
       WHERE photo_id=?10 AND binding_id<>?11 AND ${pending}`),
     sql(`INSERT INTO upload_photo_binding_events(authorization_id,binding_id,link_revision,verification_revision,observed_public,verified_at_us)
       SELECT ?9,binding_id,link_revision,verification_revision,?13,verified_at_us FROM photo_bindings WHERE photo_id=?10 AND ${pending}`),
+    ...(resolution ? [sql(`INSERT INTO upload_ambiguity_resolution_events(authorization_id,provenance,binding_origin)
+      SELECT ?9,'photographer_reconciled_ambiguous_upload',binding_id=?11 FROM photo_bindings
+      WHERE photo_id=?10 AND NOT EXISTS(SELECT 1 FROM upload_ambiguity_resolution_events WHERE authorization_id=?9)
+        AND changes()=1`)] : []),
     sql(`${PROJECTION} WHERE e.authorization_id=?9`),
     sql('DELETE FROM transaction_guards WHERE transaction_id=?12'),
   ]);
-  const row = results[5].results[0] as unknown as Binding | undefined;
+  const row = results[resolution ? 6 : 5].results[0] as unknown as Binding | undefined;
   if (!row) throw new BindingError('commit_unconfirmed');
-  return success(row, results[1].meta.changes === 1, authorizationId);
+  return success(row, results[1].meta.changes === 1, authorizationId, resolution);
 }
 
 /** Does not create group/Album work or replay the Flickr upload. */
 export async function uploadPhotoBindingRequest(env: UploadPhotoBindingEnv, auth: AdmissionAuth, authorizationId: string,
   value: unknown, fetcher: FlickrFetch): Promise<Response> {
-  if (env.FGA_UPLOAD_PHOTO_BINDING_ENABLED !== '1') return errorResponse(503, 'service_unavailable', 'Service unavailable.');
+  return uploadBindingRequest(env, auth, authorizationId, value, fetcher, false);
+}
+
+/** Shared exact-photo and atomic association primitive for the two accepted PUT resources. */
+export async function uploadBindingRequest(env: UploadPhotoBindingEnv, auth: AdmissionAuth, authorizationId: string,
+  value: unknown, fetcher: FlickrFetch, resolution: boolean): Promise<Response> {
+  if ((resolution ? env.FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED : env.FGA_UPLOAD_PHOTO_BINDING_ENABLED) !== '1') return errorResponse(503, 'service_unavailable', 'Service unavailable.');
   let current: Credential | undefined, grant: GrantSnapshot | undefined, photoId: string | undefined;
   try {
     if (!photoObject(value) || Object.keys(value).sort().join() !== 'flickrPhotoId,schemaVersion' || value.schemaVersion !== 1)
@@ -146,10 +156,10 @@ export async function uploadPhotoBindingRequest(env: UploadPhotoBindingEnv, auth
       if (!row) throw new BindingError('flickr_link_changed');
       if (!sameCredential(current, await credential(env.DB, auth))) throw new BindingError('invalid_token');
       if (!sameGrant(grant, await linkedGrant(env.DB, auth))) throw new BindingError('flickr_link_changed');
-      return success(row, false, authorizationId);
+      return success(row, false, authorizationId, resolution);
     }
     const isPublic = await observe(env, auth, grant, photoId, fetcher);
-    return await commit(env, auth, current, grant, authorizationId, photoId, isPublic);
+    return await commit(env, auth, current, grant, authorizationId, photoId, isPublic, resolution);
   } catch (error) {
     // Resolve races from current durable authority; never expose exception or Flickr metadata.
     try {

@@ -23,6 +23,7 @@
     "FGA_UPLOAD_AUTHORIZATION_ENABLED": "0",
     // Upload-origin proof remains disabled pending hosted qualification.
     "FGA_UPLOAD_PHOTO_BINDING_ENABLED": "0",
+    "FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED": "0",
     "FGA_MAX_GROUP_IDS_PER_BATCH": "60",
     // Release tooling supplies the validated optimized artifact digest.
     "FGA_ARTIFACT_SHA2_256": "",
