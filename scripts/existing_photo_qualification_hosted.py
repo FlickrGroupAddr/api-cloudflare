@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import http.client
 import json
 import os
 import re
@@ -35,6 +36,60 @@ class MatrixFailure(Exception):
         super().__init__("synthetic_matrix_case_failed")
         self.case = case
         self.completed = completed
+
+
+class EdgePreparationFailure(Exception):
+    def __init__(self, diagnostic: dict[str, Any]):
+        super().__init__("edge_preparation_unconfirmed")
+        self.diagnostic = diagnostic
+
+
+def media_type(value: str | None) -> str:
+    if value is None:
+        return "absent"
+    mime = value.split(";", 1)[0].strip().lower()
+    return {
+        "application/json": "json",
+        "text/html": "html",
+        "text/plain": "text",
+        "image/jpeg": "jpeg",
+        "image/png": "png",
+    }.get(mime, "other")
+
+
+def preparation_exchange(
+    origin: str, path: str, headers: dict[str, str], phase: str, attempt: int, diagnostic
+) -> tuple[int, bytes, dict[str, Any]]:
+    details: dict[str, Any] = {
+        "phase": phase,
+        "attempt": attempt,
+        "reason": "pending",
+        "status": None,
+        "bodyBytes": None,
+        "mediaType": "unavailable",
+        "capCategory": "unobserved",
+    }
+    diagnostic(details.copy())
+    try:
+        status, received, body, _ = matrix.exchange(origin, path, headers)
+    except Exception as error:
+        if isinstance(error, ValueError) and str(error) == "response_byte_limit":
+            details.update(reason="response_limit", bodyBytes=262145, capCategory="exceeded")
+        elif isinstance(error, (OSError, http.client.HTTPException)):
+            details.update(reason="transport_unconfirmed")
+        else:
+            details.update(reason="transport_validation")
+        diagnostic(details.copy())
+        raise EdgePreparationFailure(details) from error
+    details.update(
+        status=status,
+        bodyBytes=len(body),
+        mediaType=media_type(received.get("content-type")),
+        capCategory="within_limit",
+        reason="response_observed",
+    )
+    diagnostic(details.copy())
+    return status, body, details
 
 
 def success(status: int, value: dict[str, Any]) -> Any:
@@ -151,20 +206,52 @@ def multipart(artifact: bytes, database_id: str, access: str) -> tuple[bytes, st
     return b"".join(pieces), "multipart/form-data; boundary=" + boundary
 
 
-def run_matrix(origin: str, access: str, checkpoint=lambda: None) -> list[dict[str, Any]]:
+def run_matrix(
+    origin: str, access: str, checkpoint=lambda: None, diagnostic=lambda _value: None
+) -> list[dict[str, Any]]:
     # Readiness GETs are safe to repeat; seed and all mutating control calls are single-attempt.
     for attempt in range(10):
         checkpoint()
-        status, _, body, _ = matrix.exchange(origin, matrix.THUMBNAIL + matrix.QUERY, {})
+        try:
+            status, body, details = preparation_exchange(
+                origin,
+                matrix.THUMBNAIL + matrix.QUERY,
+                {},
+                "gate_readiness",
+                attempt + 1,
+                diagnostic,
+            )
+        except EdgePreparationFailure as error:
+            if error.diagnostic["reason"] != "transport_unconfirmed" or attempt == 9:
+                raise
+            time.sleep(1)
+            continue
         if status == 404 and not body:
             break
-        if attempt == 9:
-            raise ValueError("edge_gate_unconfirmed")
+        if attempt == 9 or status not in {404, 429, 500, 502, 503, 504}:
+            details["reason"] = "unexpected_status" if status != 404 else "unexpected_body"
+            diagnostic(details.copy())
+            raise EdgePreparationFailure(details)
         time.sleep(1)
     checkpoint()
-    status, _, _, _ = matrix.exchange(origin, "/__probe/seed", {"X-Probe-Access": access})
-    if status != 204:
-        raise ValueError("seed_unconfirmed")
+    status, body, details = preparation_exchange(
+        origin, "/__probe/seed", {"X-Probe-Access": access}, "seed_fixture", 1, diagnostic
+    )
+    if status != 204 or body:
+        details["reason"] = "unexpected_status" if status != 204 else "unexpected_body"
+        diagnostic(details.copy())
+        raise EdgePreparationFailure(details)
+    diagnostic(
+        {
+            "phase": "matrix_cases",
+            "attempt": 1,
+            "reason": "started",
+            "status": None,
+            "bodyBytes": None,
+            "mediaType": "unavailable",
+            "capCategory": "unobserved",
+        }
+    )
     results = []
     for case in matrix.CASES:
         try:
@@ -245,6 +332,11 @@ def run(
         # acknowledged-resource cleanup and artifact retention. No mutation retry.
         if time.monotonic() >= deadline:
             raise TimeoutError("qualification_operation_deadline")
+
+    def edge_diagnostic(value):
+        evidence["edgePreparation"] = value
+        evidence["stage"] = "edge_" + value["phase"]
+        persist()
 
     persist()  # Nonsecret exact-name correlation survives even an early forced stop.
     print(json.dumps({"runName": name, "databaseName": name + "-db"}), flush=True)
@@ -351,7 +443,9 @@ def run(
         evidence["stage"] = "synthetic_edge_matrix"
         checkpoint()
         if exercise is run_matrix:
-            evidence["cases"] = exercise(f"https://{name}.{label}.workers.dev", access, checkpoint)
+            evidence["cases"] = exercise(
+                f"https://{name}.{label}.workers.dev", access, checkpoint, edge_diagnostic
+            )
         else:
             evidence["cases"] = exercise(f"https://{name}.{label}.workers.dev", access)
         evidence["matrixPassed"] = len(evidence["cases"]) == len(matrix.CASES) and all(
@@ -363,6 +457,8 @@ def run(
         if isinstance(error, MatrixFailure):
             evidence["failedCase"] = error.case
             evidence["cases"] = error.completed
+        if isinstance(error, EdgePreparationFailure):
+            edge_diagnostic(dict(error.diagnostic))
     finally:
         evidence["cleanupStarted"] = True
         persist()

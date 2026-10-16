@@ -130,3 +130,43 @@ SHA2-256 digests of the final reviewed sources:
 | `.github/workflows/existing-photo-qualification.yml` | `b38cd2c44594ba623807c821824061f753e5759f330d5ac0dbeef702aeef1b1d` |
 | `probes/existing-photo-qualification/worker.ts` | `11e0aa8479f55b48fe84efbe6483d6d413a10e9131be2bd97a23d82b6edc8cba` |
 | `scripts/existing_photo_qualification.py` | `3bc9679d56115c705eedb82678add55c2d7eefb34493b3af8c5fb5b1c3e9593e` |
+
+## Preparation-diagnostic follow-up
+
+The primary agent reported that the first actual CI attempt failed before matrix
+cases and confirmed deletion of its created resources. This reviewer did not
+make a live call or independently inspect provider state. The initial attempt
+is not a qualification pass.
+
+Reviewed the owner's diagnostic delta before a fresh-name rerun. The new
+`preparation_exchange` (`scripts/existing_photo_qualification_hosted.py:60`)
+records only closed phase/reason labels, attempt count, numeric HTTP status and
+body-byte count when available, and closed media/cap categories. Raw body bytes,
+content-type parameters, headers, URLs, credentials and exception text never
+enter the receipt. Missing observations remain null; byte-limit failures report
+only the bounded 262145-byte prefix observation and an exceeded category.
+
+`run_matrix` at `:209` repeats only the unauthenticated readiness GET, at most
+ten attempts, for the enumerated transient transport/404-body/429/5xx cases.
+Deadline checkpoints remain before attempts. The fixture seed remains one
+single-attempt call outside that loop; seed timeout or unexpected response
+fails without replay. Matrix requests and control-plane mutations gained no
+retry. Redirect refusal, 256 KiB allocation limit, overall operation deadline,
+exact-resource cleanup and final pass-after-cleanup semantics are unchanged.
+`edge_diagnostic` at `:336` persists the preparation phase before cleanup, so the
+failure location survives the failing run's final receipt.
+
+No material safety or truthfulness defect was found in this delta. Independent
+`uv run --frozen python -m unittest tests.test_existing_photo_qualification_hosted`
+passed eleven offline fake-provider/orchestration tests, zero failed. There is
+no remaining source-review blocker to the separately authorized fresh-resource
+rerun; actual edge qualification and cleanup still require the resulting receipt.
+
+Updated SHA2-256 digests:
+
+| File | Digest |
+| --- | --- |
+| `scripts/existing_photo_qualification_hosted.py` | `ee394f978415f2e3de642a74fb48caccc532982a4a141057d5a6d01e009d320b` |
+| `tests/test_existing_photo_qualification_hosted.py` | `034c34b74183f3a5a8921f45065bcd3b234f084c9a6ca0214b62a52426f324be` |
+
+The HTTP transport and dedicated workflow retain the previously recorded hashes.

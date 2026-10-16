@@ -110,3 +110,37 @@ whole-job termination prevents receipt artifact upload. No account, ID, token or
 URL is printed. Whole-job termination can still prevent cleanup and artifact
 retention; the exact-name reconciliation procedure above remains required.
 
+
+The first disposable CI attempt failed before any matrix case, after successful
+provisioning/upload/enable, and confirmed both created resources deleted. Its
+older `ValueError` receipt does not distinguish readiness transport/status/body
+failure from the single seed attempt; no narrower cause is inferred.
+
+The runner now retains closed `edgePreparation` diagnostics for gate readiness,
+seed fixture and matrix start. Fields are phase/reason enums, attempt, observed
+numeric HTTP status/body byte count, a closed media-type enum and cap category.
+Unavailable observations are null; a cap failure records the bounded excess
+read count. No raw body, header value, URL, exception text or credential appears.
+Transient readiness GET failures can retry within the existing ten-attempt and
+operation-deadline bounds. A seed failure is recorded immediately and never
+retried. This instrumentation makes no change to image/error response caps.
+Fake tests cover exact gate/seed reasons, exhausted readiness bodies, transient
+safe-GET rollout, oversized response and a single ambiguous seed response.
+No additional live call or dispatch was performed while preparing this change.
+
+## First disposable hosted execution: stopped before matrix cases
+
+The primary dispatched [CI run 38923320751](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/38923320751)
+for source ea14a93. Provisioning, migrations, fixed Worker upload and disposable
+endpoint enablement completed. Preparation of the HTTP matrix failed before the
+first case with a ValueError; the original receipt lacks a finer gate/seed reason,
+so no cause or provider compatibility result is inferred. The
+[retained sanitized receipt](existing-photo-hosted-ci-first-2026-10-16.json)
+confirms deletion of both exact created resources. No live Flickr call or
+production resource was involved. This is a failed qualification run.
+
+The reviewed follow-up retains closed readiness/seed diagnostic categories,
+numeric HTTP status/body length and closed media/cap enums. It preserves bounds,
+keeps seed single-attempt and permits only bounded safe readiness GET retries.
+A new execution uses entirely fresh resources after the previous cleanup proof;
+it is not a replay of an unconfirmed mutation.

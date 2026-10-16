@@ -104,6 +104,18 @@ class HostedTests(unittest.TestCase):
             self.assertTrue(origin.endswith(".synthetic.workers.dev"))
             if failure == "matrix":
                 raise ValueError("PRIVATE IMAGE")
+            if failure == "edge":
+                raise hosted.EdgePreparationFailure(
+                    {
+                        "phase": "seed_fixture",
+                        "attempt": 1,
+                        "reason": "unexpected_status",
+                        "status": 500,
+                        "bodyBytes": 7,
+                        "mediaType": "html",
+                        "capCategory": "within_limit",
+                    }
+                )
             return [{"case": case, "passed": True} for case in hosted.matrix.CASES]
 
         with contextlib.redirect_stdout(captured):
@@ -207,6 +219,129 @@ class HostedTests(unittest.TestCase):
             receipt = json.loads((Path(directory) / hosted.RECEIPT).read_text())
             self.assertEqual(receipt["errorClass"], "TimeoutError")
             self.assertTrue(receipt["cleanupConfirmed"])
+
+    def test_failing_preparation_reason_retained_in_receipt(self):
+        _, evidence, _, _ = self.run_fake("edge")
+        self.assertEqual(evidence["stage"], "edge_seed_fixture")
+        self.assertEqual(
+            evidence["edgePreparation"],
+            {
+                "phase": "seed_fixture",
+                "attempt": 1,
+                "reason": "unexpected_status",
+                "status": 500,
+                "bodyBytes": 7,
+                "mediaType": "html",
+                "capCategory": "within_limit",
+            },
+        )
+        self.assertTrue(evidence["cleanupConfirmed"])
+
+    def test_gate_and_seed_closed_diagnostics_and_no_seed_retry(self):
+        ready = (404, {}, b"", 1)
+        html = (500, {"content-type": "text/html; private=NEVER_RECORD"}, b"private", 1)
+        cases = [
+            (
+                [(200, {"content-type": "arbitrary/NEVER_RECORD"}, b"private", 1)],
+                "gate_readiness",
+                "unexpected_status",
+                200,
+                7,
+                "other",
+                "within_limit",
+                1,
+            ),
+            ([ready, html], "seed_fixture", "unexpected_status", 500, 7, "html", "within_limit", 2),
+            (
+                [ready, TimeoutError("NEVER_RECORD")],
+                "seed_fixture",
+                "transport_unconfirmed",
+                None,
+                None,
+                "unavailable",
+                "unobserved",
+                2,
+            ),
+            (
+                [ValueError("response_byte_limit")],
+                "gate_readiness",
+                "response_limit",
+                None,
+                262145,
+                "unavailable",
+                "exceeded",
+                1,
+            ),
+        ]
+        for replies, phase, reason, status, count, media, cap, calls in cases:
+            with (
+                self.subTest(phase=phase, reason=reason),
+                patch.object(hosted.matrix, "exchange", side_effect=replies) as exchange,
+                patch.object(hosted.time, "sleep"),
+            ):
+                observed = []
+                with self.assertRaises(hosted.EdgePreparationFailure) as caught:
+                    hosted.run_matrix(
+                        "https://synthetic.invalid", "NEVER_RECORD", diagnostic=observed.append
+                    )
+                details = caught.exception.diagnostic
+                self.assertEqual(details["phase"], phase)
+                self.assertEqual(details["reason"], reason)
+                self.assertEqual(details["status"], status)
+                self.assertEqual(details["bodyBytes"], count)
+                self.assertEqual(details["mediaType"], media)
+                self.assertEqual(details["capCategory"], cap)
+                self.assertEqual(exchange.call_count, calls)
+                self.assertNotIn("NEVER_RECORD", json.dumps(observed))
+
+    def test_readiness_transients_retry_only_safe_get(self):
+        ready = (404, {}, b"", 1)
+        error = (503, {"content-type": "text/html"}, b"temporary", 1)
+        replies = [TimeoutError("PRIVATE"), error, ready, error]
+        with (
+            patch.object(hosted.matrix, "exchange", side_effect=replies) as exchange,
+            patch.object(hosted.time, "sleep"),
+        ):
+            with self.assertRaises(hosted.EdgePreparationFailure) as caught:
+                hosted.run_matrix("https://synthetic.invalid", "PRIVATE")
+            self.assertEqual(caught.exception.diagnostic["phase"], "seed_fixture")
+            self.assertEqual(exchange.call_count, 4)
+            self.assertEqual(
+                sum(call.args[1] == "/__probe/seed" for call in exchange.call_args_list), 1
+            )
+
+    def test_gate_body_failure_retained_after_bounded_readiness_attempts(self):
+        with (
+            patch.object(
+                hosted.matrix,
+                "exchange",
+                return_value=(
+                    404,
+                    {"content-type": "text/html; private=NEVER_RECORD"},
+                    b"private",
+                    1,
+                ),
+            ) as exchange,
+            patch.object(hosted.time, "sleep"),
+        ):
+            with self.assertRaises(hosted.EdgePreparationFailure) as caught:
+                hosted.run_matrix("https://synthetic.invalid", "NEVER_RECORD")
+            self.assertEqual(
+                caught.exception.diagnostic,
+                {
+                    "phase": "gate_readiness",
+                    "attempt": 10,
+                    "reason": "unexpected_body",
+                    "status": 404,
+                    "bodyBytes": 7,
+                    "mediaType": "html",
+                    "capCategory": "within_limit",
+                },
+            )
+            self.assertEqual(exchange.call_count, 10)
+            self.assertTrue(
+                all(call.args[1] != "/__probe/seed" for call in exchange.call_args_list)
+            )
 
 
 if __name__ == "__main__":

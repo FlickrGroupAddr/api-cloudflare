@@ -190,3 +190,20 @@ whole-job termination prevents receipt artifact upload. No account, ID, token or
 URL is printed. Whole-job termination can still prevent cleanup and artifact
 retention; the exact-name reconciliation procedure above remains required.
 
+
+The first disposable CI attempt failed before any matrix case, after successful
+provisioning/upload/enable, and confirmed both created resources deleted. Its
+older `ValueError` receipt does not distinguish readiness transport/status/body
+failure from the single seed attempt; no narrower cause is inferred.
+
+The runner now retains closed `edgePreparation` diagnostics for gate readiness,
+seed fixture and matrix start. Fields are phase/reason enums, attempt, observed
+numeric HTTP status/body byte count, a closed media-type enum and cap category.
+Unavailable observations are null; a cap failure records the bounded excess
+read count. No raw body, header value, URL, exception text or credential appears.
+Transient readiness GET failures can retry within the existing ten-attempt and
+operation-deadline bounds. A seed failure is recorded immediately and never
+retried. This instrumentation makes no change to image/error response caps.
+Fake tests cover exact gate/seed reasons, exhausted readiness bodies, transient
+safe-GET rollout, oversized response and a single ambiguous seed response.
+No additional live call or dispatch was performed while preparing this change.
