@@ -57,3 +57,14 @@ Code, request/response body, header, installation ID, or account identity.
 Rotation is intentionally fail-closed in this slice. A nonempty rotation
 candidate blocks fallback to the prior current code and requires completion or
 cancellation through the accepted browser workflow.
+
+## Disabled selection/submission candidate: 0.2.0.5
+
+This build contains independently reviewed selection, separate catalog-photo and
+binding-only outbox stores, complete eligibility/status readers, and the accepted
+two-list dialog. These modules are not registered as a live command or metadata
+provider. Production qualification remains false and no capability or write gate
+is enabled. Missing host scope/metadata/task/credential/proof/POST/recovery adapters
+must be qualified before registration; storing an intent acknowledgement never
+means Flickr has added the photo. See [the controller design](../../../docs/design/group-selection-controller.md)
+and [integration review](../../../docs/evidence/group-selection-integration-review-2026-10-16.md).
