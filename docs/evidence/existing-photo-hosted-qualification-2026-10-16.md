@@ -163,3 +163,43 @@ Raw response/image bytes, header values, URLs, credentials and exception message
 remain excluded. Fourteen offline orchestration/transport tests cover JPEG
 header failure receipt retention, a JPEG JSON application error, and arbitrary
 data exclusion. No additional live call or dispatch was made by this author.
+
+## Missing-auth isolation investigation
+
+The third disposable attempt passed PNG, JPEG and discovery, then observed a
+404/text response of 17 bytes without probe counters for missing-auth. Cleanup
+confirmed both created resources deleted. The receipt does not establish which
+upstream edge/component produced that response.
+
+Offline source and bundle inspection found no mutable per-isolate seed/control
+state. The fixture is persisted in the dedicated D1; its access secret is an
+environment binding. The production missing-auth path does not consult D1 or
+Flickr secrets. A new `isolation.mjs` regression runs independent Node JavaScript
+isolates with unseeded, throw-on-access database bindings. Valid outer access
+with absent installation authorization returns empty 401, the Bearer challenge
+and zero probe counters; missing/wrong outer access returns empty 404. Every
+isolate reports zero database accesses. Five local tests pass, including that
+regression and all 22 original handler cases. Ruff/Pyright pass for the changed
+Python test.
+
+The observed nonempty 404 therefore cannot be reproduced as this fixture's
+missing-auth or outer-denial path. No fixture, production authentication check,
+case retry or accepted response check was changed to force a pass. Attribution
+to a provider error, stale artifact or other edge behavior requires additional
+hosted evidence; this offline investigation does not claim that cause resolved.
+No additional hosted request, resource operation or dispatch was performed.
+
+The harness entry point now adds one fixed public marker to every response it
+constructs, including outer denials and the seed response. Receipts retain only
+marker-presence/match booleans. A separate provider-response classifier accepts
+only an exact bounded `error code:` pattern with one of eight fixed known codes;
+everything else becomes an unrecognized/unavailable enum. No raw response text
+or marker header value is retained. These observations are diagnostic and
+forgeable, not proof of origin or permission to accept a response.
+
+Fresh-isolate regression now verifies the marker on valid missing-auth and both
+outer-denial paths. Forged/arbitrary header/body data tests verify exclusion and
+confirm an otherwise invalid response still fails with an exact marker present.
+Production validation, transport bounds, readiness/case retry policy and seed
+isolation are unchanged. The unexplained prior 404 remains unattributed pending
+fresh reviewed hosted evidence. No live call or dispatch was made for this work.

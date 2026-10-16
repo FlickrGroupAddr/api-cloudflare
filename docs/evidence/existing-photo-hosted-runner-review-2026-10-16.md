@@ -207,3 +207,45 @@ Updated SHA2-256 digests:
 | --- | --- |
 | `scripts/existing_photo_qualification_hosted.py` | `958bdc2aa6e4fa8c67a834c98e4e996995c19c43efb3c3aa2e6e545845ca4888` |
 | `tests/test_existing_photo_qualification_hosted.py` | `3d93ba355a5e83676de1825a9f086b013be0b2bff2efb2602d2e1d55a688b7bf` |
+
+## Harness-marker and provider-classifier follow-up
+
+Reviewed the fixed `X-FGA-Probe` response marker in the disposable Worker's
+default entry point. The single outer wrapper covers every response returned
+by that entry point, including secret-gate denial, fixture seed and actual
+application responses. A thrown execution/provider failure need not carry the
+marker; missing marker is a diagnostic observation, not a bypass or pass.
+The marker is public and forgeable and supplies no credential or origin
+authority. Request authentication and the outer probe secret remain unchanged.
+
+The runner retains only marker-presence/match Booleans. Its provider-error
+classifier accepts a body only when it is at most 64 bytes and the entire body
+matches `error code: ` plus one of eight fixed codes, with at most one final
+newline. Everything else becomes a closed unavailable/unrecognized class.
+Neither arbitrary marker text nor body fragments, URLs, images or credentials
+enter the receipt. These classifications remain diagnostic heuristics; they
+cannot prove provider origin or authorize any operation.
+
+The actual HTTP validator/transport retains hash
+`3bc9679d56115c705eedb82678add55c2d7eefb34493b3af8c5fb5b1c3e9593e`.
+No validation check, body cap, redirect/timeout policy, cleanup fence or
+single-attempt seed/control behavior was loosened. The new local isolation
+test runs missing-authentication, missing-gate and wrong-gate cases in three
+fresh Node isolates with a database trap; it verifies zero database accesses,
+empty responses and the expected 401/404 contracts. This is local isolation
+evidence, not a hosted cold-start qualification claim.
+
+Independent
+`uv run --frozen python -m unittest tests.test_existing_photo_qualification tests.test_existing_photo_qualification_hosted`
+passed twenty offline tests, zero failed. No material source safety defect was
+found in this delta, and this reviewer made no live call.
+
+Updated SHA2-256 digests:
+
+| File | Digest |
+| --- | --- |
+| `scripts/existing_photo_qualification_hosted.py` | `8103afc486f0e66aff00e9bfdb0b298e83c2f1ec2e9cae204a156609de6a19c8` |
+| `probes/existing-photo-qualification/worker.ts` | `f7410c17fbd8608a76f6b57678fb4b109b88b9027efa6935f2f77cc1eee65194` |
+| `probes/existing-photo-qualification/isolation.mjs` | `8ae7701f12884b14b8d637c6a717cdb41653442ba937f9d92162b1054010de6c` |
+| `tests/test_existing_photo_qualification.py` | `6b60e8c226d52b15c2bca434affe3ce785dcf1d93be4b57171aeca3d0219e612` |
+| `tests/test_existing_photo_qualification_hosted.py` | `69f8a0cc3154d6dc0a4804100cfe0c67447278065891a534c6448df2f21270b6` |

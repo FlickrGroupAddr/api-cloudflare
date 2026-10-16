@@ -409,6 +409,9 @@ class HostedTests(unittest.TestCase):
             self.assertEqual(
                 caught.exception.diagnostic,
                 {
+                    "harnessMarkerPresent": False,
+                    "harnessMarkerMatches": False,
+                    "providerErrorClass": "unrecognized",
                     "phase": "gate_readiness",
                     "attempt": 10,
                     "reason": "unexpected_body",
@@ -422,6 +425,33 @@ class HostedTests(unittest.TestCase):
             self.assertTrue(
                 all(call.args[1] != "/__probe/seed" for call in exchange.call_args_list)
             )
+
+    def test_identity_projection_is_closed_and_does_not_authorize_response(self):
+        expected = hosted.response_identity(
+            {"x-fga-probe": hosted.HARNESS_MARKER}, b"error code: 1042\n"
+        )
+        self.assertEqual(
+            expected,
+            {
+                "harnessMarkerPresent": True,
+                "harnessMarkerMatches": True,
+                "providerErrorClass": "cloudflare_error_1042",
+            },
+        )
+        for body in [
+            b"error code: 9999\n",
+            b"error code: 1042\nNEVER_RECORD",
+            b"NEVER_RECORD",
+            b"x" * 65,
+        ]:
+            result = hosted.response_identity({"x-fga-probe": "https://NEVER_RECORD"}, body)
+            self.assertTrue(result["harnessMarkerPresent"])
+            self.assertFalse(result["harnessMarkerMatches"])
+            self.assertEqual(result["providerErrorClass"], "unrecognized")
+            self.assertNotIn("NEVER_RECORD", json.dumps(result))
+        headers = {"x-fga-probe": hosted.HARNESS_MARKER}
+        with self.assertRaisesRegex(ValueError, "status_or_redirect"):
+            hosted.matrix.validate("missing-auth", 404, headers, b"error code: 1042\n")
 
 
 if __name__ == "__main__":

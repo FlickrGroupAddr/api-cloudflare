@@ -29,6 +29,20 @@ RECEIPT = "existing-photo-hosted-qualification-2026-10-16.json"
 FLAGS = ["nodejs_compat", "enable_request_signal"]
 DATE = "2026-10-16"
 OPERATION_SECONDS = 8 * 60
+HARNESS_MARKER = "fga-existing-photo-qualification-v1"
+
+
+def response_identity(headers: dict[str, str], body: bytes | None) -> dict[str, Any]:
+    classification = "unavailable" if body is None else "unrecognized"
+    if body is not None and len(body) <= 64:
+        match = re.fullmatch(rb"error code: (1000|1001|1003|1016|1027|1042|1101|1102)\n?", body)
+        if match:
+            classification = "cloudflare_error_" + match.group(1).decode("ascii")
+    return {
+        "harnessMarkerPresent": "x-fga-probe" in headers,
+        "harnessMarkerMatches": headers.get("x-fga-probe") == HARNESS_MARKER,
+        "providerErrorClass": classification,
+    }
 
 
 class MatrixFailure(Exception):
@@ -103,6 +117,7 @@ def case_diagnostic(
             code = "malformed"
     expected_media = "image/jpeg" if case == "jpeg" else "image/png"
     return {
+        **response_identity(headers, body),
         "reason": reason,
         "status": status,
         "bodyBytes": len(body)
@@ -157,6 +172,7 @@ def preparation_exchange(
     origin: str, path: str, headers: dict[str, str], phase: str, attempt: int, diagnostic
 ) -> tuple[int, bytes, dict[str, Any]]:
     details: dict[str, Any] = {
+        **response_identity({}, None),
         "phase": phase,
         "attempt": attempt,
         "reason": "pending",
@@ -178,6 +194,7 @@ def preparation_exchange(
         diagnostic(details.copy())
         raise EdgePreparationFailure(details) from error
     details.update(
+        **response_identity(received, body),
         status=status,
         bodyBytes=len(body),
         mediaType=media_type(received.get("content-type")),
@@ -365,6 +382,7 @@ def run_matrix(
             ) from error
         results.append(
             {
+                **response_identity(received, body),
                 "case": case,
                 "status": status,
                 "bytes": len(body),

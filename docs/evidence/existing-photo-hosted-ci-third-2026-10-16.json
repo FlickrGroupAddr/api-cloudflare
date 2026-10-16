@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "scope": "disposable_synthetic_edge_only",
+  "runName": "fga-photo-qualification-af0eee602fb8036f456c3650",
+  "databaseName": "fga-photo-qualification-af0eee602fb8036f456c3650-db",
+  "startedAt": "2026-10-16T15:49:32.382911+00:00",
+  "compatibilityDate": "2026-10-16",
+  "compatibilityFlags": [
+    "nodejs_compat",
+    "enable_request_signal"
+  ],
+  "workersDev": true,
+  "passed": false,
+  "matrixPassed": false,
+  "cleanupConfirmed": true,
+  "cases": [
+    {
+      "case": "ok",
+      "status": 200,
+      "bytes": 68,
+      "elapsedMs": 302,
+      "passed": true
+    },
+    {
+      "case": "jpeg",
+      "status": 200,
+      "bytes": 6,
+      "elapsedMs": 367,
+      "passed": true
+    },
+    {
+      "case": "discovery",
+      "status": 200,
+      "bytes": 331,
+      "elapsedMs": 420,
+      "passed": true
+    }
+  ],
+  "errorClass": "MatrixFailure",
+  "sourceSha2_256": {
+    "src/worker.ts": "93678d80082cae1cb4309445d091b3c7af99bda5945f66dae7371d8de509e580",
+    "src/photo_thumbnails.ts": "cae3e2ed57cba300c14737dcf63d0cd37b3f43ad7173bd013cd6b32d63a21c56",
+    "src/existing_photo_discovery.ts": "a353e1873b26fd1e0ad1bbf09c7fbaed929919cd477966b8d283e1daab8c2b6c",
+    "probes/existing-photo-qualification/worker.ts": "11e0aa8479f55b48fe84efbe6483d6d413a10e9131be2bd97a23d82b6edc8cba",
+    "probes/existing-photo-qualification/wrangler.jsonc": "7a9f6ca1bb7ad1a1ebb72826fb2e7ff8c522ecd285685098f010345403b388a7",
+    "package-lock.json": "6894a3dcecffb784baae9751677b0c231250ae9e99a2cb6ddacc6011a0dc0048"
+  },
+  "orchestratorSha2_256": "958bdc2aa6e4fa8c67a834c98e4e996995c19c43efb3c3aa2e6e545845ca4888",
+  "stage": "edge_matrix_cases",
+  "recovery": {
+    "databaseAttempted": true,
+    "workerAttempted": true,
+    "databaseAcknowledged": true,
+    "workerAcknowledged": true,
+    "databaseDeleted": true,
+    "workerDeleted": true
+  },
+  "migrationsSha2_256": {
+    "0001_foundation.sql": "2441728accea89f50a514e74f59118701cfdcf028f92620759c1599e92cc2d34",
+    "0002_audit_component.sql": "78fd707c729ef67fe45555c0c433689847fc16848b8bab3cebbed22897c2f661",
+    "0003_submission_coordination.sql": "47a66d1587ab91b6c8e02fc9f50f758753193250de65815cb9a75cfa408d9738",
+    "0004_fail_polite_attempts.sql": "71fe9dfa9b1c297d55291ea04efbb1f53d51cb7c8c95fa773a6c1a6ae4411b20",
+    "0005_native_credential_reference.sql": "301386c253b3d75d70ff3563cb9667ec9fcfc4fa2301bd7abb6ee80b2c902e49",
+    "0006_native_lifecycle.sql": "a65aa87b4bda490d5736e10f86666821797faf5e0dd5fc62975b6fdb57bb4fd4",
+    "0007_browser_auth.sql": "cc542e09934b6f3ea2dda1571d06b8f584ba840d4e97d66e9b6a6b5f56f25768",
+    "0008_flickr_oauth.sql": "1cb19cbef66e0abcb1a14530fb900147a771b8f0ff0845aef88955cd8c51519f",
+    "0009_dispatch_policy.sql": "3599806bd20ad6d19beb516c882580b2ede9320094c644808fcbb91344cb1c5f",
+    "0010_plugin_code_lifecycle.sql": "c7c087e1674674aaa9782adfed5fda89f154c243836664d87f6ede3f6aeabac5",
+    "0011_submission_status.sql": "ee7a117c8d5fa2f52cb3ec049f8be553c0a076ca06bd79699a153f39a64f2d79",
+    "0012_protocol_repair_evidence.sql": "0c46c1628c68a61c936ad315b263e8d3e7f523774ce79ee30244a6f35e1417f5",
+    "0013_group_discovery.sql": "533e5b364b581b9631a5441fd4acbf15b336b4922cd9e4e810487eae2c21d3f4",
+    "0014_photo_memberships.sql": "66316c4a5ee3b71be2baee1c84bc7db8ff4996639f323f8789801aecf0356977",
+    "0015_upload_authorizations.sql": "0bcc8f137c338008b58b5b31030aa7c171faede5452bbb55002e327713b1fef1"
+  },
+  "artifactSha2_256": "9037dc8393aa85d699041bd2db5d4b8602fb2efa24ba353b226340f74075e975",
+  "dryRunConfigSha2_256": "4335f3a137132a1b4340d2d0370c122e9dc080e793cd146ef0cf894b19debae4",
+  "uploadMetadataSecretElidedSha2_256": "d2d08f53a4aae3119f537678048c5a17af669022fc3ecb8a8bba067d8c677aff",
+  "edgePreparation": {
+    "phase": "matrix_cases",
+    "attempt": 1,
+    "reason": "started",
+    "status": null,
+    "bodyBytes": null,
+    "mediaType": "unavailable",
+    "capCategory": "unobserved"
+  },
+  "failedCase": "missing-auth",
+  "caseFailure": {
+    "reason": "status_or_redirect",
+    "status": 404,
+    "bodyBytes": 17,
+    "mediaType": "text",
+    "capCategory": "within_limit",
+    "applicationErrorCode": "not_app_json",
+    "headersObserved": true,
+    "observedPages": null,
+    "observedImages": null,
+    "headerChecks": {
+      "noLocation": true,
+      "noStore": true,
+      "nosniff": false,
+      "sameOrigin": false,
+      "expectedImageMedia": false,
+      "lengthMatches": true,
+      "cancelled": false
+    }
+  },
+  "cleanupStarted": true,
+  "completedAt": "2026-10-16T15:49:50.071467+00:00"
+}

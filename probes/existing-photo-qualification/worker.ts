@@ -3,6 +3,7 @@ import { credentialDigest } from '../../src/installations.ts';
 
 // Disposable synthetic harness. Never bind production data or real Flickr secrets.
 export const TOKEN = Array(13).fill('0000').join('-');
+export const HARNESS_MARKER = 'fga-existing-photo-qualification-v1';
 export const CASES = ['ok', 'jpeg', 'discovery', 'missing-auth', 'bad-auth', 'bad-query',
   'wrong-revision', 'foreign-owner', 'private-photo', 'missing-photo', 'bad-destination',
   'redirect', 'error-large', 'declared-large', 'stream-large', 'truncated', 'bad-mime',
@@ -80,7 +81,7 @@ export async function runCase(request: Request, db: D1Database, scenario: Case):
   }
 }
 interface ProbeEnv { DB: D1Database; PROBE_ACCESS_TOKEN?: string; }
-export default {
+const probe = {
   async fetch(request: Request, env: ProbeEnv): Promise<Response> {
     const deny = () => new Response(null, { status: 404, headers: { 'Cache-Control': 'no-store' } });
     if (!env.PROBE_ACCESS_TOKEN || env.PROBE_ACCESS_TOKEN.length < 32
@@ -93,5 +94,14 @@ export default {
     if (!CASES.includes(scenario as Case) || !['/api/v001/existing-public-photos',
       '/api/v001/existing-public-photos/photo/thumbnail'].includes(url.pathname)) return deny();
     return runCase(request, env.DB, scenario as Case);
+  },
+} satisfies ExportedHandler<ProbeEnv>;
+
+export default {
+  async fetch(request: Request, env: ProbeEnv): Promise<Response> {
+    const response = await probe.fetch(request, env);
+    const headers = new Headers(response.headers);
+    headers.set('X-FGA-Probe', HARNESS_MARKER);
+    return new Response(response.body, { status: response.status, headers });
   },
 } satisfies ExportedHandler<ProbeEnv>;

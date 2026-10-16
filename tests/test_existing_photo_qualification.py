@@ -14,6 +14,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class QualificationTests(unittest.TestCase):
+    def test_unseeded_fresh_isolates_preserve_missing_auth_and_gate_contracts(self):
+        result = subprocess.run(
+            ["node", "probes/existing-photo-qualification/isolation.mjs"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        )
+        observations = json.loads(result.stdout)
+        self.assertEqual(len(observations), 3)
+        self.assertEqual(observations[0]["status"], 401)
+        self.assertTrue(observations[0]["challenge"])
+        for observed in observations:
+            self.assertTrue(observed["markerMatches"])
+            self.assertEqual(observed["databaseAccesses"], 0)
+            self.assertEqual(observed["bodyBytes"], 0)
+
     def test_actual_production_handler_matrix(self):
         result = subprocess.run(
             ["node", "probes/existing-photo-qualification/local_matrix.mjs"],
