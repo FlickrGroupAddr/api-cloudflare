@@ -152,3 +152,82 @@ fixed redirects, denial before quota use, baseline/report privacy, a concurrent
 Pinned native TypeScript 7 passes. The JPEG was generated locally from a solid
 2x2 bitmap and its decoder successfully read its dimensions; no real photo was
 used. No hosted or Lightroom action is evidence from this packet preparation.
+
+## Manual Actions execution mechanism (prepared, not dispatched)
+
+The separate `.github/workflows/existing-photo-native-network.yml` and
+`scripts/existing_photo_native_network_lifecycle.py` reuse the proven bounded
+provider transport, credentials reader and local bundle helper. They do not
+change the passing hosted harness or any production runtime/release artifact.
+No local operator token file or local Cloudflare environment is needed.
+
+After explicit approval, the primary first checks that these two repository
+Actions secret names are absent; never overwrite a pre-existing secret:
+
+- `FGA_NATIVE_NETWORK_ACCESS_TOKEN`: fresh 64 lowercase hex synthetic gate;
+- `FGA_NATIVE_NETWORK_CANARY_TOKEN`: fresh `SYNTHETIC-` plus 32 lowercase hex.
+
+The existing `FGA_CLOUDFLARE_CI_TOKEN` and account variable are reused unchanged.
+Only the approved primary creates/removes the two temporary secrets; the new
+workflow has no repository-secret management permission. Remove only those two
+newly created secrets after the run, including preparation failure. No secret
+value belongs in dispatch inputs, arguments, URLs, logs or uploaded artifacts.
+
+One manual workflow has these fixed stages:
+
+1. Locked Node 24.22.0/npm 12.2.0/Python installation and offline server/lifecycle
+   checks, before provider credentials enter a step.
+2. `prepare` creates exactly one D1 and two Workers once, persists exact created
+   identities before dependent operations and uploads only the fixed artifact.
+   Its four-minute observed preparation deadline is checked between bounded
+   operations; the step has ten minutes for an in-flight bundle/call and cleanup.
+   Fewer than five minutes left in the original 20-minute window refuses ready.
+3. The ready step publishes `existing-photo-native-network-ready/ready.json`
+   while endpoints remain available. Its complete nonsecret operator handoff is
+   `{schemaVersion,planVersion,runId,workersDevSubdomain,expiresAtUnix}`. It is not
+   tracked evidence and contains no token, account ID, actual resource ID or URL.
+   The primary combines it privately with the two synthetic values for the exact
+   seven-key local target. Ready upload failure skips waiting and triggers cleanup.
+4. The always-run `hold-cleanup` stage reads the same job's private journal,
+   checks account/job and derived resource identities, and polls only the two
+   fixed D1 counter rows at most 121 times, with ten-second sleeps capped by the
+   original expiry. Counter/report failure triggers cleanup. At the second gated
+   receiver report (baseline plus final), it waits a practical **60-second grace**,
+   also capped by expiry, then cleans up. The report counter is committed before
+   the native HTTP response finishes: this grace does not prove client completion.
+   The primary must separately verify the native terminal receipt.
+5. Cleanup deletes only acknowledged exact resources and verifies absence; a
+   deletion marked attempted is never blindly repeated. An ambiguous create or
+   upload is never retried or guessed, and leaves cleanup unconfirmed. Finally
+   retains only sanitized `cleanup.json`, with exact-name recovery, source/
+   artifact/schema hashes, finite counters and cleanup flags. No native capability
+   pass is inferred from preparation, the final-report counter or cleanup alone.
+
+The hold/cleanup step has twenty-five minutes and the job has thirty-five minutes.
+The original resource expiry remains twenty minutes from preparation, regardless
+of job duration. One in-flight bounded call can finish after expiry before
+cleanup. Job/process termination may prevent finally or artifact upload; the
+runner flushes only fresh nonsecret run/name correlation before mutation for
+read-only ownership reconciliation. Never rerun a mutation to resolve ambiguity.
+The private ID journal remains on that ephemeral runner and is never uploaded.
+
+Approval still must cover exactly two Workers plus one D1, the two temporary
+Actions secrets, the finite lifetime/payloads above and later fresh Windows
+action-time approval for the separate new native plug-in. No installation or
+invocation is authorized merely by accepting server code or CI cleanup. The
+fixed production FGA endpoint/edge and real-credential path remain unqualified.
+
+Lifecycle review corrections: the hold/cleanup step is twenty-five minutes,
+inside the thirty-five-minute job. The original twenty-minute expiry is shared
+across preparation and holding. A fake-clock no-final-report run waits the full
+1200 seconds, then simulates all nine cleanup calls taking their 30-second
+transport budgets: 1470 seconds total, below the 1500-second step. The practical
+60-second final-report grace remains capped by the original expiry.
+
+The sanitized cleanup receipt distinguishes `dryRunConfigSha2_256` from each
+Worker's `uploadMetadataSecretElidedSha2_256`. The latter hashes actual upload
+metadata with both secret_text values replaced by `[SECRET_ELIDED]`, using
+canonical sorted JSON. Only hashes are published, never raw config, resource
+IDs or secret values. The regression extracts actual multipart metadata to
+verify both elisions and the receipt digest. Seven fake lifecycle tests pass;
+Ruff and Pyright pass. No live operation or dispatch was performed.

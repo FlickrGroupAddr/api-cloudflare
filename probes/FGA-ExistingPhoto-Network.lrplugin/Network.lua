@@ -1,6 +1,6 @@
--- Development-only SDK 15.3 network characterization runtime 0.0.1.1.
+-- Development-only SDK 15.3 network characterization runtime 0.0.1.2.
 -- No release credential, catalog, provider API, or mutable global environment.
-local N={VERSION="0.0.1.1", PLAN_VERSION="fga-native-network-v1", TIMEOUT=15}
+local N={VERSION="0.0.1.2", PLAN_VERSION="fga-native-network-v1", TIMEOUT=15}
 local active=false
 local EPOCH=978307200 -- LrDate.currentTime is seconds since 2001-01-01 UTC.
 local function integer(value, minimum, maximum)
@@ -115,6 +115,52 @@ N.CASES={
     {id="redirect-cross", redirect=true},
 }
 local MARKER="fga-native-network-v1"
+-- This closed wire format contains only known ASCII field names, booleans
+-- and canonical nonnegative integers. Do not use permissive dkjson grammar for
+-- receiver attribution: comments, duplicate names and trailing commas fail.
+local function primitiveObject(bytes, keys)
+    if type(bytes) ~= "string" or #bytes > 4096 then return nil end
+    local position, result, seen=1, {}, {}
+    local function whitespace()
+        while bytes:sub(position,position):match("[ \t\r\n]") do position=position+1 end
+    end
+    whitespace()
+    if bytes:sub(position,position) ~= "{" then return nil end
+    position=position+1
+    while true do
+        whitespace()
+        local key=bytes:sub(position):match('^"([A-Za-z][A-Za-z0-9]*)"')
+        if not key or not keys[key] or seen[key] then return nil end
+        seen[key]=true
+        position=position+#key+2
+        whitespace()
+        if bytes:sub(position,position) ~= ":" then return nil end
+        position=position+1
+        whitespace()
+        local rest=bytes:sub(position)
+        local value, length
+        if rest:sub(1,4) == "true" then value,length=true,4
+        elseif rest:sub(1,5) == "false" then value,length=false,5
+        else
+            local digits=rest:match("^0") or rest:match("^[1-9][0-9]*")
+            if not digits or #digits > 16 then return nil end
+            value,length=tonumber(digits),#digits
+            if not integer(value,0,9007199254740991) then return nil end
+        end
+        result[key]=value
+        position=position+length
+        whitespace()
+        local separator=bytes:sub(position,position)
+        position=position+1
+        if separator == "}" then
+            whitespace()
+            if position ~= #bytes+1 then return nil end
+            return result
+        end
+        if separator ~= "," then return nil end
+    end
+end
+local receiverKeys={schemaVersion=true,receiverReached=true,authorizationPresent=true,canaryMatched=true}
 local reportKeys={schemaVersion=true, receiverRequests=true, authorizationObserved=true, canaryObserved=true}
 local function report(sdk, json, target, state)
     if not now(sdk) or now(sdk) >= target.expiresAtUnix then return nil,"target_expired" end
@@ -125,7 +171,7 @@ local function report(sdk, json, target, state)
     local body, headers=sdk.LrHttp.get(target.receiver .. "/v1/report",
         {{field="X-FGA-Network-Access",value=target.accessToken}},N.TIMEOUT)
     local observation=observed(sdk,before,body,headers)
-    local value=decode(json,body,4096)
+    local value=primitiveObject(body,reportKeys)
     local valid=observation.status == 200 and observation.bodyBytes <= 4096
         and headersValue(headers,"x-fga-network-probe") == MARKER
         and observation.noStore and exact(value,reportKeys) and value.schemaVersion == 1
@@ -159,6 +205,7 @@ function N.execute(sdk,json,rawTarget,state,progress)
     if not baseline or baseline.receiverRequests ~= 0 or baseline.authorizationObserved or baseline.canaryObserved then
         state.outcome="failed"; state.reasonCode=baselineReason or "target_not_fresh"; return state
     end
+    local crossObservation
     for _, case in ipairs(N.CASES) do
         if not now(sdk) or now(sdk) >= target.expiresAtUnix then
             state.outcome="failed"; state.reasonCode="target_expired"; return state
@@ -187,6 +234,27 @@ function N.execute(sdk,json,rawTarget,state,progress)
                 observation.sameOriginCanaryAccepted=observation.status == 200 and observation.media == "png"
                     and observation.bodyBytes == 68 and observation.markerMatches
             end
+            if case.id == "redirect-cross" then
+                crossObservation=observation
+                observation.redirectResponseCategory="other"
+                if observation.expectedResponse and observation.status == 302 then
+                    observation.redirectResponseCategory="original_redirect"
+                elseif observation.expectedResponse and observation.status == 200 and observation.media == "json" then
+                    local receiver=primitiveObject(body,receiverKeys)
+                    local valid=exact(receiver,receiverKeys) and receiver.schemaVersion == 1
+                        and receiver.receiverReached == true
+                        and type(receiver.authorizationPresent) == "boolean"
+                        and type(receiver.canaryMatched) == "boolean"
+                        and (not receiver.canaryMatched or receiver.authorizationPresent)
+                    observation.receiverPayloadValid=valid
+                    if valid then
+                        observation.redirectResponseCategory="receiver_response"
+                        observation.receiverAuthorizationPresent=receiver.authorizationPresent
+                        observation.receiverCanaryMatched=receiver.canaryMatched
+                    end
+                end
+                observation.expectedResponse=observation.redirectResponseCategory ~= "other"
+            end
         else
             observation.expectedResponse=observation.markerMatches and observation.status == case.status
                 and observation.media == case.media and observation.noStore
@@ -207,9 +275,19 @@ function N.execute(sdk,json,rawTarget,state,progress)
     if not final then state.outcome="failed"; state.reasonCode=finalReason; return state end
     state.canary=final
     state.receiverCountExpected=final.receiverRequests <= 1
-    state.canary.observationConclusive=state.receiverCountExpected
-    if state.receiverCountExpected then state.canary.redirectFollowObserved=final.receiverRequests > 0 end
-    state.allExpectedResponses=state.receiverCountExpected
+    local correlated=false
+    if crossObservation and crossObservation.redirectResponseCategory == "original_redirect" then
+        correlated=final.receiverRequests == 0 and not final.authorizationObserved and not final.canaryObserved
+    elseif crossObservation and crossObservation.redirectResponseCategory == "receiver_response" then
+        correlated=final.receiverRequests == 1
+            and final.authorizationObserved == crossObservation.receiverAuthorizationPresent
+            and final.canaryObserved == crossObservation.receiverCanaryMatched
+    end
+    state.canary.observationConclusive=correlated
+    if correlated then
+        state.canary.redirectFollowObserved=crossObservation.redirectResponseCategory == "receiver_response"
+    end
+    state.allExpectedResponses=correlated
     for _, observation in ipairs(state.cases) do
         state.allExpectedResponses=state.allExpectedResponses and observation.expectedResponse
     end

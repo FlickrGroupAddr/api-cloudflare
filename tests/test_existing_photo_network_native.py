@@ -43,6 +43,9 @@ class ExistingPhotoNetworkNativeTests(unittest.TestCase):
         self.exceed_plan = False
         self.final_receiver_count = None
         self.partial_data = b"NEVER-RETAIN-THIS"
+        self.receiver_payload_patch = None
+        self.receiver_body = None
+        self.final_report_body = None
 
     def value(self, document):
         return self.codec.decode(json.dumps(document).encode(), 1, self.codec.null)[0]
@@ -78,6 +81,8 @@ class ExistingPhotoNetworkNativeTests(unittest.TestCase):
                 count = self.final_receiver_count
             if self.stale:
                 count = 1
+            if self.final_report_body is not None and len(self.calls) > 1:
+                return self.final_report_body, self.headers(media="application/json")
             return json.dumps(
                 {
                     "schemaVersion": 1,
@@ -110,14 +115,20 @@ class ExistingPhotoNetworkNativeTests(unittest.TestCase):
         if case == "redirect-cross":
             if not self.redirect_followed:
                 return b"", self.headers(302)
-            return json.dumps(
-                {
-                    "schemaVersion": 1,
-                    "receiverReached": True,
-                    "authorizationPresent": self.canary_forwarded,
-                    "canaryMatched": self.canary_forwarded,
-                }
-            ).encode(), self.headers(media="application/json")
+            payload = {
+                "schemaVersion": 1,
+                "receiverReached": True,
+                "authorizationPresent": self.canary_forwarded,
+                "canaryMatched": self.canary_forwarded,
+            }
+            if self.receiver_payload_patch:
+                payload.update(self.receiver_payload_patch)
+            body = (
+                self.receiver_body
+                if self.receiver_body is not None
+                else json.dumps(payload).encode()
+            )
+            return body, self.headers(media="application/json")
         return b"p" * 68, self.headers()
 
     def execute(self):
@@ -203,6 +214,76 @@ class ExistingPhotoNetworkNativeTests(unittest.TestCase):
         self.assertFalse(state[b"canary"][b"observationConclusive"])
         self.assertIsNone(state[b"canary"][b"redirectFollowObserved"])
 
+    def assert_redirect_inconclusive(self, state):
+        self.assertEqual(state[b"outcome"], b"incomplete")
+        self.assertFalse(state[b"canary"][b"observationConclusive"])
+        self.assertIsNone(state[b"canary"][b"redirectFollowObserved"])
+
+    def test_unrelated_arrival_cannot_turn_original_302_into_followed_redirect(self):
+        self.redirect_followed = False
+        self.canary_forwarded = False
+        self.final_receiver_count = 1
+        state = self.execute()
+        self.assert_redirect_inconclusive(state)
+        self.assertEqual(state[b"canary"][b"receiverRequests"], 1)
+        self.assertEqual(state[b"cases"][8][b"redirectResponseCategory"], b"original_redirect")
+
+    def test_malformed_or_nonclosed_receiver_payload_stays_inconclusive(self):
+        for patch, body in (
+            (None, b"not JSON"),
+            ({"extra": "unrelated"}, None),
+            ({"schemaVersion": 2}, None),
+            ({"receiverReached": False}, None),
+            ({"authorizationPresent": "true"}, None),
+            ({"authorizationPresent": False, "canaryMatched": True}, None),
+        ):
+            with self.subTest(patch=patch, body=body):
+                self.calls = []
+                self.receiver_payload_patch, self.receiver_body = patch, body
+                state = self.execute()
+                self.assert_redirect_inconclusive(state)
+                self.assertFalse(state[b"cases"][8][b"receiverPayloadValid"])
+
+    def test_nonstandard_receiver_and_report_json_is_rejected(self):
+        receiver = (
+            b'{"schemaVersion":1,"receiverReached":true,'
+            b'"authorizationPresent":true,"canaryMatched":true}'
+        )
+        report = (
+            b'{"schemaVersion":1,"receiverRequests":1,'
+            b'"authorizationObserved":true,"canaryObserved":true}'
+        )
+        for malformed in (
+            receiver.replace(b"{", b"{/* comment */", 1),
+            receiver.replace(b"{", b'{"schemaVersion":1,', 1),
+            receiver[:-1] + b",}",
+        ):
+            with self.subTest(receiver=malformed):
+                self.calls = []
+                self.receiver_body = malformed
+                self.assert_redirect_inconclusive(self.execute())
+        self.receiver_body = None
+        for malformed in (
+            report.replace(b"{", b"{/* comment */", 1),
+            report.replace(b"{", b'{"receiverRequests":1,', 1),
+            report[:-1] + b",}",
+        ):
+            with self.subTest(report=malformed):
+                self.calls = []
+                self.final_report_body = malformed
+                state = self.execute()
+                self.assertEqual(state[b"outcome"], b"failed")
+                self.assertEqual(state[b"reasonCode"], b"receiver_report_invalid")
+                self.assertIsNone(state[b"canary"])
+
+    def test_receiver_payload_and_aggregate_flag_disagreement_stays_inconclusive(self):
+        self.receiver_payload_patch = {"authorizationPresent": False, "canaryMatched": False}
+        state = self.execute()
+        self.assert_redirect_inconclusive(state)
+        self.assertTrue(state[b"cases"][8][b"receiverPayloadValid"])
+        self.assertFalse(state[b"cases"][8][b"receiverAuthorizationPresent"])
+        self.assertTrue(state[b"canary"][b"authorizationObserved"])
+
     def test_config_rejects_arbitrary_origins_tokens_expiry_and_unknown_fields(self):
         for patch in (
             {"source": "https://example.com"},
@@ -236,7 +317,7 @@ class ExistingPhotoNetworkNativeTests(unittest.TestCase):
             "https://",
             "image/png",
             "receiverReached",
-            "Authorization",
+            '"Authorization"',
             "X-FGA-Network-Access",
         ):
             self.assertNotIn(forbidden.encode(), encoded)
@@ -330,9 +411,9 @@ class ExistingPhotoNetworkNativeTests(unittest.TestCase):
         self.assertEqual(locations[b"root"], b"C:\\Temp\\FGA-existing-photo-network")
         self.assertNotIn(b"/", locations[b"target"])
         info = self.lua.execute((PROBE / "Info.lua").read_bytes())
-        self.assertEqual(info[b"VERSION"][b"build"], 1)
-        self.assertEqual(self.module.VERSION, b"0.0.1.1")
-        self.assertIn("0.0.1.1", (PROBE / "Run.lua").read_text(encoding="utf-8"))
+        self.assertEqual(info[b"VERSION"][b"build"], 2)
+        self.assertEqual(self.module.VERSION, b"0.0.1.2")
+        self.assertIn("0.0.1.2", (PROBE / "Run.lua").read_text(encoding="utf-8"))
         source = (PROBE / "Network.lua").read_text(encoding="utf-8")
         for forbidden in (
             "LrPasswords",

@@ -2,7 +2,7 @@
 
 Date: 2026-10-16. Status: prepared and offline verified; not loaded or run.
 
-The separate `probes/FGA-ExistingPhoto-Network.lrplugin` version **0.0.1.1**
+The separate `probes/FGA-ExistingPhoto-Network.lrplugin` version **0.0.1.2**
 characterizes documented SDK 15.3 `LrHttp.get` behavior against two finite,
 plan-generated workers.dev resources. It does not use the production client
 adapter, Plugin Code, Lightroom catalog, provider credentials or real images.
@@ -88,10 +88,18 @@ The receiver `/v1/report` requires the disposable gate and returns exactly
 so reporting cannot manufacture a forwarding observation. Report reads count
 toward the role quota but not receiverRequests. The baseline must report zero
 arrivals and false flags; otherwise the native fixture stops before source
-cases. The final report records whether the cross-origin redirect arrived and
-whether the canary was forwarded. More than one arrival is flagged as an
-unexpected observation with observationConclusive false and no inferred
-redirectFollowObserved field; it is not attributed to a particular cause. Impossible
+cases. The final report is correlated with the native `redirect-cross` response,
+not treated as attribution on its own. A returned original 302 requires zero
+receiver arrivals and false aggregate flags. A receiver 200 must have the marker,
+no-store and JSON media type, plus a bounded, exact closed object containing
+schemaVersion 1, receiverReached true, and boolean authorizationPresent and
+canaryMatched (a match also requires Authorization present). That response
+requires exactly one aggregate arrival and exact agreement of both flags.
+Any unrelated arrival, malformed receiver payload, flag disagreement or other
+native result makes observationConclusive false, leaves redirectFollowObserved
+absent, and reports an incomplete observation. More than one arrival is likewise
+inconclusive; aggregate count/booleans remain sanitized diagnostics without
+attributing them to this native request. Impossible
 boolean/count combinations are rejected. No result is inferred from a missing,
 expired, malformed or quota-denied report.
 
@@ -108,7 +116,7 @@ private target placement, plug-in loading and the single command invocation.
 Keep the plug-in at its checkout location because it loads the existing
 vendored `dkjson.lua` by a native SDK path relative to the checkout; it does not
 modify that library or the release bundle. Use SDK 15.3 targeting on the exact
-recorded installed host/build, with all entrypoints versioned 0.0.1.1.
+recorded installed host/build, with all entrypoints versioned 0.0.1.2.
 
 Invoke Library > Plug-in Extras > Existing-photo disposable network
 characterization once. A module-level active guard prevents overlapping calls
@@ -170,7 +178,7 @@ remove the private target/gate material. Never delete unrelated resources or
 infer remote cleanup from local receipt completion. Keep the sanitized status
 only as needed for reviewed evidence; the temporary path is ephemeral.
 
-Ten offline actual-Lua5.1 tests cover fixed paths/headers/case counts,
+Fourteen offline actual-Lua5.1 tests cover fixed paths/headers/case counts,
 configuration rejection before requests, report freshness, canary outcomes,
 timeout/partial-data/error sanitization, privacy exclusions, finite excess
 observations, native Windows path construction, checked receipt delete/move failure behavior
@@ -178,3 +186,24 @@ and version consistency. Ruff,
 Pyright and Adobe SDK15.3 `luac -p` pass. SDK objects are stand-ins in these tests;
 no host/network observation or production gate is claimed. The fixed FGA
 origin/edge and detailed production contract still require their separate gates.
+
+Build 0.0.1.2 evidence-integrity correction: ready metadata exposes the receiver
+path/run identity, so aggregate count 0/1 alone cannot attribute an arrival to
+the native redirect. This version correlates the actual response with strict
+closed receiver JSON and the final report as specified above. Regressions cover
+an unrelated arrival with an unfollowed 302, malformed/extra/wrong-type payloads,
+and payload/report flag disagreement. The earlier committed review receipt and
+its source hashes remain historical evidence for build 0.0.1.1; they do not
+approve these changed runtime bytes. The independent reviewer must record a
+separate review/addendum for this build. No endpoints, secret paths or new
+authentication framework were added; no UI or live call occurred during this fix.
+
+The receiver/report attribution parser is intentionally narrower than the general
+configuration decoder: bounded flat objects with known literal ASCII keys,
+canonical nonnegative integer fields and boolean values only. It rejects comments,
+duplicate keys, trailing commas, escaped/unknown names, floating-point numeric
+forms and trailing data before applying each exact schema. The controlled
+Worker emits that canonical subset. This prevents permissive dkjson extensions
+from turning malformed attribution data into an apparently valid observation;
+config parsing remains separate. Regression cases cover the three permissive
+forms for both receiver payloads and final reports.

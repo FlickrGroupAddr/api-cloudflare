@@ -134,3 +134,125 @@ Test-source hashes: `tests/existing_photo_native_network.test.mjs`
 `5516916fb45a84b6364f025afa58cb7fb378b48b3a18e5d07f106813d196ca52`;
 `tests/test_existing_photo_network_native.py`
 `fa278fa65220673f854d7131c7ae3e9466a5c21f7b52fbda308c18c28b990b83`.
+
+## Separate manual CI lifecycle review
+
+Reviewed the subsequently prepared lifecycle runner and manual-dispatch
+workflow without live calls. The preceding packet/fixture 0.0.1.1 hashes remain
+historical exact-source evidence; this section adds lifecycle scope rather than
+replacing that provenance. A new native attribution correction is reviewed
+separately after its sources stabilize.
+
+`scripts/existing_photo_native_network_lifecycle.py:150` creates only the two
+derived fresh Worker names and one fresh D1. It persists private account/job and
+acknowledged resource identities before dependent operations, plus a whitelist
+receipt and flushed nonsecret run/name correlation. Fresh names must be absent;
+canonical database ID/name and exact acknowledged Worker name are checked.
+There is no mutation retry after an ambiguous create, seed, upload, endpoint
+enable or delete. Cleanup at `:104` uses acknowledged identities only, checks
+the D1's name and verifies absence. A repeated cleanup may reconcile absence
+read-only, but an already attempted delete is not blindly repeated.
+
+`hold_cleanup` at `:365` accepts only the same account/GitHub job journal and
+derived names/canonical D1 identity. Preparation failure cleans up immediately;
+failed ready-artifact publication skips holding. During a published ready
+window it polls only a fixed parameterized SELECT over the two quota rows,
+at most 121 times. Read-only query repetition is distinct from mutation retry.
+The second gated receiver report triggers at most 60 seconds of grace, capped
+by the original expiry. That counter is not proof that the native response or
+terminal receipt completed; native evidence remains independently required.
+Counter failure, expiry and normal completion all enter exact cleanup.
+
+The initial 20-minute hold step could consume its whole budget waiting for the
+resource expiry before cleanup began. The owner corrected it to 25 minutes
+inside the 35-minute job. Preparation and holding share one original 20-minute
+expiry, rather than creating consecutive live windows. The fake-clock regression
+waits the full 1200 seconds without a final report, then charges nine cleanup
+calls at 30 seconds each: 1470 seconds, below the 1500-second step bound. Forced
+job termination or provider failures can still leave cleanup unconfirmed; exact
+nonsecret correlation remains available for ownership reconciliation.
+
+The ready artifact contains exactly five nonsecret fields: schema/plan version,
+run ID, workers.dev subdomain and expiry. It contains neither gate/canary nor
+account/resource ID or URL. The parent combines it privately with its two newly
+created temporary Actions secrets. The workflow reuses the existing CI provider
+token, grants only repository read permission and cannot manage those temporary
+secrets. They must be absent before parent creation and removed by the parent
+after the run; accepting this source does not authorize either action.
+
+The synthetic values enter only preparation; provider credentials are limited
+to the prepare and hold/cleanup steps. The local bundle helper strips
+Cloudflare/FGA environment values. Holding requires no gate/canary and reads
+only D1 counters. Uploaded artifacts are only the exact
+ready JSON and sanitized cleanup receipt; private journals, configurations,
+Wrangler logs and upload bodies are excluded. The receipt projects only fixed
+names/flags, validated finite role counters and hashes, with exception class
+rather than raw error text.
+
+Review also identified missing generated/deployed configuration provenance.
+The owner added separate `dryRunConfigSha2_256` and per-role
+`uploadMetadataSecretElidedSha2_256`. Tests extract the actual multipart metadata,
+replace both secret-text values with `[SECRET_ELIDED]`, and match the canonical
+sorted-JSON hash. No raw configuration, IDs or secret value is published.
+
+Independent `uv run --frozen python -m unittest tests.test_existing_photo_native_network_lifecycle`
+passed seven offline fake-provider tests, zero failed. No remaining material
+lifecycle source defect was found within this scope. No workflow dispatch,
+resource/secret operation, UI action or native qualification was performed.
+
+SHA2-256 lifecycle provenance:
+
+| File | Digest |
+| --- | --- |
+| `scripts/existing_photo_native_network_lifecycle.py` | `2f87923b5a39a58bb59120364e3b8bb9b743c753c8e5e89ffec55554c1375137` |
+| `.github/workflows/existing-photo-native-network.yml` | `6eda3773390c12d0ac61c5233076d8a34441f51dcc40ce707fb459255c211b70` |
+| `tests/test_existing_photo_native_network_lifecycle.py` | `690eac3959fa5e518cc8081935ab24865a24dda6257a046843faac168f4ac489` |
+
+The server Worker retains packet hash
+`26858287e2451bc72eb85660f41c7f7d91d5a72379d75aaa517b7a5df9265eb2`.
+
+## Native 0.0.1.2 attribution correction
+
+The primary identified a remaining evidence-attribution gap in fixture 0.0.1.1:
+one unrelated receiver arrival could coexist with the SDK returning the original
+302 and still be labeled a followed redirect. The earlier 0.0.1.1 source review
+and hashes above remain historical; they are not qualification of this corrected
+fixture or proof that the earlier inference was sufficient.
+
+Reviewed unrun fixture **0.0.1.2** now correlates the cross-origin response with
+the final report. An original 302 requires zero receiver arrivals and false
+flags. A receiver 200 requires its bounded closed four-field JSON response,
+exact schema/reached/Boolean meanings, exactly one arrival and exact agreement
+between response and aggregate Authorization/canary flags. Other responses,
+multiple arrivals, malformed payloads or disagreements remain inconclusive with
+no `redirectFollowObserved` inference. The marker remains public/forgeable; no
+new authentication, endpoint, request or production-safety claim was added.
+
+Independent review found that the initial correction still used permissive
+dkjson syntax for those JSON responses. The owner added a bounded closed
+primitive-object parser for receiver and report payloads: only known literal
+ASCII keys, Boolean values and canonical nonnegative integers are accepted
+before the exact schema checks. Duplicate names, comments, trailing commas,
+unknown keys and trailing data are rejected. This is deliberately the small
+fixed experiment wire format, not a new general JSON codec. Private target
+decoding and its existing exact-field/value checks remain separate.
+
+Independent
+`uv run --frozen python -m unittest tests.test_existing_photo_network_native tests.test_existing_photo_native_network_lifecycle`
+passed twenty-one offline tests: fourteen native Lua 5.1 tests and seven fake
+lifecycle tests, zero failed. The new cases include unrelated single arrival,
+malformed/nonclosed receiver payload, response/report flag disagreement and
+duplicate/comment/trailing-comma rejection in both receiver and final reports.
+No remaining material source defect was found in these corrected scopes. This
+review made no live or UI call; version 0.0.1.2 has not acquired native acceptance
+through these tests. Action-time authorization and actual terminal/cleanup
+evidence remain required before any resulting qualification conclusion.
+
+SHA2-256 native 0.0.1.2 provenance:
+
+| File | Digest |
+| --- | --- |
+| `probes/FGA-ExistingPhoto-Network.lrplugin/Network.lua` | `d3369a176cd3ee0d7fc079dd77b10be7da29e9d63b0dc487af21accded41073c` |
+| `probes/FGA-ExistingPhoto-Network.lrplugin/Info.lua` | `0e95693de0f92b973c8d8b3e84e4f5295d9211148d2c1cb5214e89b4ad2050e6` |
+| `probes/FGA-ExistingPhoto-Network.lrplugin/Run.lua` | `4094a011299fc7f9141e839970ae3bc27c684e49b2dc75526b8341961f8d08df` |
+| `tests/test_existing_photo_network_native.py` | `32c02e705905c49103ab5d44224d470b43404212a13b39462e9f7b88c6c1ec67` |
