@@ -88,3 +88,39 @@ outbox proof closed. Do not ask Terry to repeat those approvals or tests.
 The primary left Lightroom Classic running with no fixture dialog open after
 the ten-scenario matrix. Refresh returned app/window state before any new input;
 do not launch another instance or reuse stale handles.
+
+## Next concrete action: owner load/run decision
+
+The reviewed finite network packet is pushed in **86fbc7d**. Its separate
+native plug-in is **0.0.1.2**, not the already executed synthetic UI fixture.
+Read [the finite server/lifecycle plan](../../probes/existing-photo-native-network/README.md),
+[the native fixture guide](existing-photo-native-network-fixture-2026-10-16.md)
+and [the independent review](../evidence/existing-photo-native-network-review-2026-10-16.md).
+
+The proposed run creates exactly two disposable workers.dev Workers, one fresh
+synthetic D1 and two temporary Actions secrets containing only synthetic gate/
+canary values. It reuses the existing Cloudflare CI credential unchanged; the
+old local CI-token file is absent and no replacement is needed. The resource
+expiry is twenty minutes, with at most 32 admitted requests per role, 262145
+bytes per response and one 16-second delay. The CI runner has explicit cleanup
+margin beyond expiry, exact identity journaling, single-attempt mutations and
+sanitized readiness/cleanup artifacts. No resources or temporary secrets have
+been created and no workflow has been dispatched for this packet.
+
+Before provisioning/loading/invoking, obtain the concrete Windows action-time
+approval. Generate expiry only after approval. The primary owns desktop input,
+private target assembly, the native terminal observation, exact remote cleanup
+confirmation and removal of only the two newly created temporary secrets. Do
+not overwrite existing secret names or infer native completion from CI counters.
+No real Plugin Code, Flickr credential, photo, catalog write or production route
+is involved. This experiment records finite native HTTP behavior and keeps all
+production, native allocation and total-deadline qualification claims false.
+Fixed production-origin/edge review and the downstream #0024/#0025 gates remain.
+
+Final handoff verification: the complete frozen Python run passed 381 tests;
+a subsequent affected-module run passed all fourteen final native network tests.
+The final independent native/lifecycle check passed twenty-one tests; five
+server tests and eighty-seven checks across six npm test scripts also passed.
+The earlier 218-test production-runtime result remains tied to its unchanged
+production sources after the dependency update. No new fixture or CI preparation
+result is substituted for actual native execution or production acceptance.
