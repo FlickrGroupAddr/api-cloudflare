@@ -321,3 +321,13 @@ Report only the outcome, material findings or blockers, verification summary and
 concise file/line references. Keep detailed evidence in appropriate files and send
 references so the parent can inspect it directly when needed. Parent instructions
 should likewise be compact and reference shared files instead of pasting data.
+
+## Subagent model display
+
+Terry's preferred user-facing format, specified on 2026-10-16, is
+`[GPT version] [model name] / [effort level]`. Examples: `6 Luna / Light`,
+`6.1 Sol / Medium`, `6.1 Sol / High`, and, only when approved for that turn,
+`6 Astra / Medium`. Render API effort `low` as `Light` in this display.
+Always show both model and effort in delegation updates. This presentation
+preference does not change model permissions, per-turn Astra approval, or the
+requirement to pass explicit model and reasoning-effort identifiers to spawn calls.
