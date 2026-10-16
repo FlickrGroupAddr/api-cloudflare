@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "planVersion": "fga-group-post-v1",
+  "mode": "offline_preparation",
+  "limits": {
+    "lifetimeSeconds": 1200,
+    "cleanupMarginSeconds": 240,
+    "providerCalls": 120,
+    "providerTimeoutSeconds": 20,
+    "requestsPerRole": 64,
+    "requestBytes": 16384,
+    "responseBytes": 2097153,
+    "delayMs": 16000,
+    "workers": 2,
+    "databases": 1
+  },
+  "productionQualified": false,
+  "runtimes": {
+    "python": "3.14",
+    "uv": "0.12.5",
+    "node": "24.22.0",
+    "lightroom": "15.6",
+    "sdk": "15.3"
+  },
+  "actionPaths": {
+    "manifest": "C:\\Projects\\FGA\\api-cloudflare\\probes\\group-post-characterization\\manifest.json",
+    "outputRoot": "C:\\Projects\\FGA\\api-cloudflare\\.coordination-runs\\group-post-characterization",
+    "nativeRoot": "C:\\Temp\\FGA-group-post-v1",
+    "target": "C:\\Temp\\FGA-group-post-v1\\target.json",
+    "status": "C:\\Temp\\FGA-group-post-v1\\status.json",
+    "stop": "C:\\Temp\\FGA-group-post-v1\\stop.json"
+  },
+  "sha2_256": {
+    "probes/group-post-characterization/worker.mjs": "c45200f7270cd9040b78847bc5a7b2dca41cb025ef3b778d632fca5c2d441a8f",
+    "probes/group-post-characterization/schema.sql": "2da3a8c4c98089fc00c7c131e28a92606688fa634bc4c06b886e547ef506beca",
+    "scripts/group_post_characterization.py": "9825188a171b15b939978a13cd6e7ec0735cc4ad6088446012786ebf130dbea4",
+    "probes/lightroom/FGA-GroupPost-v1.lrplugin/Info.lua": "ad5d64bda98511dea58fc27bfacf5578847d868e4e2fe6761907c89dcae29e71",
+    "probes/lightroom/FGA-GroupPost-v1.lrplugin/Post.lua": "e2dd1d5ba89f2ef0b79ff86faf4069060ca5173696665cfb70f2e29df49a5bcf",
+    "probes/lightroom/FGA-GroupPost-v1.lrplugin/Run.lua": "3515521a76feb5877da993e876b688c13297ca3c891a62b10dda67547fcc7742",
+    "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoClient.lua": "2fcd68afae4f933ce83e25aa4cf8c734971f25a5ae12855c23c6f3f68bcfdc54",
+    "clients/lightroom/FGA-LrC15.lrplugin/GroupSubmissionClient.lua": "1df4891ffb42a018af0f5b49ebe425bbcefe80cb017798c3c039d43387e3c21e",
+    "clients/lightroom/FGA-LrC15.lrplugin/dkjson.lua": "197cb50834c642f84b4cf99fe724932c50e6d9c92faec7ad89aa25e91df4d481"
+  },
+  "effectiveConfig": {
+    "compatibility_date": "2026-10-16",
+    "workers_dev": true,
+    "preview_urls": false,
+    "observability": {
+      "enabled": false
+    },
+    "logpush": false,
+    "bindings": [
+      "DB",
+      "RUN_ID",
+      "ROLE",
+      "SUBDOMAIN",
+      "EXPIRES",
+      "ACCESS",
+      "CANARY"
+    ]
+  }
+}
