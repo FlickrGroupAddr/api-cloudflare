@@ -1,9 +1,13 @@
 # Finite native HTTP characterization packet
 
-Status: review artifact only. Nothing deployed, invoked in Lightroom Classic,
-or enabled in production. This is separate from the passing disposable hosted
-matrix and the separately passing ten native synthetic fixture scenarios.
-Neither earlier pass qualifies real `LrHttp.get` allocation or redirect behavior.
+Status: this reviewed packet executed once after explicit owner approval on
+2026-10-16. [The retained result](../../docs/evidence/existing-photo-native-network-run-2026-10-16.md)
+records finite native characterization, successful CI and exact cleanup. No
+production capability was enabled. This remains separate from the passing
+disposable hosted matrix and ten native synthetic fixture scenarios; none of
+these results establishes native preallocation or total-deadline guarantees.
+The proposed-scope wording below is the historical execution packet, not new
+permission to repeat its mutations.
 
 ## Proposed finite permission scope
 

@@ -7,6 +7,16 @@ SDK 15.3; no support claim for a later Lightroom Classic major.
 
 ## Completed engineering milestones
 
+- #0023's separate native network fixture **0.0.1.2** completed its one finite
+  invocation on the recorded Lightroom Classic 15.6 host. All eight response
+  cases and both receiver reports matched the experiment; the cross-origin
+  redirect was followed without the synthetic Authorization marker. CI
+  **38945950488** succeeded and confirmed deletion of both Workers and D1.
+  The two temporary Actions secrets and identity-matched local gate material
+  were removed. See [the measured results and limits](../evidence/existing-photo-native-network-run-2026-10-16.md).
+  This resolves the earlier desktop-resume handoff; production qualification
+  remains separate.
+
 - Toolchain and dependency work is pushed; Terry completed #0035 on 2026-10-16.
   CI and the qualified portable runtime use Node 24.22.0/npm 12.2.0; the
   machine-wide Node remains 24.20.0. TypeScript stays stable 7.0.2; 7.1.0 is
@@ -51,21 +61,21 @@ native receipts remain build **0.2.0.6**, not build 7.
 
 ## Remaining engineering and permission boundary
 
-The next #0023 work is actual native HTTP characterization, followed by the
-fixed trusted FGA endpoint/edge qualification. Read [the next-step scope](existing-photo-native-network-next-step-2026-10-16.md).
-The native UI fixture injects responses; the disposable cloud runner uses Python
-HTTP. Their passes cannot establish actual LrHttp allocation, redirects or
-Authorization forwarding, active network cancellation, production edge policy,
-or full JPEG decoding. Finite measurements must not be relabeled as universal
-preallocation or total elapsed-time guarantees absent supported controls.
+The next #0023 work is the exact fixed trusted FGA thumbnail endpoint/edge
+qualification packet. Read [the proposed plan](existing-photo-fixed-origin-plan-2026-10-16.md)
+and [the controlling scope](existing-photo-native-network-next-step-2026-10-16.md).
+The completed native experiment measures the finite response lengths, timeout
+and redirect observations in its retained record. It does not establish
+preallocation bounds, active network cancellation, production edge policy,
+full native JPEG decoding or a hard total deadline. Keep the actual-path,
+effective-edge/configuration and exact-artifact gates open.
 
-Prepare and independently review the separate finite network probe and its
-two-Worker/one-D1 resource/cleanup packet before loading or deploying it. The
-primary keeps desktop input exclusive during approved runs and must observe
-after each action. A newly installed/loadable fixture needs the computer-use
-skill's action-time owner confirmation for its concrete scope. Reuse existing
-disposable authorization only where it actually covers the new resources and
-requests; production-domain changes are a separate boundary.
+Prepare and independently review the next concrete artifact/configuration
+before requesting its live execution. The primary keeps desktop input exclusive
+during approved runs and observes after each action. A newly installed/loadable
+fixture needs the computer-use skill's action-time owner confirmation for its
+concrete scope. Reuse existing authorization within its actual scope;
+production-domain changes remain a separate boundary.
 
 #0024 still needs the real host transport/storage adapter qualification,
 integrated native batch/status/reconciliation behavior and reviewed release
@@ -89,7 +99,7 @@ The primary left Lightroom Classic running with no fixture dialog open after
 the ten-scenario matrix. Refresh returned app/window state before any new input;
 do not launch another instance or reuse stale handles.
 
-## Next concrete action: owner load/run decision
+## Historical prepared packet and owner load/run decision
 
 The reviewed finite network packet is pushed in **86fbc7d**. Its separate
 native plug-in is **0.0.1.2**, not the already executed synthetic UI fixture.
@@ -104,8 +114,8 @@ old local CI-token file is absent and no replacement is needed. The resource
 expiry is twenty minutes, with at most 32 admitted requests per role, 262145
 bytes per response and one 16-second delay. The CI runner has explicit cleanup
 margin beyond expiry, exact identity journaling, single-attempt mutations and
-sanitized readiness/cleanup artifacts. No resources or temporary secrets have
-been created and no workflow has been dispatched for this packet.
+sanitized readiness/cleanup artifacts. At that earlier checkpoint, no resources or
+temporary secrets had been created and no workflow had been dispatched.
 
 Before provisioning/loading/invoking, obtain the concrete Windows action-time
 approval. Generate expiry only after approval. The primary owns desktop input,
@@ -133,6 +143,19 @@ physical Escape-key stop. The primary stopped desktop interaction and did not
 reset, relaunch, retry or use an alternate automation route. No new fixture was
 loaded or invoked, no temporary Actions secrets were created, no workflow was
 dispatched and no cloud resources were provisioned. There is nothing from this
-attempt to tear down. #0023 returns to Needs Terry until an explicit later
-resume; the reviewed packet remains prepared, not executed. Refresh current
-window state only in that later authorized turn and preserve any continued stop.
+attempt to tear down. At that checkpoint #0023 returned to Needs Terry until
+an explicit later resume; the reviewed packet was prepared, not executed.
+The later resumed execution is recorded below. Refresh current window state
+only in a later authorized turn and preserve any continued stop.
+
+## Resumed execution completed
+
+Terry explicitly resumed desktop control in a later turn on 2026-10-16. A fresh
+supported session recovered the running host; no cancellation reset or alternate
+automation route was used. The approved packet then executed once, with the
+terminal native result and exact cleanup retained in
+[the execution record](../evidence/existing-photo-native-network-run-2026-10-16.md).
+The primary closed the completion dialog and explicitly relinquished keyboard
+and mouse. Terry subsequently pressed Escape to remove the blue boundary;
+no further desktop input was issued. A later desktop operation requires a fresh
+supported session and must preserve any continued stop.

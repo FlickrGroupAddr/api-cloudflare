@@ -1,9 +1,13 @@
 # Existing-photo native network qualification: next step
 
-Date: 2026-10-16. Status: proposed execution handoff; no network qualification claimed.
+Date: 2026-10-16. Status: finite native characterization completed separately;
+fixed-origin qualification remains open. See [the observed result](../evidence/existing-photo-native-network-run-2026-10-16.md)
+and [the next proposed engineering plan](existing-photo-fixed-origin-plan-2026-10-16.md).
+The experiment descriptions below retain their original scope and limits.
 
-The next unresolved boundary is actual `LrHttp.get` behavior together with the
-fixed FGA endpoint and its deployed HTTPS edge. The completed
+The finite actual `LrHttp.get` experiment is now recorded in the linked result;
+the unresolved boundary is the fixed FGA endpoint and its deployed HTTPS edge.
+The completed
 [native synthetic receipt](../evidence/existing-photo-native-synthetic-2026-10-16.json)
 qualifies its ten UI/client/cache scenarios for fixture 0.0.1.5 and release
 0.2.0.6 on the recorded Lightroom Classic 15.6 build. It does not exercise HTTP,

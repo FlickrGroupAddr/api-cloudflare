@@ -1,6 +1,9 @@
 # Disposable native network characterization fixture
 
-Date: 2026-10-16. Status: prepared and offline verified; not loaded or run.
+Date: 2026-10-16. Status: executed once with finite characterization complete;
+see [the native result and separate cleanup](../evidence/existing-photo-native-network-run-2026-10-16.md).
+The preparation and action-time instructions below describe the reviewed packet;
+they do not authorize another run or production qualification.
 
 The separate `probes/FGA-ExistingPhoto-Network.lrplugin` version **0.0.1.2**
 characterizes documented SDK 15.3 `LrHttp.get` behavior against two finite,
@@ -10,9 +13,11 @@ The completed native UI/cache fixture and release source/hash artifacts are
 unchanged. Authority and remaining fixed-origin gates are described in
 [the next-step note](existing-photo-native-network-next-step-2026-10-16.md).
 
-This packet is preparation only. The primary will seek action-time approval
-for the concrete lifecycle and native plug-in load/run. No cloud resource,
-config credential, native UI or network was accessed while preparing it.
+The packet was prepared and independently reviewed before Terry's action-time
+approval and the recorded single execution. Preparation itself accessed no
+cloud resource, config credential, native UI or network. A new execution must
+resolve authorization against its own concrete scope; this result is not
+permission to repeat the attempt.
 
 ## Agreed finite plan
 
