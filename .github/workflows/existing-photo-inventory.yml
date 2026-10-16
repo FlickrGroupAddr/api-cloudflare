@@ -1,0 +1,37 @@
+name: Existing photo fixed-origin read-only inventory
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fga-existing-photo-inventory
+  cancel-in-progress: false
+jobs:
+  inventory:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.5'
+      - name: Offline inventory safety checks
+        run: uv run --frozen python -m unittest tests.test_existing_photo_inventory
+      - name: Read current provider metadata with existing CI credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.existing_photo_inventory --output-directory .coordination-runs/existing-photo-inventory
+      - name: Retain sanitized receipt only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: existing-photo-inventory-receipt
+          if-no-files-found: ignore
+          include-hidden-files: true
+          path: .coordination-runs/existing-photo-inventory/existing-photo-inventory-receipt.json
