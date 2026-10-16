@@ -13,8 +13,9 @@ is allocated to the explicitly dependent single-turn cards in
 [the current scheduling map](../planning/remaining-work-single-turn-decomposition-2026-10-16.md).
 Use that map and the live board for task selection. This scheduling update does
 not reopen completed evidence, change architecture authority or authorize live
-execution. All FGA ticket priorities were reset to P2 at Terry's request; a
-blocking relationship alone does not justify P1.
+execution. Terry corrected the default to P3 (Normal): apply it to open FGA
+tickets and preserve Completed cards' existing priorities. A blocking
+relationship alone does not justify higher priority.
 
 ## Completed engineering milestones
 

@@ -153,6 +153,15 @@ credentials and private data out of commits. This does not authorize
 force-pushing, changing repository visibility, or publishing packages or
 releases.
 
+## Ticket priority default
+
+Terry clarified on 2026-10-16 that **P3 (Normal)** is the default for FGA tickets,
+superseding the earlier P2 instruction. Use higher priority only for concrete
+urgency, impact, deadlines or explicit direction; blocking other tickets alone
+does not justify a higher priority. Keep dependency links and ordering explicit.
+The current priority reset applies only to open cards. Leave Completed cards'
+priorities, contents and histories unchanged by this correction.
+
 ## Local swimlane board
 
 When Terry asks to launch or open this project's localswim board, use these known

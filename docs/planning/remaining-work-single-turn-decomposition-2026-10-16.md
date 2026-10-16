@@ -10,10 +10,11 @@ where explicit blocking links prevent execution. Completed #0027/#0028/#0029/
 #0030/#0034 and the prior native/hosted milestones stay closed and retain their
 original provenance and limits.
 
-Terry reset every FGA ticket to P2 during this decomposition. P2 is also the
+Terry corrected the normal priority to P3 on 2026-10-16. Open FGA tickets use
+P3; Completed cards retain their existing priorities. P3 (Normal) is also the
 global default for new tickets. Raise priority only for concrete urgency,
 impact, deadlines or explicit direction; blocking other work alone is not a
-reason for P1. The dependency graph still determines execution order.
+reason for higher priority. The dependency graph determines execution order.
 
 A work card fits one focused parent turn with appropriate parallel subagents:
 one named component, contract/proof, prepared execution packet, decision or finite
