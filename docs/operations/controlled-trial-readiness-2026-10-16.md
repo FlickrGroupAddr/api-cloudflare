@@ -32,7 +32,7 @@ Status: preparation inventory only. The selected photo/group pair is recorded in
 
 ## Source and receipt scope
 
-- `docs/operations/first-controlled-group-addition.md` is the controlling worksheet, evidence, state-transition and stop-rule source. Its staged sweep section records local closed-intake cron dispatch regression coverage. Its later audited-limitations bullet still says the closed-intake wake is unproved; that wording is stale relative to current `src/worker.ts` and `tests/controlled_dispatch_sweep.test.mjs`. Local sweep proof does not qualify hosted delivery or exact-candidate activation.
+- `docs/operations/first-controlled-group-addition.md` is the controlling worksheet, evidence, state-transition and stop-rule source. Its staged sweep section records local closed-intake cron dispatch regression coverage. Its audited limitations now distinguish the integrated local wake proof from the remaining hosted delivery/rehearsal gate. Local sweep proof does not qualify hosted delivery or exact-candidate activation.
 - `docs/operations/lrc15-development-handoff-2026-10-16.md` is the dated development handoff. It places #0023 before #0024 and keeps #0025 dependent on integration and exact-artifact qualification.
 - `docs/operations/hosted-thumbnail-handoff-2026-10-15.md` and `docs/evidence/hosted-thumbnail-review-2026-10-15.json` describe a locally verified disabled thumbnail candidate and bounded review, not hosted/native production qualification.
 - `docs/evidence/controlled-trial-pause-hosted-2026-10-15.json` records a passed disposable hosted test of the fixed pause transaction and cleanup. It is not a live pause, current-state observation, release qualification or activation rehearsal.

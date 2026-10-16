@@ -317,16 +317,15 @@ before further action. A successful pause fences new markers and does not recall
 in-flight POST bytes. Disable intake and future dispatch as well, then reconcile
 already-marked work with the normal protected recovery path.
 
-For wake delivery, the minimal source change is to gate the existing scheduled
+For wake delivery, the integrated source change gates the existing scheduled
 due sweep on `FGA_DISPATCH_ENABLED==="1" && COORD` rather than intake configuration.
 This keeps normal D1 queue/gate/lease decisions, rate reservation and prepared
-transport intact. The staged `scheduled-sweep.patch` contains the single
-conditional change; it adds no public endpoint or service. With it, stage one
+transport intact. The single conditional change adds no public endpoint or service. With it, stage one
 pair while stopped, close intake, drain admitted requests, complete the queue
 census, resume the two gates through their existing API, then enable dispatch;
 the ordinary cron can wake the retained pair with intake still closed.
 
-The staged `tests/controlled_dispatch_sweep.test.mjs` passed four local tests:
+The integrated `tests/controlled_dispatch_sweep.test.mjs` passed four local tests:
 normal authenticated one-pair admission followed by closed-intake cron dispatch
 through the real consumer/transport and a terminal repeat sweep; no wake/POST
 with dispatch disabled; and no POST with either deployment or user gate paused.
@@ -354,19 +353,15 @@ decision after all release prerequisites are satisfied.
   `duePartitions` can select up to 64 partitions; `PartitionWorker` can immediately
   arm a successor after a terminal head. Thus a partial/selected-user census
   cannot establish the one-pair bound.
-- **The closed-intake sequence has an unproved wake.** `worker.ts` returns from
-  scheduled processing before `duePartitions` when `configured(env)` is false;
-  that predicate requires intake enabled. An admission hint sent while dispatch
-  is disabled gets 503 from `PartitionWorker.fetch` before binding or arming.
-  With dispatch enabled but gates paused, queued heads do not arm in `arm()`.
-  Gate resume does not itself publish a wake. Therefore the unmodified sequence
-  of staging one pair while
-  stopped, closing intake, then resuming gates/enabling dispatch is not a
-  source-proven start procedure. Supply a supported bounded wake and rehearse
-  this sequence, or review an alternative narrow sweep/intake window and its
-  admission concurrency limits. Do not claim the existing cron wakes work with
-  intake disabled. The `/wake` surface is internal to the Durable Object binding,
-  not a public operator API.
+- **Closed-intake cron wake has local proof; hosted delivery remains open.**
+  The integrated `worker.ts` gates its scheduled due sweep on dispatch enablement
+  and the coordination binding rather than intake enablement. The four local
+  sweep regressions above exercise normal admission, closing intake, cron wake,
+  terminal repeat and disabled/paused refusal through the ordinary consumer.
+  They do not prove hosted alarm delivery, propagation or runtime timing.
+  Rehearse the full bounded activation/stop/recovery sequence for the exact
+  qualified candidate before a live trial. Gate resume alone does not publish
+  a wake, and the internal Durable Object `/wake` is not an operator API.
 - Admission hints and existing Durable Object alarms can wake work independently
   of cron, so disabling cron or intake alone is not a dispatch stop. The existing
   fail-polite states already protect moderation/ambiguity against replay. Preserve
@@ -377,9 +372,10 @@ decision after all release prerequisites are satisfied.
   `{"schemaVersion":1,"expectedRevision":<OBSERVED_REVISION>}`. They require the
   owner browser session, exact Origin, CSRF and recent authentication; they verify
   the current expected owner/write grant and compare-and-set the revision. These
-  calls contact Flickr and change durable authority. No explicit operator pause
-  route or bounded pause CLI existed in the audited checkout. The staged fixed
-  audited operator tool above supplies the minimal proposed pause implementation.
+  calls contact Flickr and change durable authority. The fixed audited
+  `scripts/controlled_trial_pause.py` tool above now supplies the bounded pause
+  path, with its scoped disposable hosted receipt. That pause proof does not
+  qualify full activation, dispatch wake delivery or stop/recovery rehearsal.
   A verified configuration rollout/rollback
   with dispatch disabled can stop future dispatch, but does not establish both
   durable gates paused. Supply an audited stop/pause procedure before claiming
