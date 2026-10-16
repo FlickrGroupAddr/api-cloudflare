@@ -203,3 +203,23 @@ confirm an otherwise invalid response still fails with an exact marker present.
 Production validation, transport bounds, readiness/case retry policy and seed
 isolation are unchanged. The unexplained prior 404 remains unattributed pending
 fresh reviewed hosted evidence. No live call or dispatch was made for this work.
+
+## Pre-cloud checkout inventory correction
+
+The fourth CI attempt stopped during offline verification; its cloud step was
+skipped and created no resources. The failed checkout omitted the newly added
+`probes/existing-photo-qualification/isolation.mjs` file, while its Python test
+already invoked that path. The fixture remained untracked in the local working
+tree, explaining why local tests passed and the clean CI checkout failed.
+This is a committed-file inventory error, not a reproduced Node worker-thread
+platform defect or hosted fixture-state defect.
+
+The next commit must include the new isolate fixture. The existing test now
+asserts its presence with a clear fixed diagnostic before spawning Node. No
+runtime/transport/production validation or isolation semantics changed. The
+portable Node 24.22.0 execution of that fixture and the complete 20-test pre-cloud
+suite pass locally. No live provider operation was performed in this investigation.
+
+Exact pre-cloud verification subsequently passed using existing portable Node
+24.22.0 and cached npm 12.2.0: npm run check and all 20 offline tests. No
+download or provider operation was needed.

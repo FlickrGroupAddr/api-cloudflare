@@ -15,6 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class QualificationTests(unittest.TestCase):
     def test_unseeded_fresh_isolates_preserve_missing_auth_and_gate_contracts(self):
+        self.assertTrue(
+            (ROOT / "probes/existing-photo-qualification/isolation.mjs").is_file(),
+            "Qualification checkout must include the committed isolation.mjs fixture",
+        )
         result = subprocess.run(
             ["node", "probes/existing-photo-qualification/isolation.mjs"],
             cwd=ROOT,
