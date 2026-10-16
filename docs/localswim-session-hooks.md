@@ -135,9 +135,13 @@ explicit log files. The tests preserve both conditions.
 
 At Terry's 2026-10-16 resume request, the implementation-board service was
 healthy and synchronized and was reused. The implementation-board monitor uses
-the actor-filtered sibling script with its own status/target/lock files. It
-suppresses fully accounted bot-only write bursts and queues human/uncertain
-changes after the 15-second quiet window. Keep this monitor separate from other
+the shared `localswim-monitor` command in `C:\Projects\localswim`, installed
+with its optional `monitor` extra, and its own status/target/lock files. It
+suppresses nonempty bot-only activity results, regardless of filesystem write
+count, and queues human/unknown/empty/failed-query changes after the 15-second
+quiet window. Atomic replacement/coalescing means write and activity counts are
+not one-to-one. Running status `actorFilterVersion: 2` confirms the corrected
+filter is loaded. Keep this monitor separate from other
 boards' watchers. Reinvocation retargets the existing watcher through its lock;
 do not terminate a healthy watcher or start another under different lock paths.
 
@@ -150,9 +154,7 @@ the current CODEX_THREAD_ID. Both log and runtime handoffs remain outside Git.
 $env:PYTHONIOENCODING = 'utf-8'
 $env:PYTHONUNBUFFERED = '1'
 $env:UV_CACHE_DIR = 'C:/Temp/localswim-uv-cache'
-Start-Process -FilePath 'C:/Users/TDO-XPS15-2024/.local/bin/uv.exe' -ArgumentList @(
-    'run', '--project', 'C:/Projects/FGA/architecture-design', '--frozen', 'python',
-    'C:/Projects/FGA/architecture-design/scripts/watch_localswim.py',
+Start-Process -FilePath 'C:/Users/TDO-XPS15-2024/.local/bin/localswim-monitor.exe' -ArgumentList @(
     '--board-path', 'C:/Projects/localswim-state-store/flickgroupaddr/api-cloudflare-localswim.json',
     '--board-label', 'FGA-implementation', '--thread-id', $env:CODEX_THREAD_ID,
     '--port', '8795',
@@ -169,3 +171,11 @@ target handoff names the active thread. An empty error log and current running
 status were observed on 2026-10-16. This confirms startup, not a newly exercised
 end-to-end notification delivery test. The script exits when its board service
 stops; do not leave a foreground shell or exec session waiting on the daemon.
+
+The historical FGA script path remains only a thin compatibility entry point;
+new launches use the package command above. Shared monitors advertise
+`reloadSupported: true`; add `--reload` to the same board-specific command to
+upgrade them cooperatively. The old script process requires one normal graceful
+board shutdown/start boundary before it gains that protocol. Never replace a
+different project's thread target with the current chat's ID, and verify the
+live monitor lock rather than trusting old `running` status alone.

@@ -234,11 +234,15 @@ directly or print its runtime service descriptor, which contains a credential.
 
 Terry's standing preference, stated 2026-09-19, is that changes authored only by
 `bot` must not queue a next-turn alert or cause a redundant board inspection.
-When monitoring this board, use the actor-filtered
-`C:\Projects\FGA\architecture-design\scripts\watch_localswim.py` with this
-board's path and port 8795. It queries sanitized `localswim-cli activity between
+When monitoring this board, use the shared `localswim-monitor` command from
+`C:\Projects\localswim` with its optional `monitor` extra, this board's path,
+port 8795 and the existing board-specific status/target/lock paths. Do not copy
+filtering logic into this project. Preserve other boards' target threads when
+upgrading their monitors. It queries sanitized `localswim-cli activity between
 --json` metadata after the quiet window; it alerts for Terry, other actors, or
-uncertain/incomplete activity and suppresses only fully accounted bot-only bursts.
+empty/failed/malformed or unknown-actor activity and suppresses nonempty
+bot-only results regardless of filesystem write count. Filesystem notifications
+and activity events are not one-to-one; count mismatch alone must not alert.
 Never read card prose inside the monitor. If an old-style alert is already queued,
 check its activity bounds; when every event is by `bot`, no further card inspection
 is needed. This preference applies in future sessions as well as this one.
