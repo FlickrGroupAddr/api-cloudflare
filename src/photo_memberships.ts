@@ -4,7 +4,7 @@ import { linkedGrant, sameGrant, withGrant, type GrantSnapshot, type SecretReads
 import { PHOTO_ID, PHOTO_READ_LIMITS, photoObject, photoTitle, photoInteger, photoJson, photoUnavailable,
   photoAuthLive, signedPhotoRead, boundedPhotoRead, photoReadBody, rejectPhotoGrant } from './existing_photo_discovery.ts';
 
-// Local observed-clock checks are defensive only. Hosted monotonic15s qualification remains a release blocker.
+// ADR0060 accepts the private observed-time profile; exact hosted/native qualification remains required.
 export const MEMBERSHIP_HOST_QUALIFIED = false;
 interface Query { size: number; revision: number | null; after: string; }
 interface Binding { binding_id: string; photo_id: string; owner_nsid: string; link_revision: number; verification_revision: number; }

@@ -1,0 +1,51 @@
+name: Disposable existing-photo edge qualification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fga-existing-photo-qualification
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.0'
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.5'
+      - name: Install locked dependencies
+        run: |
+          npm install --global npm@12.2.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv sync --frozen
+      - name: Verify harness before cloud operations
+        run: |
+          npm run check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run --frozen python -m unittest tests.test_existing_photo_qualification tests.test_existing_photo_qualification_hosted
+      - name: Qualify fresh disposable D1 and Worker and clean exact created resources
+        timeout-minutes: 14
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.FGA_CLOUDFLARE_CI_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.FGA_CLOUDFLARE_ACCOUNT_ID }}
+        run: uv run --frozen python -m scripts.existing_photo_qualification_hosted --from-env --output-directory .coordination-runs/existing-photo-qualification
+      - name: Retain only sanitized qualification receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: existing-photo-disposable-edge-evidence
+          if-no-files-found: ignore
+          include-hidden-files: true
+          path: .coordination-runs/existing-photo-qualification/existing-photo-hosted-qualification-2026-10-16.json
