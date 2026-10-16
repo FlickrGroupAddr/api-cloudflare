@@ -1,7 +1,13 @@
-# Current fixed-origin provider inventory preparation
+# Current fixed-origin provider inventory
 
-Date: 2026-10-16. Ticket #0036. Status: prepared offline; no remote read,
-production mutation, deployment or exact-restoration claim is recorded here.
+Date: 2026-10-16. Ticket #0036. The preparation and CI sections below record
+the earlier packet and partial run. The later local-capture section records
+the owner-supplied read-only access and durable private retention. No production
+mutation, deployment or restoration rehearsal is authorized by this inventory.
+
+## Original preparation packet (historical)
+
+The following describes the initial collector before the local hardening below.
 
 `scripts/existing_photo_inventory.py` implements a closed GET-only collector for
 the existing `fga-api` Worker and `flickrgroupaddr.com`. It rejects redirects and
@@ -109,3 +115,103 @@ scope. Do not broaden or replace the existing CI credential implicitly, publish
 private inputs to this public repository, or treat historical local artifacts
 as current readback. Exact-version binding and complete effective-edge coverage
 still require evidence after access/retention is available.
+
+
+## Local capture and endpoint-contract correction
+
+Terry supplied a separate temporary Cloudflare token after reviewing its scoped
+Read permissions. The first local run made 21 GET requests, observed stable
+deployment metadata and the expected domain attachment, and resolved the
+previous route/settings/Page Rules permission failures. Its ruleset phase
+responses (400/404) were retained as unknown, never silently treated as absence.
+
+Private evidence is retained under
+`C:/Users/TDO-XPS15-2024/Documents/ChatGPT/FGA/private-evidence/0036/`, outside
+the public repository. Each run owns a new UTC-named directory. Windows ACL
+inheritance is removed on that root; the current owner and SYSTEM have access.
+The temporary token stays in the owner-designated file and is not copied into
+the evidence. This is local retention, not an assertion of a separate backup.
+
+The earlier generic pagination check was too strict for some endpoint shapes
+and insufficient for complete deployment history. Primary-source checks found:
+
+- [Deployment lists](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/)
+  support bounded page/per_page enumeration. First-page success alone does not
+  prove complete history. Pin and re-read the active version/weight tuple.
+- [Domains](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/list/)
+  expose hostname/service filters and optional totals; missing total_pages alone
+  is not proof of incomplete results. Conflicting or additional-page evidence
+  still refuses completion.
+- [Page Rules](https://developers.cloudflare.com/api/resources/page_rules/methods/list/)
+  are a documented single list, without required pagination metadata. An empty
+  successful array is a meaningful configured-none observation.
+- [Ruleset lists](https://developers.cloudflare.com/api/resources/rulesets/methods/list/)
+  use cursors. Capture both account and zone scope, listed root/zone entrypoints
+  and execute descendants with concrete versions and overrides. A complete
+  empty list can establish no configured entrypoint; generic 400/404 cannot.
+- The [beta version GET](https://developers.cloudflare.com/api/resources/workers/subresources/beta/subresources/workers/subresources/versions/methods/get/)
+  accepts a fixed Worker name and a full version UUID with include=modules.
+  Validate the returned identity and complete module payload rather than
+  relabeling an unversioned artifact as an exact version download.
+
+Unreadable secret values do not by themselves block a configuration inventory.
+[Documented deployment preservation](https://developers.cloudflare.com/workers/configuration/secrets/)
+and [retained-version rollback](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/)
+are available preservation routes. Capture binding names/types and target
+identities privately; changed-secret compatibility, resource continuity and any
+forced rollback semantics must be resolved before a later execution packet.
+No force path is authorized here. Recreating a deleted Worker or lost secret
+state is outside this preservation assumption.
+
+#0036 captures inputs and explicit unknowns. #0043 owns the nonproduction
+restoration rehearsal, and #0037/later edge work own actual-path behavior.
+Keep restorationReady false until those separate gates pass; do not demand a
+live restoration or edge test merely to finish the metadata inventory.
+
+
+## Final local input inventory: ready for review
+
+The final capture at 2026-10-16 21:47:40 UTC made **14 GET requests**. All required
+metadata inputs passed validation, the deployment stayed stable, and the expected
+domain attachment was enabled. The exact active version response matched the
+pinned full UUID and its modules validated. Successful account and zone ruleset
+catalogues contained managed definitions but **zero configured root/zone
+entrypoints**. That is not a claim that provider defaults or runtime errors do
+not exist. Page Rules and routing/settings were captured successfully.
+
+The [sanitized local receipt](../evidence/existing-photo-inventory-local-2026-10-16.json)
+records inventoryComplete, metadataInputsComplete and exact-version artifact
+binding as true. The collector intentionally leaves its generic retention flag
+false: the separate parent-owned local attestation verifies the actual
+destination. It checked restricted root and descendant ACLs, all captured manifest digests and token
+absence in **15 private files / 1,083,133 bytes**. Raw settings, identities,
+binding names, source/modules and exact restoration inputs remain private.
+
+Current collector bounds are 96 GET requests, eight pages per ruleset scope,
+32 ruleset nodes, eight active versions, 128 modules per version, 16 MiB per
+response, 64 MiB aggregate response bytes (plus a one-byte refusal sentinel) and
+a 180-second process watchdog. It supports documented optional cursors.after
+and the installed SDK's older singular cursor, refusing malformed or conflicting
+forms. Missing optional pagination metadata alone is terminal for ruleset lists.
+Known digit-bearing phases such as ddos_l7 are valid bounded metadata labels.
+
+Independent Sol / High review reproduced and closed malformed-result false
+completion, cursor/list shape, context zone binding, cycle detection and byte
+budget issues. All **31 focused tests**, Ruff/format and Pyright passed. No live
+application request, provider write, migration, deployment, Flickr request or
+desktop action occurred.
+
+Private retrieval: use the UTC run directory `20261016T214740Z` beneath the local
+root above. `private/restoration-inputs.json` indexes exact captured endpoint
+payloads and their SHA2-256 digests, pinned version weights and module metadata;
+the complete version response retains module bytes in base64. The sibling
+private-integrity-index.json records every retained file and its hash. Neither
+the raw capture nor that private index belongs in Git or a public artifact.
+
+#0036 no longer needs an owner access/retention input. It can hand off for review
+as an input inventory. `restorationReady` and `edgeBehaviorQualified` remain
+false: #0043 must demonstrate preservation/restoration under its reviewed packet;
+#0037 and subsequent edge work must qualify effective actual-path behavior.
+Settings remain capture-time observations without an atomic cross-service
+fence and must be refreshed before a later live change. Retaining an existing
+version is not a backup of deleted provider resources or lost secret state.

@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "ticket": "0036",
+  "date": "2026-10-16",
+  "scope": "Current fixed-origin metadata/restoration inputs only; no provider mutation or runtime qualification",
+  "receipt": {
+    "schemaVersion": 2,
+    "capturedAt": "2026-10-16T21:47:44.583740+00:00",
+    "worker": "fga-api",
+    "hostname": "flickrgroupaddr.com",
+    "method": "GET-only Cloudflare API",
+    "deploymentStableAcrossCapture": true,
+    "customDomainAttachmentObserved": true,
+    "activeWeightedVersionsValid": true,
+    "artifactBoundToEveryActiveVersion": true,
+    "requestCount": 14,
+    "totalResponseBytes": 1079229,
+    "limits": {
+      "requests": 96,
+      "versions": 8,
+      "pagesPerScope": 8,
+      "rulesets": 32,
+      "responseBytes": 16777216,
+      "totalBytes": 67108864,
+      "wallSeconds": 180
+    },
+    "observations": {
+      "deployments_before": {
+        "state": "captured",
+        "SHA2-256": "c9159454439039e4a97849006da360d85da45b8d5c79ab06345377bf9447fbe5",
+        "bytes": 5657,
+        "paginationUnresolved": false
+      },
+      "worker_settings": {
+        "state": "captured",
+        "SHA2-256": "52d852f9c6f058195c1828cb1a29fdfb8115c93bae98d0f17de9fb2c99d716f0",
+        "bytes": 4495
+      },
+      "script_settings": {
+        "state": "captured",
+        "SHA2-256": "d6e106036c63cb6c7f0e3486dff3abf5d06f517356721c62dd1d3b0c8226f1a4",
+        "bytes": 169
+      },
+      "unversioned_artifact": {
+        "state": "captured",
+        "SHA2-256": "a83e63696ff22b773b371847b8b7df1ee8de3702c90d74692bdda944c998dd62",
+        "bytes": 445950
+      },
+      "custom_domains": {
+        "state": "captured",
+        "SHA2-256": "76eaca1627d97412312e66edb61573130e4cba2acff24c74ab188d2c65fbeaa3",
+        "bytes": 553,
+        "paginationUnresolved": false
+      },
+      "active_version_0": {
+        "state": "captured",
+        "SHA2-256": "8d41009f984b5292e2e5ae6a89cdd2529d01b7aac5a7e8f8e0ad1d7e375ed097",
+        "bytes": 5996
+      },
+      "active_version_0_modules": {
+        "state": "captured",
+        "SHA2-256": "0099ba1d740c5d76937070d83357478c7dbc853f92a336b8ca24c572c342ac58",
+        "bytes": 603039,
+        "validated": true
+      },
+      "zone_lookup": {
+        "state": "captured",
+        "SHA2-256": "fc810da1d28650cb32362dec6d6e3ad525fd549b1fac25bbf28fae11fa5965bb",
+        "bytes": 1350,
+        "paginationUnresolved": false
+      },
+      "routes": {
+        "state": "captured",
+        "SHA2-256": "c4d375cfbfea596f71080a0da436c33b0b3ebadbc8731f50967b6c0ff8674f26",
+        "bytes": 72
+      },
+      "zone_settings": {
+        "state": "captured",
+        "SHA2-256": "4316eea8c2c0f84bdca47781de23c30c4294f8d44b06d1ed67db9cb4cd6f0e0f",
+        "bytes": 4402
+      },
+      "page_rules": {
+        "state": "captured",
+        "SHA2-256": "b2255207cd4200ed991dc9a5e74956801409e5fc689e4d67238a075d87065dd2",
+        "bytes": 54
+      },
+      "account_rulesets_page_0": {
+        "state": "captured",
+        "SHA2-256": "67dfa95bb86d9da962218adc3cdf12b8c0dc7c59bbda7d6550a83590fc633ab0",
+        "bytes": 495
+      },
+      "account_rulesets": {
+        "state": "captured",
+        "paginationUnresolved": false,
+        "configuredEntrypoints": 0
+      },
+      "zone_rulesets_page_0": {
+        "state": "captured",
+        "SHA2-256": "fa960cc6095786b39cab44e7adddb864c5c89b84339f8cc4c8bc229c35edbbda",
+        "bytes": 1340
+      },
+      "zone_rulesets": {
+        "state": "captured",
+        "paginationUnresolved": false,
+        "configuredEntrypoints": 0
+      },
+      "deployments_after": {
+        "state": "captured",
+        "SHA2-256": "c9159454439039e4a97849006da360d85da45b8d5c79ab06345377bf9447fbe5",
+        "bytes": 5657,
+        "paginationUnresolved": false
+      }
+    },
+    "metadataInputsComplete": true,
+    "rulesetGraphComplete": true,
+    "inventoryComplete": true,
+    "restorationReady": false,
+    "edgeBehaviorQualified": false,
+    "privateCaptureDurablyRetained": false,
+    "unknowns": [
+      "Metadata capture does not exercise provider errors/challenges on actual paths.",
+      "Nondeployment settings are capture-time observations without an atomic fence.",
+      "Retained-version restoration and changed-secret semantics require separate rehearsal.",
+      "Durable private retention requires independent local-destination validation.",
+      "Incomplete endpoints never establish absence; deployment history is out of scope."
+    ]
+  },
+  "independentLocalRetention": {
+    "schemaVersion": 1,
+    "checkedAt": "2026-10-16T21:50:51.307224+00:00",
+    "privateCaptureDurablyRetained": true,
+    "scope": "Owner-local filesystem retention; separate backup not asserted",
+    "restrictedRootAclVerified": true,
+    "restrictedDescendantAclsVerified": true,
+    "manifestCapturedDigestsVerified": true,
+    "tokenAbsentFromCapturedPayloads": true,
+    "privateFileCount": 15,
+    "privateBytes": 1083133,
+    "privateTreeIndexSHA2-256": "2c8a85ed7b09fb4f37cc7b74e9ae75ba68e0f91adce7a4dc34ca2f1f211ce164"
+  },
+  "verification": {
+    "focusedTests": 31,
+    "ruff": "passed",
+    "pyright": "passed",
+    "independentReview": "passed"
+  },
+  "disposition": "Ready for review; restoration rehearsal and actual-path edge behavior remain separate gates."
+}
