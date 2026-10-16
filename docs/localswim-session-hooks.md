@@ -130,3 +130,42 @@ two seconds to report loopback connection refusal, so the health probe allows
 three seconds; and detached descendants can retain captured pipe handles, so
 the PowerShell launch boundaries use `DEVNULL` while the server writes to its
 explicit log files. The tests preserve both conditions.
+
+## Implementation-board change monitor
+
+At Terry's 2026-10-16 resume request, the implementation-board service was
+healthy and synchronized and was reused. The implementation-board monitor uses
+the actor-filtered sibling script with its own status/target/lock files. It
+suppresses fully accounted bot-only write bursts and queues human/uncertain
+changes after the 15-second quiet window. Keep this monitor separate from other
+boards' watchers. Reinvocation retargets the existing watcher through its lock;
+do not terminate a healthy watcher or start another under different lock paths.
+
+The following manual launch is authorized by the board/monitor startup request;
+it does not change hook trust or add automatic lifecycle hooks. Run after the
+board startup command reports synchronized health. The environment must contain
+the current CODEX_THREAD_ID. Both log and runtime handoffs remain outside Git.
+
+```powershell
+$env:PYTHONIOENCODING = 'utf-8'
+$env:PYTHONUNBUFFERED = '1'
+$env:UV_CACHE_DIR = 'C:/Temp/localswim-uv-cache'
+Start-Process -FilePath 'C:/Users/TDO-XPS15-2024/.local/bin/uv.exe' -ArgumentList @(
+    'run', '--project', 'C:/Projects/FGA/architecture-design', '--frozen', 'python',
+    'C:/Projects/FGA/architecture-design/scripts/watch_localswim.py',
+    '--board-path', 'C:/Projects/localswim-state-store/flickgroupaddr/api-cloudflare-localswim.json',
+    '--board-label', 'FGA-implementation', '--thread-id', $env:CODEX_THREAD_ID,
+    '--port', '8795',
+    '--status-path', 'C:/Temp/api-cloudflare-localswim-monitor-status.json',
+    '--target-path', 'C:/Temp/api-cloudflare-localswim-monitor-target.json',
+    '--lock-path', 'C:/Temp/api-cloudflare-localswim-monitor.lock'
+) -WorkingDirectory 'C:/Projects/FGA/architecture-design' -WindowStyle Hidden `
+    -RedirectStandardOutput 'C:/Temp/api-cloudflare-localswim-monitor.out.log' `
+    -RedirectStandardError 'C:/Temp/api-cloudflare-localswim-monitor.err.log'
+```
+
+Verify the sanitized monitor status reports running, its PID is live and its
+target handoff names the active thread. An empty error log and current running
+status were observed on 2026-10-16. This confirms startup, not a newly exercised
+end-to-end notification delivery test. The script exits when its board service
+stops; do not leave a foreground shell or exec session waiting on the daemon.

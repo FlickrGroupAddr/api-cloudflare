@@ -56,6 +56,19 @@ live Flickr write, or automation was authorized by this stop-for-the-day request
 At the next work session, follow normal board health/priority and current-source
 checks before resuming; board state may have changed since this checkpoint.
 
+## Resume checkpoint: 2026-10-16
+
+The implementation board was reused with synchronized autopush and opened;
+the board-specific actor-filtered JSON monitor was started and confirmed running
+for this chat. The inception priority barrier passed. No production work ran.
+
+0025 remains Needs Terry: the exact existing public photo and destination group
+links were requested first, as agreed at sign-off. The runbook's one-pair
+staging, queue census, explicit activation and stop/reconciliation sequence was
+reviewed. The owner-selection step cannot complete without the pair; the full
+trial additionally depends on 0023/0024 integration and exact-artifact
+qualification. Do not interpret selecting a pair as live activation approval.
+
 ## Earlier development handoff (historical)
 
 Latest update: [approved timing decision and disabled hosted-thumbnail candidate](hosted-thumbnail-handoff-2026-10-15.md). The original clock/transport owner decisions below have been resolved; exact hosted/native qualification and interaction review remain.
