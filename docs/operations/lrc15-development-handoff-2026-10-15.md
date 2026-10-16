@@ -69,6 +69,17 @@ reviewed. The owner-selection step cannot complete without the pair; the full
 trial additionally depends on 0023/0024 integration and exact-artifact
 qualification. Do not interpret selecting a pair as live activation approval.
 
+### Owner-input resolution: 2026-10-16
+
+Terry supplied the exact photo/group pair. Guest photo accessibility was verified
+without cookies and the group NSID was resolved from its public feed link.
+The selection and private evidence location are recorded on implementation card
+0025; the [trial runbook](first-controlled-group-addition.md) records the bounded
+verification and remaining gates. This supersedes the pending-pair statement
+above. The owner-input step is complete; 0025 returns to bot-owned Ready for Work
+with its 0024 dependency intact. Resume implementation with 0023, then 0024.
+No real Flickr submission or live activation has been performed or authorized.
+
 ## Earlier development handoff (historical)
 
 Latest update: [approved timing decision and disabled hosted-thumbnail candidate](hosted-thumbnail-handoff-2026-10-15.md). The original clock/transport owner decisions below have been resolved; exact hosted/native qualification and interaction review remain.

@@ -16,6 +16,34 @@ and select the exact public photo/group pair. That selection does not authorize
 live activation or waive 0024 and exact-artifact qualification. This runbook
 does not close either ticket.
 
+## Owner selection received: 2026-10-16
+
+Terry supplied one exact existing public Flickr photo and destination group in
+response to the owner-input request. The exact URLs, photo ID and resolved group
+NSID are retained on private implementation card 0025. A local ignored worksheet
+is at `.probe-runs/controlled-trial-2026-10-16/selected-pair.json`; the private
+board record is durable and can reconstruct the selection if local evidence is
+discarded. Do not copy the trial identifiers into public handoff documents.
+
+The public-photo check used an unauthenticated, cookie-free HTML GET: HTTP 200,
+the exact canonical owner/photopage URL, matching Open Graph URL and a public
+Flickr image URL containing the exact photo ID were confirmed. The destination
+group's public page and its alternate feed link resolve one group NSID.
+These observations confirm guest accessibility and public group identity only;
+they do not prove current ownership, group membership/writability, pair absence,
+past moderation, permanent protection state, or API eligibility.
+
+The web reader could not fetch this photo, so the bounded direct guest request
+supplied the accessibility observation. No cookies, OAuth, catalog access,
+photo download, Flickr API mutation, gate change or deployment was used.
+
+The immediate owner-selection handoff is resolved. Return 0025 to bot-owned
+Ready for Work while retaining 0024 as its unfinished dependency. Proceed through
+0023 qualification and 0024 integration before the controlled trial. Do not ask
+Terry to choose the pair again unless the exact pair fails a required eligibility
+check. Fresh API and exact-artifact qualification, the complete queue census,
+reviewable activation/stop packet and separate explicit live authorization remain.
+
 ## Scope and owner inputs
 
 The intended trial admits one already published photo to one owner-selected
