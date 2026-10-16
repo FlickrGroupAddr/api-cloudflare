@@ -144,3 +144,22 @@ numeric HTTP status/body length and closed media/cap enums. It preserves bounds,
 keeps seed single-attempt and permits only bounded safe readiness GET retries.
 A new execution uses entirely fresh resources after the previous cleanup proof;
 it is not a replay of an unconfirmed mutation.
+
+The next disposable CI run reached the matrix: its PNG case passed, JPEG failed,
+and both created resources were confirmed deleted. The older receipt does not
+contain the JPEG response observations, so its failure is not attributed to
+headers, provider behavior or application status without further evidence.
+Source inspection confirms the synthetic JPEG is a six-byte marker fixture,
+the handler constructs a typed `image/jpeg` response with exact length, and the
+same runner checks are retained. Marker acceptance remains separate from full
+image decoding. No JPEG fixture or acceptance check was relaxed.
+
+`caseFailure` now retains only a closed validator/transport reason, numeric HTTP
+status/byte count, closed media/cap enums, bounded canonical counter integers,
+header-check booleans and a closed application-error code from JSON bodies no
+larger than 4 KiB. Unknown codes/media/errors become fixed enum values; absent
+observations remain null and `headersObserved` distinguishes transport failures.
+Raw response/image bytes, header values, URLs, credentials and exception messages
+remain excluded. Fourteen offline orchestration/transport tests cover JPEG
+header failure receipt retention, a JPEG JSON application error, and arbitrary
+data exclusion. No additional live call or dispatch was made by this author.

@@ -170,3 +170,40 @@ Updated SHA2-256 digests:
 | `tests/test_existing_photo_qualification_hosted.py` | `034c34b74183f3a5a8921f45065bcd3b234f084c9a6ca0214b62a52426f324be` |
 
 The HTTP transport and dedicated workflow retain the previously recorded hashes.
+
+## Per-case failure-diagnostic follow-up
+
+Reviewed the new `case_diagnostic` projection
+(`scripts/existing_photo_qualification_hosted.py:73`) and its integration into
+the existing single-attempt case loop (`:363`). No material disclosure or
+behavior defect was found. Validator exception text is emitted only when it
+exactly equals one of twelve local allowlisted labels; all other exceptions map
+to closed classifications. Status/byte counts, media/cap categories, bounded
+0–999 probe counters and fixed header-check Booleans contain no raw response
+values. `headersObserved` distinguishes absent response observations from the
+derived header flags.
+
+Application error codes are inspected only in JSON bodies of at most 4 KiB and
+are retained only when they match the explicit local code set. Unknown codes,
+malformed JSON, arbitrary MIME parameters, counter strings, Location URLs,
+images, body text, secrets and exception text are not copied to the receipt.
+The retained `caseFailure` is this derived projection, not a raw header/body
+object. Existing completed-case metrics remain bounded and the failing case
+never becomes a pass.
+
+The actual HTTP validator/transport source is byte-identical to the previously
+reviewed version, retaining hash
+`3bc9679d56115c705eedb82678add55c2d7eefb34493b3af8c5fb5b1c3e9593e`.
+No check, response-byte limit, redirect refusal, timeout, cleanup condition or
+seed/control/case retry policy was weakened. Independent
+`uv run --frozen python -m unittest tests.test_existing_photo_qualification_hosted`
+passed fourteen offline tests, zero failed, including JPEG header failure,
+actual-validator JPEG JSON-error classification and arbitrary-data exclusion.
+This review made no live call and does not qualify a hosted or native outcome.
+
+Updated SHA2-256 digests:
+
+| File | Digest |
+| --- | --- |
+| `scripts/existing_photo_qualification_hosted.py` | `958bdc2aa6e4fa8c67a834c98e4e996995c19c43efb3c3aa2e6e545845ca4888` |
+| `tests/test_existing_photo_qualification_hosted.py` | `3d93ba355a5e83676de1825a9f086b013be0b2bff2efb2602d2e1d55a688b7bf` |

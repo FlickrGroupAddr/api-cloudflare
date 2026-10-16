@@ -32,10 +32,106 @@ OPERATION_SECONDS = 8 * 60
 
 
 class MatrixFailure(Exception):
-    def __init__(self, case: str, completed: list[dict[str, Any]]):
+    def __init__(self, case: str, completed: list[dict[str, Any]], diagnostic=None):
         super().__init__("synthetic_matrix_case_failed")
         self.case = case
         self.completed = completed
+        self.diagnostic = diagnostic
+
+
+VALIDATION_REASONS = frozenset(
+    {
+        "status_or_redirect",
+        "cache_policy",
+        "content_policy",
+        "upstream_contract",
+        "stream_not_cancelled",
+        "missing_auth_challenge",
+        "error_body_bound",
+        "error_envelope",
+        "error_disclosure",
+        "discovery_shape",
+        "image_headers",
+        "image_signature_or_origin",
+    }
+)
+APPLICATION_CODES = frozenset(
+    {
+        "invalid_request",
+        "invalid_token",
+        "flickr_link_changed",
+        "photo_thumbnail_unavailable",
+        "existing_photo_discovery_unavailable",
+        "service_unavailable",
+        "not_found",
+        "method_not_allowed",
+        "insufficient_scope",
+    }
+)
+
+
+def case_diagnostic(
+    case: str, status: int | None, headers: dict[str, str], body: bytes | None, error: Exception
+) -> dict[str, Any]:
+    reason = "validation_unclassified"
+    if isinstance(error, json.JSONDecodeError):
+        reason = "invalid_json"
+    elif isinstance(error, (KeyError, TypeError, IndexError)):
+        reason = "invalid_envelope"
+    elif isinstance(error, ValueError) and str(error) in VALIDATION_REASONS:
+        reason = str(error)  # Only a closed known validator label, never arbitrary exception text.
+    elif isinstance(error, ValueError) and str(error) == "response_byte_limit":
+        reason = "response_limit"
+    elif isinstance(error, (OSError, http.client.HTTPException)):
+        reason = "transport_unconfirmed"
+
+    def counter(name):
+        value = headers.get(name, "")
+        return int(value) if re.fullmatch(r"(?:0|[1-9][0-9]{0,2})", value) else None
+
+    code = "unavailable" if body is None else "not_app_json"
+    if body is not None and len(body) <= 4096 and media_type(headers.get("content-type")) == "json":
+        try:
+            value = json.loads(body)
+            candidate = value.get("error", {}).get("code") if isinstance(value, dict) else None
+            code = (
+                candidate
+                if isinstance(candidate, str) and candidate in APPLICATION_CODES
+                else "other"
+            )
+        except ValueError, TypeError, AttributeError:
+            code = "malformed"
+    expected_media = "image/jpeg" if case == "jpeg" else "image/png"
+    return {
+        "reason": reason,
+        "status": status,
+        "bodyBytes": len(body)
+        if body is not None
+        else 262145
+        if reason == "response_limit"
+        else None,
+        "mediaType": media_type(headers.get("content-type"))
+        if status is not None
+        else "unavailable",
+        "capCategory": "exceeded"
+        if reason == "response_limit"
+        else "within_limit"
+        if body is not None
+        else "unobserved",
+        "applicationErrorCode": code,
+        "headersObserved": status is not None,
+        "observedPages": counter("x-probe-pages"),
+        "observedImages": counter("x-probe-images"),
+        "headerChecks": {
+            "noLocation": "location" not in headers,
+            "noStore": "no-store" in headers.get("cache-control", ""),
+            "nosniff": headers.get("x-content-type-options") == "nosniff",
+            "sameOrigin": headers.get("cross-origin-resource-policy") == "same-origin",
+            "expectedImageMedia": headers.get("content-type") == expected_media,
+            "lengthMatches": body is not None and headers.get("content-length") == str(len(body)),
+            "cancelled": headers.get("x-probe-cancelled") == "true",
+        },
+    }
 
 
 class EdgePreparationFailure(Exception):
@@ -254,6 +350,9 @@ def run_matrix(
     )
     results = []
     for case in matrix.CASES:
+        status = None
+        received = {}
+        body = None
         try:
             checkpoint()
             path, headers = matrix.case_request(case)
@@ -261,7 +360,9 @@ def run_matrix(
             status, received, body, elapsed = matrix.exchange(origin, path, headers)
             matrix.validate(case, status, received, body)
         except Exception as error:
-            raise MatrixFailure(case, results) from error
+            raise MatrixFailure(
+                case, results, case_diagnostic(case, status, received, body, error)
+            ) from error
         results.append(
             {
                 "case": case,
@@ -457,6 +558,8 @@ def run(
         if isinstance(error, MatrixFailure):
             evidence["failedCase"] = error.case
             evidence["cases"] = error.completed
+            if error.diagnostic is not None:
+                evidence["caseFailure"] = error.diagnostic
         if isinstance(error, EdgePreparationFailure):
             edge_diagnostic(dict(error.diagnostic))
     finally:

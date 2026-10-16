@@ -1,5 +1,6 @@
 """Fake provider coverage only: no credentials, HTTP, or cloud resources."""
 
+import base64
 import contextlib
 import hashlib
 import io
@@ -104,6 +105,17 @@ class HostedTests(unittest.TestCase):
             self.assertTrue(origin.endswith(".synthetic.workers.dev"))
             if failure == "matrix":
                 raise ValueError("PRIVATE IMAGE")
+            if failure == "jpeg":
+                failure_details = hosted.case_diagnostic(
+                    "jpeg",
+                    200,
+                    {"content-type": "image/jpeg", "x-probe-pages": "1", "x-probe-images": "1"},
+                    b"\xff\xd8\xff\xe0\xff\xd9",
+                    ValueError("image_headers"),
+                )
+                raise hosted.MatrixFailure(
+                    "jpeg", [{"case": "ok", "passed": True}], failure_details
+                )
             if failure == "edge":
                 raise hosted.EdgePreparationFailure(
                     {
@@ -309,6 +321,74 @@ class HostedTests(unittest.TestCase):
             self.assertEqual(
                 sum(call.args[1] == "/__probe/seed" for call in exchange.call_args_list), 1
             )
+
+    def test_jpeg_failure_receipt_retains_closed_observations(self):
+        _, evidence, _, _ = self.run_fake("jpeg")
+        self.assertEqual(evidence["failedCase"], "jpeg")
+        self.assertEqual(evidence["caseFailure"]["reason"], "image_headers")
+        self.assertEqual(evidence["caseFailure"]["status"], 200)
+        self.assertEqual(evidence["caseFailure"]["bodyBytes"], 6)
+        self.assertEqual(evidence["caseFailure"]["observedImages"], 1)
+        self.assertTrue(evidence["caseFailure"]["headerChecks"]["expectedImageMedia"])
+        self.assertFalse(evidence["caseFailure"]["headerChecks"]["lengthMatches"])
+        self.assertTrue(evidence["cleanupConfirmed"])
+        self.assertFalse(evidence["passed"])
+
+    def test_actual_jpeg_validation_failure_captures_bounded_json_error_code(self):
+        png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="
+        )
+        headers = {
+            "content-type": "image/png",
+            "content-length": str(len(png)),
+            "cache-control": "private, no-store",
+            "x-content-type-options": "nosniff",
+            "cross-origin-resource-policy": "same-origin",
+            "x-probe-pages": "1",
+            "x-probe-images": "1",
+        }
+        body = json.dumps({"error": {"code": "photo_thumbnail_unavailable"}}).encode()
+        error_headers = {**headers, "content-type": "application/json"}
+        replies = [
+            (404, {}, b"", 1),
+            (204, {}, b"", 1),
+            (200, headers, png, 1),
+            (503, error_headers, body, 1),
+        ]
+        with patch.object(hosted.matrix, "exchange", side_effect=replies):
+            with self.assertRaises(hosted.MatrixFailure) as caught:
+                hosted.run_matrix("https://synthetic.invalid", "NEVER_RECORD")
+            failure = caught.exception
+            assert failure.diagnostic is not None
+            self.assertEqual(failure.case, "jpeg")
+            self.assertEqual(len(failure.completed), 1)
+            self.assertEqual(failure.diagnostic["reason"], "status_or_redirect")
+            self.assertEqual(
+                failure.diagnostic["applicationErrorCode"], "photo_thumbnail_unavailable"
+            )
+            self.assertEqual(failure.diagnostic["bodyBytes"], len(body))
+            self.assertEqual(failure.diagnostic["mediaType"], "json")
+
+    def test_arbitrary_case_failure_data_never_enters_diagnostics(self):
+        body = b'{"error":{"code":"https://NEVER_RECORD"}}'
+        details = hosted.case_diagnostic(
+            "jpeg",
+            503,
+            {
+                "content-type": "application/json; secret=NEVER_RECORD",
+                "x-probe-pages": "NEVER_RECORD",
+                "x-probe-images": "100000000000000000",
+                "location": "https://NEVER_RECORD",
+                "cache-control": "NEVER_RECORD",
+            },
+            body,
+            ValueError("NEVER_RECORD"),
+        )
+        self.assertEqual(details["reason"], "validation_unclassified")
+        self.assertEqual(details["applicationErrorCode"], "other")
+        self.assertIsNone(details["observedPages"])
+        self.assertIsNone(details["observedImages"])
+        self.assertNotIn("NEVER_RECORD", json.dumps(details))
 
     def test_gate_body_failure_retained_after_bounded_readiness_attempts(self):
         with (
