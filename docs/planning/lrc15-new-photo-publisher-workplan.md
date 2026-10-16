@@ -6,6 +6,14 @@ Status: Implementation-readiness assessment and recommended bounded work;
 not architecture acceptance, UI approval, deployment qualification, or upload
 authorization. Architecture authority remains `C:\Projects\FGA\architecture-design`.
 
+## Current task allocation
+
+The 2026-10-16 [single-turn scheduling map](remaining-work-single-turn-decomposition-2026-10-16.md)
+and live board supersede this earlier broad work allocation. Original #0026 is
+now a final evidence-only audit. Completed #0028/#0029/#0034 remain reusable only
+within their recorded scopes; their integration and new production guarantees
+are explicit new tasks. Accepted contracts and owner decisions still control.
+
 ## Readiness conclusion
 
 The publisher milestone contains independent engineering work that can be

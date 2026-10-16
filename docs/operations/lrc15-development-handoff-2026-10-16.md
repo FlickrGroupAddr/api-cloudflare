@@ -5,6 +5,17 @@ evidence and do not describe today's remaining gates. The Lightroom Classic
 15 client stays major-specific: host 15.6, build `202609251514-f839cde9`, Adobe
 SDK 15.3; no support claim for a later Lightroom Classic major.
 
+## Current single-turn scheduling map
+
+Terry requested decomposition of all four remaining milestones on 2026-10-16.
+The original #0023–#0026 now own bounded final acceptance audits; unfinished work
+is allocated to the explicitly dependent single-turn cards in
+[the current scheduling map](../planning/remaining-work-single-turn-decomposition-2026-10-16.md).
+Use that map and the live board for task selection. This scheduling update does
+not reopen completed evidence, change architecture authority or authorize live
+execution. All FGA ticket priorities were reset to P2 at Terry's request; a
+blocking relationship alone does not justify P1.
+
 ## Completed engineering milestones
 
 - #0023's separate native network fixture **0.0.1.2** completed its one finite

@@ -11,6 +11,15 @@ must not be carried forward as 15.6 qualification.
 Terry also rechecked Adobe Developer Console on 2026-10-15 and supplied screenshot
 confirmation that its latest available SDK remains 15.3 (April 2026).
 
+## Current task allocation
+
+The 2026-10-16 [single-turn scheduling map](remaining-work-single-turn-decomposition-2026-10-16.md)
+and live board supersede this earlier broad work allocation. Original #0024 is
+now a final evidence-only audit. The accepted UI and outbox proofs are not
+reopened. Specific READ, proof POST, Library metadata, status/reconciliation and
+release qualification outputs have explicit dependencies instead of one broad
+implementation card. Accepted architecture semantics remain controlling.
+
 ## Authority and review prerequisite
 
 Read the implementation and architecture `AGENTS.md` and architecture
