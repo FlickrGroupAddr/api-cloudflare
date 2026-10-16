@@ -1,6 +1,17 @@
 # Disposable existing-photo qualification
 
-Status: executable local harness; hosted and native qualification pending.
+Status: all 22 disposable synthetic hosted cases passed on 2026-10-16; production
+edge and real native HTTP transport qualification remain pending.
+
+[CI run 38929606706](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/38929606706)
+on source `1fb7ca8` used date `2026-10-16`, `nodejs_compat` and
+`enable_request_signal`; both created resources were confirmed deleted. See the
+[sanitized receipt](../../docs/evidence/existing-photo-hosted-ci-passed-2026-10-16.json)
+and [scope/history handoff](../../docs/evidence/existing-photo-hosted-qualification-2026-10-16.md).
+Earlier failed attempts retain their recorded failures and unresolved causes;
+the fourth attempt failed offline from a missing committed fixture and created
+no resources. The primary's separate ten native fixture scenarios passed; real
+`LrHttp.get` transport remains an independent gate.
 Governing scope: architecture ADR 0061 and its Proposed
 `docs/hosted-thumbnail-candidate.md`. Production flags remain disabled.
 
@@ -28,7 +39,7 @@ sanitized receipts. TypeScript is necessary for executing the actual Workers
 router artifact; the small Node adapter uses the existing SQLite test adapter,
 which cannot execute inside Workers. No dependency or shared manifest changed.
 
-## Parent-reviewed hosted ceremony (not executed by this harness author)
+## Isolated hosted ceremony
 
 1. Create exactly one new disposable D1 database, record its created ID privately,
    and apply the repository's existing migrations to that database only. Never
@@ -94,175 +105,75 @@ must never be reported as hosted runtime qualification. No local emulator result
 waives a newer hosted setting. If this exact compatibility date/flag combination
 is rejected by the provider, stop and review it; do not silently downgrade.
 
-## Executable dedicated-CI ceremony
+## Dedicated-CI execution and recovery
 
-The separate `scripts/existing_photo_qualification_hosted.py` now implements the
-preceding ceremony with only `--from-env` and an output-directory argument:
+`scripts/existing_photo_qualification_hosted.py` implements the ceremony above:
 
 ```console
 uv run --frozen python -m scripts.existing_photo_qualification_hosted --from-env --output-directory .coordination-runs/existing-photo-qualification
 ```
 
-The manual-dispatch `.github/workflows/existing-photo-qualification.yml` uses the
-existing dedicated `FGA_CLOUDFLARE_CI_TOKEN` and account variable, Node 24.22.0,
-npm 12.2.0 and frozen dependencies. Its only uploaded artifact is the explicitly
-named sanitized receipt. No credential, resource journal, generated config,
-Wrangler diagnostic, bundle or raw HTTP payload is uploaded. No workflow has been
-dispatched as part of preparing this implementation.
+The manual workflow uses the dedicated `FGA_CLOUDFLARE_CI_TOKEN` and account
+variable, Node 24.22.0, npm 12.2.0 and frozen dependencies. It uploads only the
+explicitly named sanitized receipt. Credentials, actual resource IDs, private
+journals, generated config, Wrangler logs, bundles and raw HTTP payloads are not
+uploaded. The token must already permit Worker and D1 operations; this runner
+never broadens token scope or loads local operator credential files.
 
-Provider operations use the official bounded no-redirect REST transport. The
-orchestrator checks its fresh random Worker name is absent, creates one fresh
-D1, journals its exact acknowledged ID, applies current repository migrations,
-builds the fixed probe locally, and uploads it once with its CSPRNG secret in
-multipart metadata. It records the acknowledged Worker identity before enabling
-only that Worker's workers.dev endpoint. The generated disposable config has
-workers_dev true, the reviewed date/flags and no production routes/domains.
-The stock checked-in config stays unreachable and unbound.
+The runner checks its fresh exact Worker name is absent, creates one new D1,
+journals its acknowledged ID before dependent operations, applies current
+migrations, builds the fixed probe and uploads it once with a fresh CSPRNG gate.
+It records the acknowledged Worker identity before enabling that Worker's
+workers.dev endpoint. The generated config has no production routes/domains.
+Provider REST responses and HTTP case bodies are bounded; redirects are refused.
+Readiness GETs may retry transient failures at most ten times. Seed, create,
+upload, case execution and cleanup mutations are never retried.
 
-Cleanup deletes only acknowledged identities created by that invocation and
-confirms absence. An ambiguous creation/upload is never retried or guessed:
-its attempted state stays in the private journal, cleanup is unconfirmed and
-the run fails. Known D1 cleanup still proceeds after ambiguous Worker upload.
-No broad resource enumeration or name-prefix deletion exists. The journal is
-under `OUTPUT/private/RUN/journal.json` and must remain private; on ephemeral CI
-it is not retained after job teardown. A timeout/ambiguous mutation therefore
-requires a reviewed private reconciliation using the provider's audit trail,
-not a blind rerun or public journal upload. Parent review must account for that
-recovery limitation before dispatch. Cleanup also cannot be guaranteed after
-forced runner termination.
+An eight-minute observed operation deadline is checked between operations; one
+in-flight bounded call or the 120-second local build can finish afterward.
+Acknowledged-resource cleanup then uses separately bounded calls. The runner
+step has fourteen minutes inside the twenty-minute job. Forced process/job
+termination can prevent cleanup or artifact retention; it never becomes a pass.
+`matrixPassed` is separate from overall `passed`, which stays false until cleanup
+absence checks succeed.
 
-Six fake-provider tests cover success, migration/enable/matrix failures,
-ambiguous create/upload, cleanup refusal and missing credentials. They make no
-provider call. The dedicated CI token must already permit the required Worker
-and D1 operations; this runner never broadens token scope or reads local operator
-credential files.
+Before provider operations and around mutation phases, the runner atomically
+persists its sanitized receipt: fresh synthetic Worker/database names, phase,
+attempted/acknowledged/deleted flags and artifact/configuration hashes. It also
+flushes only the synthetic names to CI logs. The actual IDs remain in
+`OUTPUT/private/RUN/journal.json`, which is not retained on ephemeral CI. If an
+outcome is ambiguous, use retained exact names and expected artifact provenance
+for read-only inspection of exact resource/audit records. Establish ownership
+and identity before reviewing narrow cleanup. Never retry create/upload to
+discover an earlier result or perform broad prefix scans/deletes.
 
-Transport references: [Worker module upload](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/methods/update/)
+Cleanup deletes only acknowledged resources created by the invocation, checks
+the D1 name and confirms both identities absent. An ambiguous mutation leaves
+cleanup unconfirmed and the run failed. The public receipt identifies uploaded
+JavaScript bytes separately from dry-run config and the exact upload metadata
+with only its secret text replaced by `[SECRET_ELIDED]` before sorted-key JSON
+hashing. All digests use SHA2-256.
+
+Closed diagnostics retain phase/case reason, observed numeric status/byte count,
+bounded counter integers, media/cap enums, expected-header booleans and a closed
+application error code from JSON no larger than 4 KiB. A fixed public marker is
+added to every harness-owned response, including denials; only its presence/
+match booleans are retained. Exact bounded known provider-error patterns yield
+a closed enum. Arbitrary values, raw bodies/headers/URLs/images and exception
+messages never enter receipts. Markers/classifiers are forgeable observations,
+not origin authority or a replacement for validation.
+
+Offline tests include fresh independent Node isolates with unseeded,
+throw-on-access database bindings: missing installation authentication returns
+empty 401 without any database access; missing/wrong outer access returns empty
+404. The fixture must be committed as
+`probes/existing-photo-qualification/isolation.mjs`; its absence in a clean
+checkout stops pre-cloud verification. Prior hosted failures and their unresolved
+causes remain recorded in the linked handoff; the final pass does not amend them.
+
+References: [Worker module upload](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/methods/update/)
 and [Worker subdomain configuration](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/subdomain/).
 
-Executing this workflow can establish the disposable synthetic hosted matrix;
-all independent production-edge, disconnect and native gates above remain.
-
-
-## Pre-dispatch recovery review corrections
-
-The runner now atomically persists its sanitized receipt before the first
-provider operation and before/after mutation phases. It retains only the fresh
-synthetic `runName`, exact expected `databaseName`, stage, attempted/acknowledged/
-deleted flags and artifact/configuration hashes. Account ID, database ID,
-credentials and private journals stay excluded. The workflow's always-artifact
-step retains this same exact receipt even when the qualification step is stopped.
-
-On an incomplete/ambiguous run, use those exact fresh names and expected artifact
-digest to inspect the provider's exact-name resource/audit records read-only.
-Establish ownership and identity before reviewing narrowly scoped cleanup.
-Never retry create/upload to discover the result, scan broadly by prefix, or
-delete an unconfirmed identity. The retained names preserve correlation after
-ephemeral CI teardown; they do not prove that an ambiguous mutation succeeded.
-Forced termination can still prevent cleanup, and an entire cancelled job can
-prevent artifact retention; inspect its last persisted receipt when available.
-
-Ordinary operations have an eight-minute observed deadline checked between
-provider/matrix operations. One in-flight bounded call or the 120-second local
-bundle can finish after that deadline; acknowledged-resource cleanup then gets
-its own bounded calls. The workflow gives the runner step fourteen minutes
-inside its twenty-minute job, reserving practical setup/artifact headroom rather
-than relying on finally after forced termination. No mutation retry was added.
-
-The receipt distinguishes `dryRunConfigSha2_256` from
-`uploadMetadataSecretElidedSha2_256`. The latter hashes the exact upload metadata
-with only the fresh secret text replaced by `[SECRET_ELIDED]`, using sorted-key
-JSON; `artifactSha2_256` identifies the uploaded JavaScript bytes. It therefore
-identifies the deployed flags/bindings metadata separately from local bundling.
-
-Seven fake-provider tests now pass, including pre-mutation receipt assertions,
-secret-elided actual multipart provenance and operation-deadline refusal before
-the first provider call. Ruff and Pyright pass. No live call or dispatch occurred.
-
-
-Final review correction: `matrixPassed` records only the synthetic matrix result;
-overall `passed` stays false throughout provisioning and cleanup and becomes true
-only after cleanup absence checks succeed. Fake-provider tests assert false
-overall status before every mutation, including deletes. Before any provider
-operation, the runner also flushes only its fresh nonsecret Worker/database
-names to CI stdout, preserving exact-name correlation in retained job logs if a
-whole-job termination prevents receipt artifact upload. No account, ID, token or
-URL is printed. Whole-job termination can still prevent cleanup and artifact
-retention; the exact-name reconciliation procedure above remains required.
-
-
-The first disposable CI attempt failed before any matrix case, after successful
-provisioning/upload/enable, and confirmed both created resources deleted. Its
-older `ValueError` receipt does not distinguish readiness transport/status/body
-failure from the single seed attempt; no narrower cause is inferred.
-
-The runner now retains closed `edgePreparation` diagnostics for gate readiness,
-seed fixture and matrix start. Fields are phase/reason enums, attempt, observed
-numeric HTTP status/body byte count, a closed media-type enum and cap category.
-Unavailable observations are null; a cap failure records the bounded excess
-read count. No raw body, header value, URL, exception text or credential appears.
-Transient readiness GET failures can retry within the existing ten-attempt and
-operation-deadline bounds. A seed failure is recorded immediately and never
-retried. This instrumentation makes no change to image/error response caps.
-Fake tests cover exact gate/seed reasons, exhausted readiness bodies, transient
-safe-GET rollout, oversized response and a single ambiguous seed response.
-No additional live call or dispatch was performed while preparing this change.
-
-The next disposable CI run reached the matrix: its PNG case passed, JPEG failed,
-and both created resources were confirmed deleted. The older receipt does not
-contain the JPEG response observations, so its failure is not attributed to
-headers, provider behavior or application status without further evidence.
-Source inspection confirms the synthetic JPEG is a six-byte marker fixture,
-the handler constructs a typed `image/jpeg` response with exact length, and the
-same runner checks are retained. Marker acceptance remains separate from full
-image decoding. No JPEG fixture or acceptance check was relaxed.
-
-`caseFailure` now retains only a closed validator/transport reason, numeric HTTP
-status/byte count, closed media/cap enums, bounded canonical counter integers,
-header-check booleans and a closed application-error code from JSON bodies no
-larger than 4 KiB. Unknown codes/media/errors become fixed enum values; absent
-observations remain null and `headersObserved` distinguishes transport failures.
-Raw response/image bytes, header values, URLs, credentials and exception messages
-remain excluded. Fourteen offline orchestration/transport tests cover JPEG
-header failure receipt retention, a JPEG JSON application error, and arbitrary
-data exclusion. No additional live call or dispatch was made by this author.
-
-## Missing-auth isolation investigation
-
-The third disposable attempt passed PNG, JPEG and discovery, then observed a
-404/text response of 17 bytes without probe counters for missing-auth. Cleanup
-confirmed both created resources deleted. The receipt does not establish which
-upstream edge/component produced that response.
-
-Offline source and bundle inspection found no mutable per-isolate seed/control
-state. The fixture is persisted in the dedicated D1; its access secret is an
-environment binding. The production missing-auth path does not consult D1 or
-Flickr secrets. A new `isolation.mjs` regression runs independent Node JavaScript
-isolates with unseeded, throw-on-access database bindings. Valid outer access
-with absent installation authorization returns empty 401, the Bearer challenge
-and zero probe counters; missing/wrong outer access returns empty 404. Every
-isolate reports zero database accesses. Five local tests pass, including that
-regression and all 22 original handler cases. Ruff/Pyright pass for the changed
-Python test.
-
-The observed nonempty 404 therefore cannot be reproduced as this fixture's
-missing-auth or outer-denial path. No fixture, production authentication check,
-case retry or accepted response check was changed to force a pass. Attribution
-to a provider error, stale artifact or other edge behavior requires additional
-hosted evidence; this offline investigation does not claim that cause resolved.
-No additional hosted request, resource operation or dispatch was performed.
-
-The harness entry point now adds one fixed public marker to every response it
-constructs, including outer denials and the seed response. Receipts retain only
-marker-presence/match booleans. A separate provider-response classifier accepts
-only an exact bounded `error code:` pattern with one of eight fixed known codes;
-everything else becomes an unrecognized/unavailable enum. No raw response text
-or marker header value is retained. These observations are diagnostic and
-forgeable, not proof of origin or permission to accept a response.
-
-Fresh-isolate regression now verifies the marker on valid missing-auth and both
-outer-denial paths. Forged/arbitrary header/body data tests verify exclusion and
-confirm an otherwise invalid response still fails with an exact marker present.
-Production validation, transport bounds, readiness/case retry policy and seed
-isolation are unchanged. The unexplained prior 404 remains unattributed pending
-fresh reviewed hosted evidence. No live call or dispatch was made for this work.
+The successful disposable matrix establishes only its exercised synthetic edge
+scope. The independent production-edge, disconnect, native HTTP transport and
+activation gates above remain.
