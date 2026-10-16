@@ -324,10 +324,18 @@ should likewise be compact and reference shared files instead of pasting data.
 
 ## Subagent model display
 
-Terry's preferred user-facing format, specified on 2026-10-16, is
-`[GPT version] [model name] / [effort level]`. Examples: `6 Luna / Light`,
-`6.1 Sol / Medium`, `6.1 Sol / High`, and, only when approved for that turn,
-`6 Astra / Medium`. Render API effort `low` as `Light` in this display.
-Always show both model and effort in delegation updates. This presentation
-preference does not change model permissions, per-turn Astra approval, or the
-requirement to pass explicit model and reasoning-effort identifiers to spawn calls.
+Terry revised the preferred user-facing format on 2026-10-16 to
+`[version, only when not the latest release of that family] [model family] / [effort level]`.
+Omit the version for the latest release of a model family; include it for older
+releases. At this update, Sol's latest release is 6.1, so `Sol / Medium` means
+6.1 Sol, while `6 Sol / XHigh` and `5.6 Sol / Medium` identify older releases.
+For the current permitted latest-family choices, use `Luna / Light`,
+`Sol / Medium`, `Sol / High`, and, only when approved for that turn,
+`Astra / Medium`. Reassess the latest-family mapping when releases change;
+do not assume the 6.1 Sol mapping remains current forever.
+
+Use spaces around `/`. Render API effort `low` as `Light` and `xhigh` as
+`XHigh`; always display the family and effort in delegation updates. This
+presentation rule and its examples do not authorize additional models or
+effort levels, change per-turn Astra approval, or remove the requirement to
+pass full explicit model and reasoning-effort identifiers in every spawn call.
