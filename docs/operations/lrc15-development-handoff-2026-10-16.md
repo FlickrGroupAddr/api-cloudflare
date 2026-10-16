@@ -7,7 +7,7 @@ SDK 15.3; no support claim for a later Lightroom Classic major.
 
 ## Completed engineering milestones
 
-- Toolchain and dependency work is pushed and #0035 is Ready for Review.
+- Toolchain and dependency work is pushed; Terry completed #0035 on 2026-10-16.
   CI and the qualified portable runtime use Node 24.22.0/npm 12.2.0; the
   machine-wide Node remains 24.20.0. TypeScript stays stable 7.0.2; 7.1.0 is
   not stable in the recorded 2026-10-16 registry checks. See [the dated toolchain inventory](../research/node-toolchain-inventory-2026-10-16.md). Dependency overrides passed the locked install, runtime tests and
@@ -124,3 +124,15 @@ server tests and eighty-seven checks across six npm test scripts also passed.
 The earlier 218-test production-runtime result remains tied to its unchanged
 production sources after the dependency update. No new fixture or CI preparation
 result is substituted for actual native execution or production acceptance.
+
+## Approved attempt stopped before execution
+
+Terry approved the concrete finite lifecycle and fixture 0.0.1.2 load/run on
+2026-10-16. The first supported Computer Use refresh immediately reported a
+physical Escape-key stop. The primary stopped desktop interaction and did not
+reset, relaunch, retry or use an alternate automation route. No new fixture was
+loaded or invoked, no temporary Actions secrets were created, no workflow was
+dispatched and no cloud resources were provisioned. There is nothing from this
+attempt to tear down. #0023 returns to Needs Terry until an explicit later
+resume; the reviewed packet remains prepared, not executed. Refresh current
+window state only in that later authorized turn and preserve any continued stop.
