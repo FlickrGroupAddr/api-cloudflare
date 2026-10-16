@@ -82,3 +82,30 @@ Endpoint provenance checked against the provider API reference on 2026-10-16:
 The first deployment is the currently serving deployment; it may contain multiple
 weighted versions. A local Wrangler template is never substituted for provider
 readback.
+
+## Actual bounded capture, 2026-10-16
+
+[CI 38967001129](https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/38967001129)
+completed the reviewed GET-only packet successfully. The
+[sanitized receipt](../evidence/existing-photo-inventory-ci-2026-10-16.json)
+records 21 requests, stable deployment metadata across the capture and the
+expected custom-domain attachment. Worker settings, script settings, one active
+version's metadata and unversioned content were captured privately on the runner.
+This is a partial observation, not an exact rollback qualification.
+
+The current CI credential received HTTP 403 for zone routes, zone settings,
+page rules and all ten queried ruleset phases. Missing pagination metadata for
+the deployment/domain lists remains explicitly unresolved. Unversioned content
+is not proved identical to every active weighted version. No private runner
+payload was uploaded; only the allowlisted receipt was retained. Therefore
+`inventoryComplete`, `restorationReady` and `privateCaptureDurablyRetained`
+remain false. No deployment, binding, credential or feature gate was changed.
+
+#0036's owner handoff is concrete: provide an authorized reader covering those
+blocked zone metadata operations and a durable private local capture route for
+the exact restoration inputs. A local read-only token/account configuration is
+one option; existing permission should be reused when it genuinely covers the
+scope. Do not broaden or replace the existing CI credential implicitly, publish
+private inputs to this public repository, or treat historical local artifacts
+as current readback. Exact-version binding and complete effective-edge coverage
+still require evidence after access/retention is available.

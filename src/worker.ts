@@ -4,6 +4,7 @@ import {existingPhotosRequest} from "./existing_photo_discovery.ts";
 import {photoThumbnailRequest} from "./photo_thumbnails.ts";
 import {photoMembershipsRequest} from "./photo_memberships.ts";
 import {uploadAuthorizationRequest} from "./upload_authorization.ts";
+import {uploadPhotoBindingRequest} from "./upload_photo_binding.ts";
 import {readSubmissionStatus,statusFailure,cleanupStatusReads} from "./submission_status.ts";
 import {expirePluginCodeCandidates} from "./plugin_codes.ts";
 // Module exports permit adapter-boundary tests of this exact optimized artifact; no new routes.
@@ -16,7 +17,7 @@ import { ROUTES } from "./registry.ts";
 export {ROUTES};
 import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
 import {duePartitions} from "./scheduling.ts";
-export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; }
+export interface Env extends IntakeEnv,AdminEnv { ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; FGA_UPLOAD_PHOTO_BINDING_ENABLED?:string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -47,6 +48,7 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
       const enabled=route.handler==="groups" ? env.FGA_READ_ENABLED==="1"&&env.FGA_GROUPS_ENABLED==="1" :
         route.handler==="photo_thumbnail" ? photosEnabled&&env.FGA_PHOTO_THUMBNAILS_ENABLED==="1" :
         route.handler==="upload_authorization" ? env.FGA_UPLOAD_AUTHORIZATION_ENABLED==="1" :
+        route.handler==="upload_photo_binding" ? env.FGA_UPLOAD_PHOTO_BINDING_ENABLED==="1" :
         (route.handler==="existing_photos"||route.handler==="photo_memberships") ? photosEnabled :
         (route.handler==="current"||route.handler==="status") ? env.FGA_READ_ENABLED==="1" :
         route.handler==="binding" ? photosEnabled||configured(env) : configured(env);
@@ -74,6 +76,7 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
       const value=await jsonBody(request);if(value instanceof Response)return value;
       const auth={installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))};
       if(route.handler==="upload_authorization")return uploadAuthorizationRequest(env,auth,value);
+      if(route.handler==="upload_photo_binding")return uploadPhotoBindingRequest(env,auth,path.split("/")[4]!,value,providerFetch);
       return route.handler==="batch"?batchRequest(env,auth,value,hint=>publishNativeHint(env,hint)):bindingRequest(env,auth,value,providerFetch);
     }
     if(path==="/admin/"||path==="/admin/google-client.json"||path==="/admin/signed-out")return createAdmin(providerFetch).fetch(request,env);

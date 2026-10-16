@@ -305,6 +305,16 @@ confirmed switching the active session to Standard on 2026-10-15.
 
 ## Subagents on authorized tickets
 
+Terry's preferred workflow, clarified on 2026-10-16, is a rolling implementation
+and review pipeline. Use available subagent slots for eligible implementation
+work first. As an implementation agent finishes, use the freed slot for a
+fresh independent reviewer at the model/effort appropriate to that review.
+Do not reserve fixed developer/reviewer pairs that leave reviewers idle while
+implementation runs. Independent review remains required before handoff; the
+author must not review its own work. Route findings back for correction and
+re-review material changes. Keep within the current concurrency/depth limits
+and retain the parent's integration and verification responsibilities.
+
 Terry authorizes practical parallel work on authorized tickets: one primary
 agent plus up to eight concurrently active direct subagents, nine total active
 agents, maximum depth 1. Subagents must not spawn subagents. Eight is a ceiling,

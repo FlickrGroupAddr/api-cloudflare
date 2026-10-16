@@ -563,6 +563,93 @@
       }
     },
     {
+      "id": "uploadPhotoBinding",
+      "method": "PUT",
+      "pathPattern": "/api/v001/upload-authorizations/{uploadAuthorizationId}/photo-binding",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "upload_photo_binding",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "fgaPhotoBindingId",
+          "sourceKind",
+          "flickrPhotoId",
+          "linkedFlickrRevision",
+          "verificationRevision",
+          "verifiedAt"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "fgaPhotoBindingId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          },
+          "sourceKind": {
+            "type": "string",
+            "enum": [
+              "fga_direct_upload",
+              "existing_public_flickr_photo"
+            ]
+          },
+          "flickrPhotoId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          },
+          "linkedFlickrRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "verificationRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "successStatuses": [
+        200,
+        201
+      ],
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "flickrPhotoId"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "flickrPhotoId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          }
+        }
+      }
+    },
+    {
       "id": "listAdministrativeSessions",
       "method": "GET",
       "pathPattern": "/api/v001/admin/sessions",

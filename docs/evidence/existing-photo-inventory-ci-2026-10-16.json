@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-16",
+  "ci": {
+    "conclusion": "success",
+    "databaseId": 38967001129,
+    "headSha": "49a3302760b69715514e79591f8de498cc364148",
+    "status": "completed",
+    "url": "https://github.com/FlickrGroupAddr/api-cloudflare/actions/runs/38967001129"
+  },
+  "scope": "GET-only provider metadata capture; no deployment or Flickr operation",
+  "receipt": {
+    "schemaVersion": 1,
+    "capturedAt": "2026-10-16T21:06:48.473562+00:00",
+    "worker": "fga-api",
+    "hostname": "flickrgroupaddr.com",
+    "method": "GET-only Cloudflare API",
+    "deploymentStableAcrossCapture": true,
+    "customDomainAttachmentObserved": true,
+    "activeWeightedVersionsValid": true,
+    "artifactBoundToEveryActiveVersion": false,
+    "requestCount": 21,
+    "limits": {
+      "requests": 32,
+      "versions": 8,
+      "responseBytes": 16777216,
+      "wallSeconds": 180
+    },
+    "observations": {
+      "deployments_before": {
+        "state": "captured",
+        "SHA2-256": "dc6d34d67a6a0045341a647a756efd92a9d6eb64b52154e254c2843e88dffc7c",
+        "bytes": 5114,
+        "paginationUnresolved": true
+      },
+      "worker_settings": {
+        "state": "captured",
+        "SHA2-256": "52d852f9c6f058195c1828cb1a29fdfb8115c93bae98d0f17de9fb2c99d716f0",
+        "bytes": 4495,
+        "paginationUnresolved": false
+      },
+      "script_settings": {
+        "state": "captured",
+        "SHA2-256": "d6e106036c63cb6c7f0e3486dff3abf5d06f517356721c62dd1d3b0c8226f1a4",
+        "bytes": 169,
+        "paginationUnresolved": false
+      },
+      "unversioned_artifact": {
+        "state": "captured",
+        "SHA2-256": "2869d4225f00ea62e579fe1fb8d44867f92435a26525ce996f6e82f1ec05ec63",
+        "bytes": 445950,
+        "paginationUnresolved": false
+      },
+      "custom_domains": {
+        "state": "captured",
+        "SHA2-256": "09b014701e0b598bce28a89749f419d4a031c05cc63f3e280a3c5cf29281a7b3",
+        "bytes": 555,
+        "paginationUnresolved": true
+      },
+      "active_version_0": {
+        "state": "captured",
+        "SHA2-256": "8d41009f984b5292e2e5ae6a89cdd2529d01b7aac5a7e8f8e0ad1d7e375ed097",
+        "bytes": 5996,
+        "paginationUnresolved": false
+      },
+      "zone_lookup": {
+        "state": "captured",
+        "SHA2-256": "e3e49c7803d7a949a8bbce59fea4ef4f5c6ed33eed876888eb1d4cc3b501287b",
+        "bytes": 1350,
+        "paginationUnresolved": false
+      },
+      "routes": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "zone_settings": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "page_rules": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_dynamic_redirect": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_redirect": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_transform": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_late_transform": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_response_headers_transform": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_cache_settings": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_firewall_custom": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_firewall_managed": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_ratelimit": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "http_request_sbfm": {
+        "state": "unavailable",
+        "httpStatus": 403
+      },
+      "deployments_after": {
+        "state": "captured",
+        "SHA2-256": "dc6d34d67a6a0045341a647a756efd92a9d6eb64b52154e254c2843e88dffc7c",
+        "bytes": 5114,
+        "paginationUnresolved": true
+      }
+    },
+    "inventoryComplete": false,
+    "restorationReady": false,
+    "privateCaptureDurablyRetained": false,
+    "unknowns": [
+      "Account-level and recursively executed managed rules are not captured.",
+      "Unversioned content is not bound to each weighted active version; rollback unknown.",
+      "Provider errors/challenges on actual paths are not exercised by metadata reads.",
+      "Nondeployment config changes during capture are not atomically fenced.",
+      "Secret values cannot be read back; exact restoration is not established.",
+      "Private runner capture needs approved private retention before runner deletion.",
+      "A failed or paginated endpoint is unavailable/incomplete, never proof of absence."
+    ]
+  },
+  "disposition": "Incomplete: zone read permission and durable private exact-version restoration inputs remain unavailable."
+}
