@@ -149,12 +149,19 @@ end
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_bundled_batch_client_matches_canonical_bytes(self):
+        self.assertEqual(
+            (BUNDLE / "GroupSubmissionClient.lua").read_bytes(),
+            (ROOT / "clients/lightroom/GroupSubmissionClient.lua").read_bytes(),
+            "Release batch-client adapter drifted from its canonical compatibility source.",
+        )
+
     def setUp(self):
         self.lua = cast(Any, LuaRuntime)(unpack_returned_tuples=True)
         self.lua.globals().bundle = BUNDLE.as_posix()
         self.lua.execute('package.path=bundle.."/?.lua;"..package.path')
         self.lua.globals().batchClient = self.lua.execute(
-            (ROOT / "clients/lightroom/GroupSubmissionClient.lua").read_text("utf-8")
+            (BUNDLE / "GroupSubmissionClient.lua").read_text("utf-8")
         )
         self.lua.execute(HARNESS)
         self.workflow = self.lua.execute(

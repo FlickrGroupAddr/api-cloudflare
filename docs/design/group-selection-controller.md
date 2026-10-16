@@ -28,7 +28,7 @@ The controller requires these injected adapters:
 | Adapter | Required behavior |
 | --- | --- |
 | `store` | `readChoice`, `saveChoice(scope,ids,expectedRevision,handoffId?,binding?)`, `confirm(scope,id,outboxRevision,ack)` from `GroupSelectionStore`. Bound save durably snapshots the entire immutable choice and binding atomically. Confirm persists validated intent identities and consumes only the matching editable revision. |
-| `client` | Existing `clients/lightroom/GroupSubmissionClient.lua`; copied into a candidate bundle by a separately owned composition step. |
+| `client` | Bundled `clients/lightroom/FGA-LrC15.lrplugin/GroupSubmissionClient.lua`, an exact copy of the retained canonical compatibility source `clients/lightroom/GroupSubmissionClient.lua`. |
 | `call` | Documented `LrTasks.pcall` from the owning asynchronous task. Raw Lua 5.1 `pcall` cannot protect yielding SDK network calls. |
 | `prove(photoId,linkedRevision)` | Safe hosted existing-public-photo proof; returns a validated binding. It cannot render, upload or add to Flickr groups. |
 | `now()` | Monotonic seconds. Existing-public proof starts immediately before proof and must remain younger than 15 seconds after the durable snapshot and before POST. Nonnumeric, nonfinite, backward and expired readings refuse the handoff. |
@@ -98,8 +98,8 @@ Required host adapters are `call` (LrTasks.pcall), secure `retrieve`, qualified
 `decode`/`encode` and shared `jsonNull`, cancellable `sleep`, `cancelled`,
 monotonic `now`, unique `newHandoffId`, `currentIdentity`, and `activeCatalog`,
 plus the exact `catalog`, `plugin`, and existing `batchClient` module. The
-existing batch adapter is injected because it remains outside the release
-bundle. `currentIdentity` returns the authenticated installation ID and current
+existing batch adapter is injected explicitly from the release bundle. A
+byte-equality packaging test guards drift from its retained canonical source. `currentIdentity` returns the authenticated installation ID and current
 linked Flickr revision; it is not inferred from photo or catalog metadata.
 
 The existing browser returns only `(binding,membershipObservation)` on success;
@@ -134,3 +134,10 @@ with an opaque installation ID and positive safe-integer link revision before
 credential reads or requests and at every later fence. A post-outbox-gate fence
 also checks rotation, credential and cancellation before returning pending IDs;
 a yielding catalog gate cannot expose them under changed workflow context.
+
+Release build 0.2.0.7 adds the exact canonical batch-client copy to the bundle.
+The actual-core workflow integration test now supplies that bundled module;
+explicit transport and qualification adapter injection remains required.
+The native ten-of-ten synthetic result remains evidence for the recorded module
+hashes with release build 6. Build 7 is offline-verified packaging and is not
+qualified as a complete native release by that earlier result.

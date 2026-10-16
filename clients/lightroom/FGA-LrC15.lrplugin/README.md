@@ -1,4 +1,4 @@
-# FGA-LrC15 Lightroom plug-in 0.2.0, build 6
+# FGA-LrC15 Lightroom plug-in 0.2.0, build 7
 
 This `.lrplugin` directory is the production release bundle for Lightroom
 Classic 15. It stores one installation
@@ -58,7 +58,7 @@ Rotation is intentionally fail-closed in this slice. A nonempty rotation
 candidate blocks fallback to the prior current code and requires completion or
 cancellation through the accepted browser workflow.
 
-## Disabled selection/submission candidate: 0.2.0.6
+## Disabled selection/submission candidate: 0.2.0.7
 
 This build contains independently reviewed selection, separate catalog-photo and
 binding-only outbox stores, complete eligibility/status readers, and the accepted
@@ -72,8 +72,17 @@ and [integration review](../../../docs/evidence/group-selection-integration-revi
 Build 6 adds the reviewed `ExistingPhotoGroupWorkflow` composition and an
 explicit browser dependency factory while preserving lazy default SDK imports.
 The separate synthetic native fixture passed ten scenarios on Lightroom
-Classic 15.6; see [the native evidence](../../../docs/evidence/existing-photo-native-synthetic-2026-10-16.json).
+Classic 15.6 against the recorded module hashes in release build 6; see [the native evidence](../../../docs/evidence/existing-photo-native-synthetic-2026-10-16.json).
 The workflow's actual protocol/controller/dialog/store composition passed
 offline tests and [independent review](../../../docs/evidence/existing-photo-group-workflow-review-2026-10-16.md).
 These results do not qualify real HTTP or catalog crash/recovery adapters.
 The existing-public-photo command remains unregistered and production-disabled.
+
+Build 7 packages the canonical `GroupSubmissionClient.lua` inside this release
+bundle. The workflow continues to require explicit adapter injection; its
+integration test uses this bundled copy and checks exact bytes against the
+retained canonical compatibility source in `clients/lightroom`. No transport,
+menu registration, capability assertion or write gate is enabled by packaging.
+The native ten-of-ten result above applies to its recorded module hashes with
+release build 6. Build 7 has offline packaging verification and remains
+unqualified as a whole until its separate release checks are completed.

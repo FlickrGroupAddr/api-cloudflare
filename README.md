@@ -22,11 +22,14 @@ is included in the development candidate below and awaits host acceptance.
 
 The Lightroom Classic 15 release bundle is
 [`clients/lightroom/FGA-LrC15.lrplugin`](clients/lightroom/FGA-LrC15.lrplugin).
-Add that directory in Lightroom Classic 15's Plug-in Manager. The 0.2.0 build 1
+Add that directory in Lightroom Classic 15's Plug-in Manager. The 0.2.0 build 7
 candidate preserves the existing `LrPasswords` namespace and adds a read-only
 writable-group browser under Library > Plug-in Extras. Its current host target is
-Lightroom Classic 15.6 with SDK 15.3; actual host acceptance remains pending.
-See the [2026-10-15 development handoff](docs/operations/lrc15-development-handoff-2026-10-15.md)
+Lightroom Classic 15.6 with SDK 15.3. Build 7 includes the disabled selection/queue
+composition and bundled batch adapter; qualification of this bundle as a whole
+remains pending. The separate native ten-of-ten synthetic result applies to
+its recorded module hashes with release build 6.
+See the [2026-10-16 development handoff](docs/operations/lrc15-development-handoff-2026-10-16.md)
 for the separate fixture selection preview, gated existing-photo implementation,
 local outbox probe, publisher preflight and controlled-addition preparation.
 Publishing and Flickr group-write entry points remain unavailable.

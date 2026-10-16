@@ -89,7 +89,7 @@ class ConnectionClientTests(unittest.TestCase):
         )
         self.assertEqual(manifest["LrPluginName"], "FGA-LrC15")
         self.assertEqual(manifest["LrPluginInfoProvider"], "PluginInfoProvider.lua")
-        self.assertEqual(manifest["VERSION"], {"major": 0, "minor": 2, "revision": 0, "build": 6})
+        self.assertEqual(manifest["VERSION"], {"major": 0, "minor": 2, "revision": 0, "build": 7})
         self.assertEqual(
             manifest["LrLibraryMenuItems"][0]["file"],
             "RunGroupBrowser.lua",

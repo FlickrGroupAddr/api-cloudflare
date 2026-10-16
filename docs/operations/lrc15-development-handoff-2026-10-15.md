@@ -1,5 +1,8 @@
 # FGA-LrC15 development handoff - 2026-10-15
 
+Current resume point: [2026-10-16 development handoff](lrc15-development-handoff-2026-10-16.md).
+This earlier document retains historical observations; use the later record for current gates.
+
 ## End-of-day sign-off: 2026-10-15
 
 Terry ended the day's work after accepting selection preview **0.0.1.12** and
