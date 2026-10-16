@@ -48,3 +48,10 @@ effective-path allocation or credential-redirect protection. The missing
 supported method and candidate-artifact gap ground this verdict; the absence
 of a native GET abort handle does not independently fail a candidate gate. No deployment, live request, native run,
 credential change or owner contract acceptance occurred in #0037 research.
+
+
+Later on 2026-10-16, Terry approved #0038's separately pinned b599ca8 candidate
+for offline synthetic qualification while preserving the exact captured ordinary
+dispatcher/rollback baseline. That settles the source premise for that offline
+composition only. It neither changes the currently deployed source nor passes
+this effective-edge/native qualification verdict or authorizes live promotion.

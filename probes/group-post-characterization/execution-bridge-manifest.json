@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "offline_post_execution_bridge",
+  "baseCommit": "b599ca828d2a645b686aca0354d6c8ee2c2a0250",
+  "baseManifestSHA2-256": "87e52649df09518ed372e5482ca3c61be7c3ac4f7e8c6bd07c7cdc09206805ed",
+  "bridgeDescription": {
+    "schemaVersion": 1,
+    "mode": "offline_preparation",
+    "runId": "c01ba6d2c2754597aa311c9f",
+    "productionQualified": false,
+    "config": "C:\\Projects\\FGA\\api-cloudflare\\.coordination-runs\\group-post-execution-bridge\\private\\config.json",
+    "tokenFile": "C:\\Temp\\fga-post-operator-token.txt",
+    "approval": "C:\\Projects\\FGA\\api-cloudflare\\.coordination-runs\\group-post-execution-bridge\\private\\approved-packet.json",
+    "manifestSha2_256": "87e52649df09518ed372e5482ca3c61be7c3ac4f7e8c6bd07c7cdc09206805ed",
+    "bridgeSha2_256": "0a66f0d35b90e1b408ab49914f8e33718ee9b27b975afa02dcded6289af7251b",
+    "handshakeRoot": "C:\\Temp\\FGA-group-post-v1\\bridge",
+    "nativeRoute": "Node REPL / @oai/sky",
+    "attempts": 1
+  },
+  "componentsSHA2-256": {
+    "scripts/group_post_execution_bridge.py": "0a66f0d35b90e1b408ab49914f8e33718ee9b27b975afa02dcded6289af7251b",
+    "docs/operations/group-post-execution-bridge-2026-10-16.md": "5c5a11dad1971f9220904dc4c7168de4b236b06bacb5fad55564b5e5e117cf89"
+  },
+  "qualification": {
+    "nativeExecuted": false,
+    "providerExecuted": false,
+    "productionQualified": false
+  }
+}
