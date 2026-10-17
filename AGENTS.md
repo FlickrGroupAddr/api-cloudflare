@@ -310,7 +310,7 @@ vary each turn. Reassess the complexity of each agent's task for that turn;
 there is no fixed distribution or permanent per-agent model assignment. Select
 GPT-6 Luna Low (called Light), GPT-6.1 Sol Medium or GPT-6.1 Sol High as appropriate
 to the authorized work. Use a freshly configured agent when an existing one
-cannot be retuned, preserving the eight-active-direct-subagent/depth-1 limits.
+cannot be retuned, preserving the 16-active-direct-subagent/depth-1 limits.
 
 Use Standard speed for the parent and all subagents. Subagents inherit the root
 session's service tier. Keep `service_tier = "default"` in the user Codex
@@ -329,9 +329,9 @@ author must not review its own work. Route findings back for correction and
 re-review material changes. Keep within the current concurrency/depth limits
 and retain the parent's integration and verification responsibilities.
 
-Terry authorizes practical parallel work on authorized tickets: one primary
-agent plus up to eight concurrently active direct subagents, nine total active
-agents, maximum depth 1. Subagents must not spawn subagents. Eight is a ceiling,
+Terry updated the practical parallel work ceiling on 2026-10-17: one primary
+agent plus up to 16 concurrently active direct subagents (width 16), 17 total active
+agents, maximum depth 1. Subagents must not spawn subagents. Sixteen is a ceiling,
 not a quota. Separate independent implementation, verification, documentation
 and review when useful. No separate per-ticket delegation approval is needed;
 this does not authorize other tickets or unrelated work.
