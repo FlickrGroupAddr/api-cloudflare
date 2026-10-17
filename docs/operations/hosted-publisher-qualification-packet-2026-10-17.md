@@ -58,14 +58,15 @@ preparation explicitly records `sourceCommitExact=false`.
 
 ```powershell
 $candidateHead = git rev-parse HEAD
-uv run --offline --no-sync --frozen python scripts/prepare_hosted_publisher_qualification.py C:/Temp/FGA-publisher-packet --expected-source-head $candidateHead --require-commit-exact
+$packetPath = Join-Path $env:USERPROFILE "Documents/ChatGPT/FGA/private-evidence/0121/publisher-packet"
+uv run --offline --no-sync --frozen python scripts/prepare_hosted_publisher_qualification.py $packetPath --expected-source-head $candidateHead --require-commit-exact
 ```
 
 Retain the printed source packet SHA2-256 independently. Verify with both that
 digest and the expected full source commit, for example:
 
 ```powershell
-uv run --offline --no-sync --frozen python scripts/prepare_hosted_publisher_qualification.py $packetPath --verify --expected-source-head $candidateHead --expected-artifact RETAINED_SHA2_256 --require-commit-exact --require-commit-exact
+uv run --offline --no-sync --frozen python scripts/prepare_hosted_publisher_qualification.py $packetPath --verify --expected-source-head $candidateHead --expected-artifact RETAINED_SHA2_256 --require-commit-exact
 node probes/publisher-qualification/offline.mjs
 node --test probes/publisher-qualification/disabled-boundaries.test.mjs
 node_modules/.bin/tsc.cmd --project probes/publisher-qualification/tsconfig.json --noEmit
@@ -197,24 +198,82 @@ That override accepts an existing local bundle path and skips test rebuilding;
 it retrieves no content and executes no caller-supplied command. A local pass
 does not become a hosted receipt.
 
-For the optimized build, use the already installed locked esbuild 0.28.1 CLI
-from the clean implementation checkout; no provider CLI, download or install is
-needed. Choose a fresh durable private build directory outside the immutable
-source packet. The fixed compiler arguments are:
+For the optimized build, use pinned Wrangler **4.116.0** in dry-run mode.
+It supplies the `nodejs_compat` glue required by the imported modules; direct
+browser-platform esbuild does not. Wrangler uses locked esbuild **0.28.1**.
+No deployment is performed. The inspected dry-run path skips authentication,
+pre-upload provider APIs, migrations, asset upload and deployment/triggers.
+
+Choose a fresh durable private build directory outside the immutable packet,
+create an empty `empty.env` there, and pass its exact path explicitly. Apply
+these environment settings only to the build child: `WRANGLER_HIDE_BANNER=true`,
+`WRANGLER_SEND_METRICS=false`, `WRANGLER_WRITE_LOGS=false`,
+`WRANGLER_SEND_ERROR_REPORTS=false` and `CI=true`. Do not inherit provider-token
+variables. Preserve required Windows system variables case-insensitively,
+including `SYSTEMROOT` and `WINDIR`; an incomplete environment can prevent Node
+from initializing. Use this fixed command from the clean checkout:
 
 ```console
-node node_modules/esbuild/bin/esbuild probes/publisher-qualification/worker.ts --bundle --minify --format=esm --platform=browser --target=es2022 "--external:node:*" "--external:cloudflare:*" --define:process.env.NODE_ENV='"production"' --legal-comments=external --outfile=PRIVATE_BUILD_DIRECTORY/worker.mjs --metafile=PRIVATE_BUILD_DIRECTORY/metafile.json
+node node_modules/wrangler/bin/wrangler.js deploy --dry-run --minify --config probes/publisher-qualification/wrangler.jsonc --outdir PRIVATE_BUILD_DIRECTORY --metafile PRIVATE_BUILD_DIRECTORY/metafile.json --env-file PRIVATE_BUILD_DIRECTORY/empty.env --profile default --no-autoconfig --no-experimental-provision --no-experimental-auto-create --no-install-skills
 ```
 
-Replace `PRIVATE_BUILD_DIRECTORY` with that new directory; it is a documented
-placeholder. Retain the exact Worker bytes, companion legal notices, compiler
-metafile, Node/esbuild versions, full source commit and SHA2-256 hashes of the
-bundle, both production/probe configurations and source artifact. Set
-`FGA_PUBLISHER_QUAL_BUNDLE` to the retained `worker.mjs`, then run
-`node --test probes/publisher-qualification/runtime.test.mjs` from the checkout
-with the pinned offline Python/Node tools. The driver tests those exact supplied
-bytes. Do not write generated receipts or dependencies into the immutable packet.
+`PRIVATE_BUILD_DIRECTORY` is a placeholder. Explicit `--env-file` avoids
+implicit project `.env` loading; the explicit default profile and hidden banner
+avoid automatic profile/update presentation. An unexpected CLI error path can
+still try an update check, so use a network-denied build child as well. The
+parent used the following temporary CJS preload, outside the source packet,
+with child `NODE_OPTIONS=--require=FORWARD_SLASH_ABSOLUTE_GUARD_PATH` and an
+optional private `FGA_COMPILER_NETWORK_AUDIT` path. The hooks record only attempt
+counts, never destinations, request data or credentials:
 
+```javascript
+const fs = require('node:fs');
+let blocked = 0;
+const deny = () => { blocked++; throw new Error('Offline compiler network is disabled'); };
+globalThis.fetch = deny;
+for (const name of ['node:http', 'node:https']) {
+  const api = require(name); api.request = deny; api.get = deny;
+}
+const net = require('node:net');
+net.connect = deny; net.createConnection = deny; net.Socket.prototype.connect = deny;
+require('node:tls').connect = deny;
+require('node:http2').connect = deny;
+require('node:dgram').Socket.prototype.send = deny;
+const dns = require('node:dns');
+for (const target of [dns, dns.promises]) {
+  for (const name of Object.keys(target)) {
+    if ((name.startsWith('resolve') || name === 'lookup' || name === 'lookupService') && typeof target[name] === 'function') target[name] = deny;
+  }
+}
+if (globalThis.WebSocket) globalThis.WebSocket = class { constructor() { deny(); } };
+require('node:module').syncBuiltinESMExports();
+process.on('exit', () => {
+  if (process.env.FGA_COMPILER_NETWORK_AUDIT) fs.appendFileSync(process.env.FGA_COMPILER_NETWORK_AUDIT, JSON.stringify({blockedNetworkAttempts: blocked}) + '\n');
+});
+```
+
+This is a local Node build guard, not hosted-runtime qualification or a global
+firewall change. Keep its code/hash, audited compiler arguments and sanitized
+counts with the private receipt. The observed final compiler children reported
+zero blocked network attempts; no account/provider request was made.
+
+Wrangler emits `worker.js`; retain those exact bytes, compiler metafile, source
+artifact/manifest hashes, disabled production/probe configurations and tool
+versions. Retain companion notices/maps when emitted. Its output `README.md`
+contains a timestamp and is not part of a deterministic Worker-byte claim.
+Set `FGA_PUBLISHER_QUAL_BUNDLE` to retained `worker.js` and run
+`node --test probes/publisher-qualification/runtime.test.mjs` from the checkout
+with pinned offline Python/Node tools. The driver skips rebuilding and tests
+those exact supplied bytes. Do not write receipts or dependencies into the
+immutable source packet.
+
+Final source preparation also compares raw bytes with committed Git blobs.
+Three legacy Windows checkout files initially differed only by CRLF conversion.
+The parent verified that exact distinction, aligned only those copies with
+the existing committed bytes and refreshed Git's stat cache without changing
+history or global settings. Do not weaken the integrity comparison or silently
+normalize an artifact to disguise a content change. The strict stage is retried
+in a fresh directory after the committed-byte check passes.
 
 On 2026-10-17 the integrated actual D1 matrix passed **27 tests**, including all
 four scenarios, all three consumers' fault/revision/rate refusal cases, replay,
