@@ -117,7 +117,11 @@ is the caller's confirmation that an exact selection revision was consumed,
 or a newer revision preserved, or the original selection was absent. This store
 does not edit `groupAdditionSelections` or implement a provider.
 
-All reads and mutations use one synchronous private gate with timeout 5 seconds.
+Ordinary reads and mutations use one synchronous private gate with timeout 5 seconds.
+The #0104 `validateCatalogRepair` exception is read-only and requires the caller
+to hold the synchronous ordinary catalog write gate. It revalidates the exact
+full fence and current publication relationship without nesting a private gate;
+it grants no permission for later writes after that caller gate ends.
 Late queued callbacks are fenced closed after the gate returns. The callback
 does no render, network, UI, file I/O, sleep, task launch or yield. Active catalog,
 activation, ownership and exact photo object are checked before entry, inside

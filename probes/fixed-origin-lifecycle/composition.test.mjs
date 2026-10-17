@@ -12,6 +12,8 @@ import { png } from '../fixed-origin-isolation/edge_png.mjs';
 import { png as nodePng } from '../fixed-origin-isolation/fault_matrix.mjs';
 import { COMPOSITION_CASES, createQualificationComposition } from './composition.mjs';
 import { initializeQuota, createQuotaGuard, createReceiver } from './quota_receiver.mjs';
+import { HANDLER_CASES, BROWSER_PATHS, initializeHandlerCaseNamespaces,
+  handlerCaseIdentity } from './handler_cases.mjs';
 
 assert.equal(process.version, 'v24.22.0');
 const fixture = process.env.FGA_OFFLINE_FIXTURE;
@@ -31,6 +33,7 @@ async function setup({ afterHandler, quotaFailure = false } = {}) {
   const count=counters(); const captured=await loadOfflineModule(join(fixture,'captured.mjs'),count);
   const actual=await loadOfflineModule(join(fixture,'candidate.mjs'),count);
   const db=createSyntheticStore(join(fixture,'candidate/migrations'),count);
+  await initializeHandlerCaseNamespaces(db);
   const raw=new DatabaseSync(':memory:');raw.exec(schema);const quotaDb=adapter(raw);
   await initializeQuota({db:quotaDb,run,startsAt:1000}); let now=1000, forwarded=0;
   const clock=()=>now, guard=createQuotaGuard({db:quotaDb,run,clock});
@@ -46,16 +49,64 @@ const request=(scenario='ok',path=PATHS[0])=>new Request(ORIGIN+path,{headers:{A
 test('deployable module graph links without Node, Buffer, process or global fetch',async()=>{
   const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,Uint8Array,DataView,Number,Object,Array,Date,atob});
   const modules=new Map();
-  async function load(url){if(modules.has(url.href))return modules.get(url.href);assert.ok(url.href.startsWith(new URL('../',import.meta.url).href));const source=readFileSync(url,'utf8');assert.doesNotMatch(source,/\bBuffer\b|node:|from ['"]\.\/fault_matrix/);const mod=new vm.SourceTextModule(source,{context,identifier:url.href});modules.set(url.href,mod);await mod.link(specifier=>load(new URL(specifier,url)));return mod;}
-  const mod=await load(new URL('./composition.mjs',import.meta.url));await mod.evaluate();assert.equal(typeof mod.namespace.createQualificationComposition,'function');
+  function load(url){if(modules.has(url.href))return modules.get(url.href);assert.ok(url.href.startsWith(new URL('../',import.meta.url).href));const source=readFileSync(url,'utf8');assert.doesNotMatch(source,/\bBuffer\b|\bprocess\b|node:|from ['"].*fault_matrix|\b(?:globalThis|self)\.fetch|\bawait fetch\s*\(/);const mod=new vm.SourceTextModule(source,{context,identifier:url.href});modules.set(url.href,mod);return mod;}
+  const mod=load(new URL('./composition.mjs',import.meta.url));await mod.link((specifier,referencing)=>load(new URL(specifier,referencing.identifier)));await mod.evaluate();assert.equal(typeof mod.namespace.createQualificationComposition,'function');
   for(const size of [undefined,262144,262145])assert.deepEqual(Buffer.from(png(size)),nodePng(size));
 });
 
 test('actual three routes, core and finite edge stimuli consume durable admission',async()=>{
   const s=await setup();try{
     for(const scenario of ['ok','missing-auth','invalid-auth'])for(const path of PATHS){const res=await s.worker.fetch(request(scenario,path),forbidden);assert.equal(res.status,scenario==='ok'?200:401);await res.arrayBuffer();}
-    for(const scenario of COMPOSITION_CASES.filter(c=>c.startsWith('edge-'))){const res=await s.worker.fetch(request(scenario,PATHS[2]),forbidden);assert.equal(res.status,scenario.startsWith('edge-redirect-')?Number(scenario.slice(-3)):200);await res.arrayBuffer();}
-    assert.equal((await s.guard.inspect()).fga,19);assert.equal(s.count.synthetic,19);assert.equal(s.count.hostIo+s.count.globalFetch+s.count.dynamicImport,0);
+    for(const scenario of COMPOSITION_CASES.filter(c=>c.startsWith('edge-'))){
+      for(const path of PATHS.slice(0,2)){const preflight=await s.worker.fetch(request('png',path),forbidden);assert.equal(preflight.status,200);await preflight.arrayBuffer();}
+      const res=await s.worker.fetch(request(scenario,PATHS[2]),forbidden);assert.equal(res.status,scenario.startsWith('edge-redirect-')?Number(scenario.slice(-3)):200);await res.arrayBuffer();}
+    assert.equal((await s.guard.inspect()).fga,39);assert.equal(s.count.synthetic,39);assert.equal(s.count.hostIo+s.count.globalFetch+s.count.dynamicImport,0);
+  }finally{s.close();}
+});
+
+test('all twenty actual-handler cases use durable admission and preserve isolated final authority',async()=>{
+  const s=await setup();try{
+    const db=s.options.syntheticDb.raw;
+    db.exec("INSERT INTO submission_blocks(photo_id,group_id,first_reason,source_attempt_id) VALUES('protected-photo','protected-group','delivery_uncertain','protected-attempt'); INSERT INTO audit_events(event_id,action,request_correlation_id,outcome,reason) VALUES('protected-event','synthetic-probe','protected-request','succeeded','preserve');");
+    const history=()=>JSON.stringify({blocks:db.prepare('SELECT * FROM submission_blocks').all(),audit:db.prepare('SELECT * FROM audit_events').all()});
+    const before=history();
+    for(const [scenario,status] of Object.entries(HANDLER_CASES)) {
+      // The actual client verifies/discovers in the fixed normal namespace;
+      // only its original thumbnail request selects an isolated fault namespace.
+      const current=await(await s.worker.fetch(request('png',PATHS[0]),forbidden)).json();
+      assert.equal(current.installationId,handlerCaseIdentity('png').installationId);
+      const page=await(await s.worker.fetch(request('png',PATHS[1]),forbidden)).json();
+      assert.deepEqual(page.photos.map(photo=>photo.flickrPhotoId),['photo']);
+      const response=await s.worker.fetch(request(scenario,PATHS[2]),forbidden);
+      assert.equal(response.status,status,scenario);await response.arrayBuffer();
+      assert.equal(history(),before);
+    }
+    assert.equal((await s.guard.inspect()).fga,60);assert.equal(s.count.synthetic,60);
+    assert.equal(s.count.responderFailures??0,0);assert.equal(s.count.cancelled,1);
+    assert.equal(db.prepare("SELECT state FROM installations WHERE installation_id=?").get(handlerCaseIdentity('final-installation').installationId).state,'revoked');
+    assert.equal(db.prepare("SELECT link_revision FROM flickr_links WHERE user_id=?").get(handlerCaseIdentity('final-link').userId).link_revision,2);
+    assert.equal(db.prepare("SELECT active_generation FROM flickr_native_credentials WHERE user_id=?").get(handlerCaseIdentity('final-grant').userId).active_generation,'changed');
+    const restarted=createQualificationComposition(s.options);
+    assert.equal((await restarted.fetch(request('final-installation',PATHS[2]),forbidden)).status,401);
+    const current=await(await restarted.fetch(request('ok',PATHS[0]),forbidden)).json();
+    assert.equal(current.installationId,handlerCaseIdentity('ok').installationId);
+    const pages=[];
+    for(const path of BROWSER_PATHS.slice(0,2)) {
+      const response=await restarted.fetch(request('ok',path),forbidden);assert.equal(response.status,200);
+      const page=await response.json();pages.push(page);
+      assert.equal(page.pageSize,2);assert.equal(page.total,3);assert.equal(page.pages,2);assert.equal(page.linkedFlickrRevision,1);
+    }
+    assert.deepEqual(pages.map(page=>page.photos.map(photo=>photo.flickrPhotoId)),[['photo1','photo2'],['photo3']]);
+    for(const path of BROWSER_PATHS.slice(2)) {
+      const response=await restarted.fetch(request('png',path),forbidden);assert.equal(response.status,200);
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()),nodePng());
+    }
+    assert.equal((await s.guard.inspect()).fga,67);
+    await assert.rejects(initializeHandlerCaseNamespaces(s.options.syntheticDb));
+    assert.equal((await s.guard.inspect()).fga,67);assert.equal(history(),before);
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM photo_bindings').get().n,0);
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM submission_intents').get().n,0);
+    assert.equal(s.count.hostIo+s.count.globalFetch+s.count.dynamicImport,0);
   }finally{s.close();}
 });
 
@@ -65,8 +116,12 @@ test('ordinary dispatch preserves exact Request/env and never accesses quota/rec
   }finally{s.close();}
 });
 
-test('invalid selectors and unsupported #39 cases do no candidate or durable work',async()=>{
-  const s=await setup();try{for(const scenario of ['png','jpeg','stall','bad-query','unknown','fixed-origin-receive','fixed-origin-report'])assert.equal((await s.worker.fetch(request(scenario,PATHS[2]),forbidden)).status,404);
+test('invalid selectors and incompatible routes do no candidate or durable work',async()=>{
+  const s=await setup();try{for(const scenario of ['unknown','fixed-origin-receive','fixed-origin-report'])assert.equal((await s.worker.fetch(request(scenario,PATHS[2]),forbidden)).status,404);
+    for(const scenario of Object.keys(HANDLER_CASES).filter(c=>!['png','missing-auth','bad-auth'].includes(c)))
+      for(const path of [PATHS[0],PATHS[1],...BROWSER_PATHS])assert.equal((await s.worker.fetch(request(scenario,path),forbidden)).status,404);
+    for(const scenario of COMPOSITION_CASES.filter(c=>c.startsWith('edge-')))
+      for(const path of [PATHS[0],PATHS[1],...BROWSER_PATHS])assert.equal((await s.worker.fetch(request(scenario,path),forbidden)).status,404);
     for(const req of [request('ok',PATHS[0]+'?'),request('edge-wrong-media',PATHS[0]),new Request(ORIGIN+PATHS[0],{headers:{Authorization:'Bearer production','X-FGA-Qualification-Run':run}})])assert.equal((await s.worker.fetch(req,forbidden)).status,404);
     assert.equal(s.count.synthetic,0);assert.equal((await s.guard.inspect()).fga,0);
   }finally{s.close();}

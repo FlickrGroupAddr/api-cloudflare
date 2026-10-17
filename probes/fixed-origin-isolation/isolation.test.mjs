@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import { loadOfflineModule } from './offline_modules.mjs';
 import { createSyntheticStore } from './offline_sqlite.mjs';
 import { createQualificationWrapper, PATHS, ORIGIN, CASES } from './wrapper.mjs';
+import { HANDLER_CASES, BROWSER_PATHS, initializeHandlerCaseNamespaces,
+  handlerCaseIdentity } from '../fixed-origin-lifecycle/handler_cases.mjs';
 
 assert.equal(process.version, 'v24.22.0');
 const fixture = process.env.FGA_OFFLINE_FIXTURE;
@@ -26,6 +28,7 @@ const counters = { hostIo: 0, globalFetch: 0, dynamicImport: 0, normal: 0, synth
 const captured = await loadOfflineModule(join(fixture, 'captured.mjs'), counters);
 const candidate = await loadOfflineModule(join(fixture, 'candidate.mjs'), counters);
 const db = createSyntheticStore(join(fixture, 'candidate/migrations'), counters);
+await initializeHandlerCaseNamespaces(db);
 const scope = { run: 'a'.repeat(32), capability: 'b'.repeat(64), startsAt: 1000, expiresAt: 601000 };
 let now = 2000;
 const forbiddenProduction = new Proxy({}, { get() { counters.productionReads++; throw Error('production_env_denied'); },
@@ -51,7 +54,7 @@ test('pinned candidate contains the three handlers; capture remains unchanged ba
   assert.ok(!captured.ROUTES.some(route => route.handler === 'photo_thumbnail'));
 });
 
-for (const scenario of CASES) for (const [index, path] of PATHS.entries()) {
+for (const scenario of ['ok', 'missing-auth', 'invalid-auth']) for (const [index, path] of PATHS.entries()) {
   test(`actual candidate route ${index + 1} case ${scenario}`, async () => {
     const before = { ...counters };
     const response = await wrapper.fetch(request(path, qualificationHeaders(scenario)), forbiddenProduction);
@@ -59,7 +62,7 @@ for (const scenario of CASES) for (const [index, path] of PATHS.entries()) {
     assert.equal(counters.normal, before.normal);
     assert.equal(counters.productionReads, 0);
     if (scenario === 'ok') {
-      if (index === 0) assert.equal((await response.json()).installationId, 'probe-install');
+      if (index === 0) assert.equal((await response.json()).installationId, handlerCaseIdentity('ok').installationId);
       if (index === 1) {
         const body = await response.json();
         assert.equal(body.linkedFlickrRevision, 1); assert.equal(body.photos[0].flickrPhotoId, 'photo');
@@ -80,6 +83,17 @@ for (const scenario of CASES) for (const [index, path] of PATHS.entries()) {
     }
   });
 }
+
+test('finite handler selectors and normal browser paths have closed route compatibility', async () => {
+  assert.deepEqual(new Set(CASES), new Set(['ok', 'invalid-auth', ...Object.keys(HANDLER_CASES)]));
+  for (const scenario of Object.keys(HANDLER_CASES).filter(value => !['png', 'missing-auth', 'bad-auth'].includes(value))) {
+    for (const path of [PATHS[0], PATHS[1], ...BROWSER_PATHS]) {
+      const before = { ...counters };
+      assert.equal((await wrapper.fetch(request(path, qualificationHeaders(scenario)), forbiddenProduction)).status, 404);
+      assert.deepEqual(counters, before);
+    }
+  }
+});
 
 const malformed = [
   ['production bearer with selectors', PATHS[0], { Authorization: 'Bearer ' + Array(13).fill('1111').join('-') }],

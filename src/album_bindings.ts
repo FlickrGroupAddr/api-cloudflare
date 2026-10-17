@@ -57,9 +57,9 @@ function title(value: unknown): value is string {
 function id(value: unknown): value is string { return typeof value === 'string' && OPAQUE_ID.test(value); }
 function uuid(value: unknown): value is string { return typeof value === 'string' && SERVICE_ID.test(value); }
 
-// Parse the small closed JSON envelope while retaining member names before JSON.parse
-// can erase duplicates. Numeric values must be exact safe integers, including exponent form.
-export function parseAlbumBindingEnsure(raw: string): AlbumEnsureRequest {
+// Retain decoded member names before JSON.parse can erase duplicates. Album request
+// values use objects, strings and exact nonnegative safe integers, including exponent form.
+export function parseStrictAlbumJson(raw: string): unknown {
   let offset = 0;
   const invalid = (): never => { throw new Error('invalid_request'); };
   const space = () => { while (/[\x20\t\r\n]/.test(raw[offset] ?? '') && offset < raw.length) offset++; };
@@ -97,29 +97,40 @@ export function parseAlbumBindingEnsure(raw: string): AlbumEnsureRequest {
     return Number(integer);
   }
   const parsed = value(0); space();
-  if (offset !== raw.length || !object(parsed) || !keys(parsed, ['schemaVersion', 'desiredTitle', 'candidate'])
+  if (offset !== raw.length) return invalid();
+  return parsed;
+}
+
+function ensureRequest(parsed: unknown): AlbumEnsureRequest {
+  if (!object(parsed) || !keys(parsed, ['schemaVersion', 'desiredTitle', 'candidate'])
     || parsed.schemaVersion !== 1 || !title(parsed.desiredTitle) || !object(parsed.candidate)
     || !keys(parsed.candidate, ['fgaPhotoBindingId', 'expectedVerificationRevision'])
-    || !id(parsed.candidate.fgaPhotoBindingId) || !revision(parsed.candidate.expectedVerificationRevision)) return invalid();
+    || !id(parsed.candidate.fgaPhotoBindingId) || !revision(parsed.candidate.expectedVerificationRevision)) throw new Error('invalid_request');
   return { schemaVersion: 1, desiredTitle: parsed.desiredTitle,
     candidate: { fgaPhotoBindingId: parsed.candidate.fgaPhotoBindingId, expectedVerificationRevision: parsed.candidate.expectedVerificationRevision } };
 }
 
-async function envelope(request: Request): Promise<AlbumEnsureRequest> {
+export function parseAlbumBindingEnsure(raw: string): AlbumEnsureRequest {
+  return ensureRequest(parseStrictAlbumJson(raw));
+}
+
+export async function readStrictAlbumJson(request: Request): Promise<unknown> {
   if (!/^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(request.headers.get('Content-Type') ?? '')
     || request.headers.has('Content-Encoding') && request.headers.get('Content-Encoding') !== 'identity'
+    || request.headers.has('Transfer-Encoding')
     || request.headers.has('Content-Length') && !/^(?:0|[1-9][0-9]{0,3})$/.test(request.headers.get('Content-Length')!)
     || Number(request.headers.get('Content-Length')) > 4096 || !request.body) throw new Error('invalid_request');
   const reader = request.body.getReader(), parts: Uint8Array[] = []; let size = 0;
   try {
     for (;;) { const { done, value } = await reader.read(); if (done) break;
       size += value.length; if (size > 4096) { await reader.cancel(); throw new Error('invalid_request'); } parts.push(value); }
+    if (request.headers.has('Content-Length') && Number(request.headers.get('Content-Length')) !== size) throw new Error('invalid_request');
     const bytes = new Uint8Array(size); let offset = 0;
     for (const part of parts) { bytes.set(part, offset); offset += part.length; }
-    return parseAlbumBindingEnsure(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
+    return parseStrictAlbumJson(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
   } finally { reader.releaseLock(); }
 }
-function bindingProjection(row: AlbumBinding, serviceId: string, localId: string): AlbumBinding {
+export function bindingProjection(row: AlbumBinding, serviceId: string, localId: string): AlbumBinding {
   if (row.schemaVersion !== 1 || !uuid(row.fgaAlbumBindingId) || row.fgaPublishServiceId !== serviceId
     || row.localCollectionIdentifier !== localId || !revision(row.linkedFlickrRevision) || !revision(row.bindingRevision)
     || !revision(row.titleRevision) || !title(row.desiredTitle) || !id(row.firstPhotoBindingId)
@@ -134,10 +145,11 @@ function obligationProjection(row: AlbumObligation, binding: AlbumBinding): Albu
   return { fgaAlbumObligationId: row.fgaAlbumObligationId, fgaAlbumBindingId: row.fgaAlbumBindingId,
     fgaPhotoBindingId: row.fgaPhotoBindingId, obligationRevision: row.obligationRevision };
 }
-function failure(code: string): Response {
+export function albumBindingFailure(code: string): Response {
   const messages: Record<string, [number, string]> = {
     invalid_request: [400, 'Invalid album binding request.'], invalid_token: [401, 'Invalid installation credential.'],
     resource_not_found: [404, 'Resource not found.'], album_binding_exists: [409, 'Album binding already exists.'],
+    stale_binding_revision: [409, 'Album binding revision changed.'],
     stale_photo_revision: [409, 'Photo verification revision changed.'], flickr_link_unavailable: [409, 'The Flickr connection is unavailable.'],
     photo_not_ready: [409, 'Photo proof is not ready.'], album_closed: [409, 'Album is closed.'],
     service_unavailable: [503, 'Service unavailable.'],
@@ -151,23 +163,23 @@ function failure(code: string): Response {
 /** Caller authenticates the current credential with allowPending=false before resource checks. */
 export async function albumBindingRequest(env: AlbumBindingsEnv, auth: AdmissionAuth, request: Request,
   serviceId: string, localId: string): Promise<Response> {
-  if (env.FGA_ALBUM_BINDINGS_ENABLED !== '1') return failure('service_unavailable');
+  if (env.FGA_ALBUM_BINDINGS_ENABLED !== '1') return albumBindingFailure('service_unavailable');
   const url = new URL(request.url);
   const path = `/api/v001/publish-services/${encodeURIComponent(serviceId)}/album-bindings/${encodeURIComponent(localId)}`;
   if (!SERVICE_ID.test(serviceId) || !OPAQUE_ID.test(localId) || url.pathname !== path || url.search
-    || !['GET', 'PUT'].includes(request.method)) return failure('invalid_request');
+    || !['GET', 'PUT'].includes(request.method)) return albumBindingFailure('invalid_request');
   let input: AlbumEnsureRequest | undefined;
   try {
     if (request.method === 'GET') {
       if (request.body !== null || request.headers.has('Transfer-Encoding')
-        || request.headers.has('Content-Length') && request.headers.get('Content-Length') !== '0') return failure('invalid_request');
-    } else input = await envelope(request);
-  } catch { return failure('invalid_request'); }
+        || request.headers.has('Content-Length') && request.headers.get('Content-Length') !== '0') return albumBindingFailure('invalid_request');
+    } else input = ensureRequest(await readStrictAlbumJson(request));
+  } catch { return albumBindingFailure('invalid_request'); }
   try {
     if (!input) return Response.json(bindingProjection(await readAlbumBinding(env.DB, auth, serviceId, localId), serviceId, localId), { headers: SECURITY });
     const result = await ensureAlbumBinding(env.DB, auth, serviceId, localId, input);
     const binding = bindingProjection(result.binding, serviceId, localId);
     return Response.json({ schemaVersion: 1, binding, obligation: obligationProjection(result.obligation, binding) },
       { status: result.created ? 201 : 200, headers: { ...SECURITY, ...(result.created ? { Location: path } : {}) } });
-  } catch (error) { return failure(error instanceof AlbumBindingStoreError ? error.message : 'service_unavailable'); }
+  } catch (error) { return albumBindingFailure(error instanceof AlbumBindingStoreError ? error.message : 'service_unavailable'); }
 }

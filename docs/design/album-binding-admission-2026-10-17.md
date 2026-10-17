@@ -13,8 +13,9 @@ identity contract owns #0090/#0109 authority. This unit implements only:
   ensure the exact natural key and atomically accept its immutable first photo.
 - `GET` on that same resource: return one current, owner-scoped binding snapshot.
 
-The general photo-association endpoint and later obligation delivery remain
-#0110 and later work. No materialization worker, Flickr create/add, catalog
+The general photo-association endpoint is implemented separately under
+[#0110](album-obligations-admission-2026-10-17.md); obligation delivery remains
+later work. No materialization worker, Flickr create/add, catalog
 callback, status/repair endpoint or production provisioning is added here.
 
 `FGA_ALBUM_BINDINGS_ENABLED` must equal `1` to reach authentication/storage;

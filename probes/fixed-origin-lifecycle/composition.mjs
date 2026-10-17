@@ -1,5 +1,5 @@
-// Temporary closed Worker composition. Full #0039 handler cases await #0041.
-import { createQualificationWrapper, ORIGIN, PATHS, CASES } from '../fixed-origin-isolation/wrapper.mjs';
+// Temporary closed Worker composition for the finite actual-handler and edge cases.
+import { createQualificationWrapper, ORIGIN, PATHS, CASES, qualificationPaths } from '../fixed-origin-isolation/wrapper.mjs';
 import { EDGE_FAULT_CASES, EDGE_REDIRECT_CODES, edgeReceiverPath, injectEdgeFault } from '../fixed-origin-isolation/edge_faults.mjs';
 import { createQuotaGuard, LIMITS } from './quota_receiver.mjs';
 
@@ -62,7 +62,7 @@ export function createQualificationComposition({ captured, candidate, syntheticD
         || request.method !== 'GET' || request.body !== null || request.signal.aborted
         || request.headers.has('Transfer-Encoding')
         || (request.headers.has('Content-Length') && request.headers.get('Content-Length') !== '0')
-        || !(edge ? [PATHS[2]] : PATHS).some(path => request.url === ORIGIN + path)) return deny();
+        || !(edge ? [PATHS[2]] : qualificationPaths(scenario)).some(path => request.url === ORIGIN + path)) return deny();
     if (!await guard.admit('fga', scenario) || !active()) return deny();
     try {
       if (!await matchingScope() || !active()) return deny();

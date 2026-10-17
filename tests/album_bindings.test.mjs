@@ -78,7 +78,7 @@ test('initial handoff atomically commits binding, first obligation and audit wit
   const state = albumState(f.db); assert.equal(state.album_bindings.length, 1); assert.equal(state.album_photo_obligations.length, 1);
   assert.equal(state.album_binding_events.length, 1); assert.equal(state.transaction_guards.length, 0);
   assert.equal(state.album_bindings[0].owner_nsid, 'owner'); assert.equal(state.album_bindings[0].first_photo_id, 'upload-photo');
-  assert.equal(state.album_bindings[0].state, 'materialization_pending'); assert.equal(state.album_photo_obligations[0].state, 'materialization_pending');
+  assert.equal(state.album_bindings[0].state, 'materialization_pending'); assert.equal(state.album_photo_obligations[0].state, 'waiting_for_album');
   for (const table of ['submission_intents', 'group_partitions']) assert.equal(f.db.raw.prepare(`SELECT count(*) n FROM ${table}`).get().n, 0);
   const before = albumState(f.db), read = await f.call(undefined, { method: 'GET' });
   assert.equal(read.status, 200); assert.deepEqual(await read.json(), body.binding); assert.deepEqual(albumState(f.db), before);

@@ -17,10 +17,16 @@ class OrdinaryAlbumProviderTests(unittest.TestCase):
         self.lua.globals().settingsModule = self.lua.execute(
             (SOURCE / "OrdinaryAlbumProviderSettings.lua").read_text("utf-8-sig")
         )
+        self.lua.globals().policyModule = self.lua.execute(
+            (SOURCE / "RenditionPolicy.lua").read_text("utf-8-sig")
+        )
         self.lua.execute("""
             function require(name)
-                assert(name == 'OrdinaryAlbumProviderSettings')
-                return settingsModule
+                if name == 'OrdinaryAlbumProviderSettings' then return settingsModule end
+                if name == 'RenditionPolicy' then return policyModule end
+                if name == 'FrozenPublishContext' then return frozenModule end
+                if name == 'RenditionAdapter' then return renditionModule end
+                error('unexpected module')
             end
             function import() error('No SDK import permitted') end
         """)
@@ -299,6 +305,177 @@ class OrdinaryAlbumProviderTests(unittest.TestCase):
         info = (ROOT / "clients/lightroom/FGA-LrC15.lrplugin/Info.lua").read_text()
         self.assertNotIn("OrdinaryAlbumProvider", info)
         self.assertNotIn("LrExportServiceProvider", info)
+
+    def test_actual_settings_callback_applies_defaults_and_preserves_explicit_jpeg(self):
+        self.run_lua("""
+            local settings={}
+            provider.updateExportSettings(settings)
+            assert(settings.LR_format=='PNG' and settings.LR_export_bitDepth==8)
+            assert(settings.LR_export_colorSpace=='sRGB' and settings.LR_size_doConstrain==false)
+            settings={LR_format='JPEG',LR_jpeg_quality=.75}
+            provider.updateExportSettings(settings)
+            assert(settings.LR_format=='JPEG' and settings.LR_jpeg_quality==.75)
+            settings={LR_format='TIFF'}
+            assert(not pcall(provider.updateExportSettings,settings))
+            assert(settings.LR_export_bitDepth==nil)
+        """)
+
+    def test_explicit_prestart_seam_freezes_all_before_eager_render_and_records_failures(self):
+        self.run_lua("""
+            local photos={{id=1},{id=2},{id=3}}
+            local handles, frozen, started={},0,false
+            frozenModule={new=function(d,c)
+                assert(d.verifyTarget(c).ok)
+                return {
+                    prepare=function(_,photo,handoff,now)
+                        assert(not started and handoff=='handoff-'..photo.id and now==1)
+                        frozen=frozen+1
+                        if photo.id==2 then return {state='scope_invalid'} end
+                        handles[photo]={id=photo.id}
+                        return {state='prepared',context=handles[photo]}
+                    end,
+                    inspect=function(_,handle) return {state='ready'} end,
+                    confirmGroups=function(_,handle,status,document,now)
+                        assert(handle==handles[photos[1]] and status==202 and now==1)
+                        return {state='consumed'}
+                    end,
+                }
+            end}
+            renditionModule={new=function(d)
+                return {process=function(_,rendition,settings,handle,consume)
+                    assert(started and frozen==3 and handle==handles[rendition.photo])
+                    assert(d.current(handle) and settings.LR_format=='PNG')
+                    assert(consume({},handle,{})==true)
+                    return {ok=true,code='handed_off'}
+                end}
+            end}
+            local removed={}
+            context.exportSession={
+                photosToExport=function()
+                    assert(not started)
+                    local i=0
+                    return function() i=i+1; return photos[i] end
+                end,
+                removePhoto=function(_,photo) assert(not started); removed[photo]=true end,
+            }
+            local d={now=function() return 1 end,
+                handoffId=function(photo) return 'handoff-'..photo.id end,
+                contextDependencies={}}
+            local invalid,why=provider.prepareBeforeRendering(context,d)
+            assert(invalid==nil and why=='settings_not_applied' and frozen==0)
+            provider.updateExportSettings(context.propertyTable)
+            local session=assert(provider.prepareBeforeRendering(context,d))
+            assert(frozen==3 and removed[photos[2]] and calls.render==0)
+            -- Model SDK renditions(): rendering all candidates starts eagerly.
+            started=true
+            local first={photo=photos[1]}
+            assert(session:process(first,function() return true end).ok)
+            assert(session:process(first,function() error('duplicate') end)==nil)
+            context.propertyTable.LR_format='JPEG'
+            assert(session:process({photo=photos[3]},function() error('changed settings') end).code
+                =='settings_changed')
+            assert(session:process({photo={}},function() error('unknown') end)==nil)
+            assert(session:confirmGroups(photos[1],202,{},1).state=='consumed')
+            local outcomes=session:outcomes()
+            assert(#outcomes==3 and outcomes[1].result.code=='scope_invalid')
+            outcomes[1].result.code='changed'
+            assert(session:outcomes()[1].result.code=='scope_invalid')
+        """)
+
+    def test_real_modules_prepare_durable_contexts_before_eager_session_start(self):
+        lua = cast(Any, LuaRuntime)(unpack_returned_tuples=True)
+        lua.globals().publisher = SOURCE.as_posix()
+        lua.globals().bundle = (ROOT / "clients/lightroom/FGA-LrC15.lrplugin").as_posix()
+        lua.execute('package.path=publisher.."/?.lua;"..bundle.."/?.lua;"..package.path')
+        lua.execute((ROOT / "tests/publisher_frozen_context_fixture.lua").read_text("utf-8"))
+        lua.globals().FilesFixture = lua.execute(
+            (ROOT / "tests/publisher_rendition_adapter_fixture.lua").read_text("utf-8")
+        )
+        lua.execute("""
+            local files=FilesFixture.new()
+            files:file('synthetic-path','png')
+            target.fgaPublishServiceId='12345678-1234-4123-8123-123456789abc'
+            local saved={schemaVersion=1,albumLifecycle='local_unbound'}
+            local serviceSettings={}
+            function album:getCollectionInfoSummary()
+                return {localIdentifier=34,isDefaultCollection=false,
+                    collectionSettings=saved,publishSettings=serviceSettings}
+            end
+            local provider=require('OrdinaryAlbumProvider').new {
+                pcall=pcall,pluginId=service:getPluginId(),
+                verifyService=function(settings)
+                    assert(settings==serviceSettings)
+                    return {ok=true,linkStatus='ready',identity={schemaVersion=1,
+                        serviceRevision=1,fgaPublishServiceId=target.fgaPublishServiceId,
+                        linkedFlickrRevision=6,issuingInstallationId='installation-1'}}
+                end,
+            }
+            photo.properties.groupAdditionSelections='malformed'
+            local good=makePhoto('00000000-0000-0000-0000-000000000098')
+            local absent=makePhoto('00000000-0000-0000-0000-000000000099')
+            assert(save(good,{'old-group'}).state=='saved')
+            local candidates={photo,good,absent}
+            local started,removed=false,{}
+            exportContext.propertyTable={}
+            provider.updateExportSettings(exportContext.propertyTable)
+            exportContext.exportSession={
+                photosToExport=function()
+                    assert(not started)
+                    local i=0
+                    return function() i=i+1; return candidates[i] end
+                end,
+                removePhoto=function(_,p) assert(not started); removed[p]=true end,
+            }
+            local composed=assert(provider.prepareBeforeRendering(exportContext,{
+                contextDependencies=deps,now=function() return now end,
+                handoffId=function(p) return 'handoff-'..p.uuid end,
+            }))
+            assert(removed[photo] and not removed[good] and not removed[absent])
+            assert(files.calls.wait==0)
+            local durable=json.decode(catalogProperties.uploadAttemptRecoveryStore,1,json.null)
+            assert(#durable.attempts==2)
+            local records={}
+            for _,r in ipairs(durable.attempts) do records[r.photoUuid]=r end
+            assert(records[good.uuid].flickrGroupIds[1]=='old-group')
+            assert(records[absent.uuid].selectionKind=='absent')
+            assert(save(good,{'new-group'},1).state=='saved')
+            -- The SDK starts ALL remaining render work at iterator acquisition.
+            -- Both exact durable snapshots already exist at this boundary.
+            function exportContext:renditions()
+                assert(not started and #json.decode(
+                    catalogProperties.uploadAttemptRecoveryStore,1,json.null).attempts==2)
+                started=true
+                local i=0
+                local ready={good,absent}
+                return function()
+                    i=i+1
+                    if not ready[i] then return nil end
+                    local rendition=files:rendition('synthetic-path')
+                    rendition.photo=ready[i]
+                    return i,rendition
+                end
+            end
+            local handles={}
+            for _,rendition in exportContext:renditions() do
+                local result=composed:process(rendition,function(lease,handle,policy)
+                    assert(policy.maximumBytes==200000000 and lease:read()=='png')
+                    handles[#handles+1]=handle
+                    return true
+                end)
+                assert(result.ok and result.code=='handed_off',result.code)
+                assert(composed:process(rendition,function() error('duplicate') end)==nil)
+            end
+            assert(handles[1]~=handles[2] and files.calls.wait==2)
+            local outcomes=composed:outcomes()
+            assert(#outcomes==3 and outcomes[1].photo==photo and not outcomes[1].result.ok)
+            assert(outcomes[2].photo==good and outcomes[3].photo==absent)
+            durable=json.decode(catalogProperties.uploadAttemptRecoveryStore,1,json.null)
+            for _,r in ipairs(durable.attempts) do
+                if r.photoUuid==good.uuid then
+                    assert(r.selectionRevision==1 and r.flickrGroupIds[1]=='old-group')
+                end
+            end
+        """)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,15 @@
 -- Pure collection-settings policy; no catalog or network capability.
 local Settings = {}
 
+-- SDK updateExportSettings runs before rendition objects are generated.
+-- Resolve before mutating so unsupported retained settings fail as a whole.
+function Settings.applyRenditionPolicy(exportSettings)
+    local policy, reason = require('RenditionPolicy').resolve(exportSettings)
+    if not policy then return nil, reason end
+    for key, value in pairs(policy.exportSettings) do exportSettings[key] = value end
+    return policy
+end
+
 -- Summary settings are documented plain records; dialog settings supply :pairs().
 function Settings.valid(settings, iterate)
     if type(settings) ~= 'table' or settings.schemaVersion ~= 1

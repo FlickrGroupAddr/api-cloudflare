@@ -3,6 +3,158 @@
   "scope": "installation-read-and-photo-admission",
   "routes": [
     {
+      "id": "album_photo_association",
+      "method": "PUT",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/photo-associations/{photoBindingId}",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "album_photo_association",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "expectedBindingRevision",
+          "expectedVerificationRevision"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "expectedBindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expectedVerificationRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "binding",
+          "obligation"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "fgaAlbumBindingId",
+              "fgaPublishServiceId",
+              "localCollectionIdentifier",
+              "linkedFlickrRevision",
+              "bindingRevision",
+              "titleRevision",
+              "desiredTitle",
+              "firstPhotoBindingId",
+              "flickrPhotosetId"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPublishServiceId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "localCollectionIdentifier": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "linkedFlickrRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "bindingRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "titleRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "desiredTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "firstPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              }
+            }
+          },
+          "obligation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fgaAlbumObligationId",
+              "fgaAlbumBindingId",
+              "fgaPhotoBindingId",
+              "obligationRevision"
+            ],
+            "properties": {
+              "fgaAlbumObligationId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "obligationRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200,
+        201
+      ]
+    },
+    {
       "id": "album_binding_ensure",
       "method": "PUT",
       "pathPattern": "/api/v001/publish-services/{serviceId}/album-bindings/{localId}",

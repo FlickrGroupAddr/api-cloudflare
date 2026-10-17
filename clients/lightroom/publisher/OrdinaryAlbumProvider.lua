@@ -1,6 +1,7 @@
 -- Copyright 2026 Terry Ott. MIT License. Original FGA source.
 -- Unregistered SDK callback factory. Integration must supply yielding pcall and
--- the verified, durable #0090 identity boundary; this shell cannot render/upload.
+-- the verified, durable #0090 identity boundary. SDK processing remains disabled;
+-- the explicit pre-start composition seam awaits the #0103 dispatcher.
 local Settings = require 'OrdinaryAlbumProviderSettings'
 local Provider = {}
 
@@ -36,6 +37,11 @@ function Provider.new(deps)
         titleForPublishedCollection = 'Album',
         titleForPublishedCollection_standalone = 'Album',
     }
+
+    function callbacks.updateExportSettings(exportSettings)
+        local policy = Settings.applyRenditionPolicy(exportSettings)
+        if not policy then error('Album rendition settings are unsupported', 0) end
+    end
 
     function callbacks.viewForCollectionSettings(f, _publishSettings, info)
         local _, message = Settings.prepare(info)
@@ -97,6 +103,111 @@ function Provider.new(deps)
         target.fgaPublishServiceId = result.identity.fgaPublishServiceId
         target.linkedFlickrRevision = result.identity.linkedFlickrRevision
         return target
+    end
+
+    -- Explicit dormant dispatcher seam, NOT an SDK callback. #0103 must call
+    -- this before startRendering/renditions/doExportOnCurrentTask. The documented
+    -- processRenderedPhotos callback is already too late to establish that order.
+    -- updateExportSettings must already have projected the actual session settings.
+    function callbacks.prepareBeforeRendering(exportContext, preparation)
+        if type(exportContext) ~= 'table' or type(preparation) ~= 'table'
+            or type(preparation.now) ~= 'function'
+            or type(preparation.handoffId) ~= 'function'
+            or type(preparation.contextDependencies) ~= 'table' then
+            return nil, 'preparation_invalid'
+        end
+        local configured, policy = deps.pcall(function()
+            return require('RenditionPolicy').resolve(exportContext.propertyTable)
+        end)
+        if not configured or not policy then return nil, 'settings_invalid' end
+        for key, value in pairs(policy.exportSettings) do
+            if exportContext.propertyTable[key] ~= value then return nil, 'settings_not_applied' end
+        end
+        local actualSettings, actualSession = exportContext.propertyTable, exportContext.exportSession
+        local function settingsCurrent()
+            if exportContext.propertyTable ~= actualSettings
+                or exportContext.exportSession ~= actualSession then return false end
+            for key, value in pairs(policy.exportSettings) do
+                if actualSettings[key] ~= value then return false end
+            end
+            return true
+        end
+        local contextDeps = {}
+        for key, value in pairs(preparation.contextDependencies) do contextDeps[key] = value end
+        contextDeps.verifyTarget = function(context)
+            return callbacks.validateTarget(context.propertyTable, context)
+        end
+        local contexts, reason = require('FrozenPublishContext').new(contextDeps, exportContext)
+        if not contexts then return nil, reason end
+        local prepared, results, finished = {}, {}, {}
+        local walked = deps.pcall(function()
+            -- This iterator does not request rendering. Complete the entire
+            -- durable snapshot pass before returning the callable render seam.
+            for photo in exportContext.exportSession:photosToExport() do
+                if prepared[photo] ~= nil then error('duplicate photo', 0) end
+                local worked, result = deps.pcall(function()
+                    return contexts:prepare(photo, preparation.handoffId(photo), preparation.now())
+                end)
+                if not worked or type(result) ~= 'table' then result = {state='unresolved'} end
+                prepared[photo] = result
+                if result.state ~= 'prepared' then
+                    results[#results + 1] = {photo=photo, result={ok=false, code=result.state}}
+                    finished[photo] = true
+                    -- A failed candidate must not be rendered with unfrozen state.
+                    exportContext.exportSession:removePhoto(photo)
+                end
+            end
+        end)
+        if not walked then return nil, 'preparation_failed' end
+        local adapter = require('RenditionAdapter').new {
+            current = function(handle)
+                return settingsCurrent()
+                    and contexts:inspect(handle, preparation.now()).state == 'ready'
+            end,
+            cancelled = contextDeps.cancelled,
+        }
+        local session = {}
+        function session:process(rendition, consume)
+            if self ~= session or rendition == nil then return nil, 'rendition_invalid' end
+            local photo = rendition.photo
+            local value = prepared[photo]
+            if not value or value.state ~= 'prepared' then return nil, 'photo_not_prepared' end
+            if finished[photo] then return nil, 'photo_already_finished' end
+            finished[photo] = true
+            local worked, result = deps.pcall(function()
+                if not settingsCurrent() then return {ok=false, code='settings_changed'} end
+                return adapter:process(rendition, actualSettings, value.context, consume)
+            end)
+            if not worked or type(result) ~= 'table' then result = {ok=false, code='rendition_failed'} end
+            results[#results + 1] = {photo=photo, result=result}
+            return result
+        end
+        function session:outcomes()
+            local copy = {}
+            for index, value in ipairs(results) do
+                local result = {}
+                for key, item in pairs(value.result) do result[key] = item end
+                copy[index] = {photo=value.photo, result=result}
+            end
+            return copy
+        end
+        -- Post-proof operations delegate exact-revision consumption to #0065.
+        function session:bindGroups(photo, now)
+            local value = prepared[photo]
+            if not value or value.state ~= 'prepared' then return {state='context_invalid'} end
+            return contexts:bindGroups(value.context, now)
+        end
+        function session:confirmGroups(photo, status, document, now)
+            local value = prepared[photo]
+            if not value or value.state ~= 'prepared' then return {state='context_invalid'} end
+            return contexts:confirmGroups(value.context, status, document, now)
+        end
+        function session:confirmPublication(photo, now)
+            local value = prepared[photo]
+            if not value or value.state ~= 'prepared' then return {state='context_invalid'} end
+            return contexts:confirmPublication(value.context, now)
+        end
+        return session
     end
 
     function callbacks.processRenderedPhotos(_functionContext, exportContext)

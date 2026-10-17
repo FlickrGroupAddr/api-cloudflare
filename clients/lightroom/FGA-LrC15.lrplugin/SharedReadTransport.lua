@@ -245,7 +245,7 @@ local function noStore(value)
         pos=pos+1
     end
 end
-function Module.response(bytes,headers,limit)
+local function response(bytes,headers,limit,image)
     if type(bytes)~="string" or #bytes>limit or type(headers)~="table"
         or headers.error~=nil or not integer(headers.status,200,599) or headers.status>=300 and headers.status<400
         or headers.status~=200 and headers.status~=202 and headers.status<400 then return nil,{} end
@@ -262,12 +262,19 @@ function Module.response(bytes,headers,limit)
         elseif key~="status" and key~="error" then return nil,{} end
     end
     if count~=#headers then return nil,{} end
-    if not jsonMediaType(values["content-type"] or "")
-        or not noStore(values["cache-control"] or "") then return nil,{} end
+    local media=values["content-type"] or ""
+    if not noStore(values["cache-control"] or "") then return nil,{} end
+    if image then
+        -- Signature/format checks remain with the actual thumbnail client.
+        if headers.status~=200 or media~="image/png" and media~="image/jpeg" then return nil,{} end
+    elseif not jsonMediaType(media) then return nil,{} end
     local length=values["content-length"]
     if length and (not length:match("^%d+$") or #length>10 or tonumber(length)~=#bytes) then return nil,{} end
-    local document=Module.decode(bytes)
-    if type(document)~="table" or getmetatable(document).__jsontype~="object" then return nil,{} end
+    local document
+    if not image then
+        document=Module.decode(bytes)
+        if type(document)~="table" or getmetatable(document).__jsontype~="object" then return nil,{} end
+    end
     if headers.status==401 then
         local code=type(document.error)=="table" and document.error.code or nil
         if code~="invalid_token" or values["www-authenticate"]~='Bearer realm="fga-api", error="invalid_token"' then
@@ -282,11 +289,12 @@ function Module.response(bytes,headers,limit)
     end
     return bytes,safe
 end
+function Module.response(bytes,headers,limit) return response(bytes,headers,limit,false) end
 function Module.new() return nil,"qualification_required" end
--- Synthetic execution entry point, intentionally not a release constructor.
--- call is the owner's yield-safe protector (SDK LrTasks.pcall in a future
--- qualified composition); never enclose GET in Lua 5.1's built-in pcall.
-function Module.offline(d)
+-- Both compositions share the credential, current-context, cancellation and
+-- returned-byte gates. The caller supplies a yield-safe protector; GET must
+-- never be enclosed in Lua 5.1's built-in pcall in the native composition.
+local function adapterFor(d,policy,expectedCredential)
     if type(d)~="table" then return nil,"adapter_unavailable" end
     for _,name in ipairs({"get","call","retrieve","current","cancelled","now"}) do
         if type(d[name])~="function" then return nil,"adapter_unavailable" end
@@ -299,6 +307,7 @@ function Module.offline(d)
             local candidate=d.retrieve(Core.CANDIDATE_KEY)
             local current=d.retrieve(Core.CURRENT_KEY)
             if candidate~=nil and candidate~="" or not Core.isCanonicalCredential(current) then return false end
+            if expectedCredential and current~=expectedCredential then return false end
             if credential==nil then credential=current end
             return credential==current
         end)
@@ -322,28 +331,61 @@ function Module.offline(d)
     function adapter.httpGet(url,headers,timeout)
         if type(url)~="string" or url:sub(1,#Module.ORIGIN)~=Module.ORIGIN then return nil,{} end
         local path=url:sub(#Module.ORIGIN+1)
-        local allowed,limit=Module.allowedPath(path)
-        if not allowed or timeout~=Module.TIMEOUT_SECONDS or not gate() then return nil,{} end
+        local allowed,limit,expectedTimeout,image=policy(path)
+        if not allowed or timeout~=expectedTimeout or not gate() then return nil,{} end
         if type(headers)~="table" or #headers~=1 then return nil,{} end
         local count=0
         for key in pairs(headers) do if key~=1 then return nil,{} end; count=count+1 end
         local h=headers[1]
         if count~=1 or type(h)~="table" or h.field~="Authorization"
             or h.value~="Bearer "..credential then return nil,{} end
-        local ok,bytes,response,start,finish=d.call(function()
+        for key in pairs(h) do if key~="field" and key~="value" then return nil,{} end end
+        local ok,bytes,responseHeaders,start,finish=d.call(function()
             local before=d.now()
             if not finite(before) then return nil,nil,nil,nil end
             -- This expresses requested policy, not proven native redirect,
             -- preallocation, hard total deadline or disconnect controls.
             local body,result=d.get(Module.ORIGIN..path,
-                {{field="Authorization",value="Bearer "..credential}},Module.TIMEOUT_SECONDS)
+                {{field="Authorization",value="Bearer "..credential}},expectedTimeout)
             return body,result,before,d.now()
         end)
         if not gate() then return nil,{} end
         if not ok or not finite(start) or not finite(finish) or finish<start
-            or finish-start>=Module.TIMEOUT_SECONDS then return nil,{} end
-        return Module.response(bytes,response,limit)
+            or finish-start>=expectedTimeout then return nil,{} end
+        return response(bytes,responseHeaders,limit,image)
     end
     return adapter
+end
+-- Synthetic-only entry point: no native dependency composition belongs here.
+function Module.offline(d)
+    return adapterFor(d,function(path)
+        local allowed,limit=Module.allowedPath(path)
+        return allowed,limit,Module.TIMEOUT_SECONDS,false
+    end)
+end
+-- Separately versioned fixed-origin qualification only. No caller-supplied
+-- allowlist, arbitrary photo ID, revision, API route or URL is accepted.
+-- Only the fixture's pinned synthetic bearer can enter this composition.
+-- Keep this finite set aligned with FGA-FixedOrigin-v1.lrplugin/Config.lua;
+-- changing that fixture requires a reviewed source/configuration binding.
+local qualificationPaths={
+    ["/api/v001/installations/current"]=30,
+    ["/api/v001/existing-public-photos?page=1&page_size=1"]=30,
+    ["/api/v001/existing-public-photos/photo/thumbnail?page=1&page_size=1&linked_flickr_revision=1"]=15,
+    ["/api/v001/existing-public-photos?page=1&page_size=2"]=30,
+    ["/api/v001/existing-public-photos?page=2&page_size=2"]=30,
+    ["/api/v001/existing-public-photos/photo1/thumbnail?page=1&page_size=2&linked_flickr_revision=1"]=15,
+    ["/api/v001/existing-public-photos/photo2/thumbnail?page=1&page_size=2&linked_flickr_revision=1"]=15,
+    ["/api/v001/existing-public-photos/photo3/thumbnail?page=2&page_size=2&linked_flickr_revision=1"]=15,
+}
+function Module.qualification(d)
+    return adapterFor(d,function(path)
+        local timeout=qualificationPaths[path]
+        if not timeout then return false end
+        local image=timeout==15
+        local allowed,limit=Module.allowedPath(path)
+        if not image and not allowed then return false end
+        return true,image and 262144 or limit,timeout,image
+    end,string.rep("0000-",12).."0000")
 end
 return Module

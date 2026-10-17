@@ -248,6 +248,14 @@ local function fence(d,p,r)
         metadataRevision=p.metadataRevision,attemptNumber=r and r.attemptNumber or N,
         recordRevision=r and r.recordRevision or N}
 end
+local function matchesFence(d,p,r,scope,expected)
+    return expected.storeRevision==d.storeRevision and expected.gateRevision==d.recoveryGate.gateRevision
+        and expected.metadataRevision==p.metadataRevision and (expected.attemptNumber==N
+            or (r and sameScope(r,scope) and r.recordRevision==expected.recordRevision))
+end
+local function recoveryDisposition(r)
+    return r and (r.recoveryDisposition=="known_photo_reconciliation" or r.recoveryDisposition=="deliberate_new_copy")
+end
 function M.new(options)
     options=options or {}
     local S={}
@@ -283,14 +291,12 @@ function M.new(options)
                 if not d then memoryRecovery=true; result=fail("stored_invalid"); return end
                 if not p then result=fail("photo_metadata_invalid"); return end
                 local r=expected and expected.attemptNumber~=N and findRecord(d,expected.attemptNumber) or nil
-                if expected and (expected.storeRevision~=d.storeRevision or expected.gateRevision~=d.recoveryGate.gateRevision
-                    or expected.metadataRevision~=p.metadataRevision or (expected.attemptNumber~=N and
-                        (not r or not sameScope(r,scope) or r.recordRevision~=expected.recordRevision))) then
+                if expected and not matchesFence(d,p,r,scope,expected) then
                     result=fail("revision_conflict"); return
                 end
                 if not allowRecovery and (memoryRecovery or d.recoveryGate.state=="history_untrusted") then
                     -- Explicit per-photo recovery disposition is the only exception.
-                    if not r or (r.recoveryDisposition~="known_photo_reconciliation" and r.recoveryDisposition~="deliberate_new_copy") then
+                    if not recoveryDisposition(r) then
                         result=fail("history_untrusted"); return
                     end
                 end
@@ -326,7 +332,9 @@ function M.new(options)
     local function remote(photo)
         if type(options.readRemoteId)~="function" then error("remote_id_reader_required") end
         local id=options.readRemoteId(photo)
-        if id==nil or id==N then return nil end
+        -- An empty publication-data remote ID is absent, as in catalog repair.
+        -- Nonempty malformed or conflicting identities still require attention.
+        if id==nil or id==N or id=="" then return nil end
         if not C.opaque(id) then return false end
         return id
     end
@@ -355,6 +363,42 @@ function M.new(options)
             return {state="ready",classification=classification,record=r and C.clone(r) or nil,
                 correlation=e and C.clone(e) or nil,gate=C.clone(d.recoveryGate),fence=fence(d,p,r)}
         end,true)
+    end
+    -- Caller MUST already own the synchronous ordinary catalog write callback
+    -- used by PhotoCatalogRepair, and must write before that callback returns.
+    -- This is a read-only, non-yielding validation seam, not a grant to enter a
+    -- gate or use its result later. The SDK supplies no gate-identity predicate;
+    -- the caller owns that precondition. Never call run/inspect or open a nested
+    -- private gate here. Ordinary store operations continue to use run above.
+    function S:validateCatalogRepair(scope,photo,expected,now)
+        if not scopeValid(scope) or not expectValid(expected) or expected.attemptNumber==N
+            or not C.time(now) then return fail("scope_invalid") end
+        scope,expected=C.clone(scope),C.clone(expected)
+        -- Built-in pcall cannot yield across this boundary in the Lua5.1 target.
+        -- All injected readers used here must themselves be synchronous.
+        local ok,result=pcall(function()
+            if not current(scope,expected.attemptNumber) or not photoCurrent(photo,scope) then return fail("scope_invalid") end
+            local raw=catalog:getPropertyForPlugin(plugin,M.STORE_FIELD)
+            local photoRaw=photo:getPropertyForPlugin(plugin,M.PHOTO_FIELD)
+            local d,p=readRoot(raw),readMetadata(photoRaw,scope.photoUuid)
+            if not d then memoryRecovery=true; return fail("stored_invalid") end
+            if not p then return fail("photo_metadata_invalid") end
+            local r=findRecord(d,expected.attemptNumber)
+            if not matchesFence(d,p,r,scope,expected) or latest(d,scope)~=r then return fail("revision_conflict") end
+            if (memoryRecovery or d.recoveryGate.state=="history_untrusted") and not recoveryDisposition(r) then
+                return fail("history_untrusted")
+            end
+            if r.uploadPhase~="returned_id" or not C.opaque(r.flickrPhotoId)
+                or (r.resultKind~="returned_upload_id" and (r.resultKind~="photographer_assertion"
+                    or r.photoProof.state~="acknowledged")) then return fail("correlation_invalid") end
+            local id=remote(photo)
+            if id==false or (id~=nil and id~=r.flickrPhotoId) then return fail("catalog_repair_required") end
+            if catalog:getPropertyForPlugin(plugin,M.STORE_FIELD)~=raw
+                or photo:getPropertyForPlugin(plugin,M.PHOTO_FIELD)~=photoRaw then return fail("revision_conflict") end
+            if not current(scope,expected.attemptNumber) or not photoCurrent(photo,scope) then return fail("scope_invalid") end
+            return {state="ready",record=C.clone(r),fence=fence(d,p,r)}
+        end)
+        return ok and result or fail("storage_unavailable")
     end
     -- Target metadata reservations derive from admitted full records. Fixed
     -- worst-case reservations cannot be consumed by later admissions.
@@ -535,14 +579,30 @@ function M.new(options)
             return {state="ambiguity_resolution_pending"},true
         end,true)
     end
-    function S:acknowledgeCatalog(scope,photo,e,photoId,now)
-        return update(scope,photo,e,now,function(_,_,r)
+    function S:acknowledgeCatalog(scope,photo,e,photoId,now,validateRelationship)
+        -- Post-callback repair supplies a fresh, exact publication-relationship
+        -- observer. It is a synchronous local predicate, not a gate/permission;
+        -- it supplements every existing scope/fence/remote-ID requirement.
+        -- Omission preserves callers whose own lifecycle supplies observation.
+        if validateRelationship~=nil and type(validateRelationship)~="function" then return fail("scope_invalid") end
+        local function relationshipCurrent()
+            if validateRelationship==nil then return true end
+            local ok,valid=pcall(validateRelationship) -- Lua5.1 refuses a yield.
+            return ok and valid==true
+        end
+        local result=update(scope,photo,e,now,function(_,_,r)
             if r.uploadPhase~="returned_id" or photoId~=r.flickrPhotoId or remote(photo)~=photoId
                 or (r.resultKind=="photographer_assertion" and r.photoProof.state~="acknowledged") then return fail("correlation_invalid") end
             if r.catalogPublication.state=="acknowledged" then return fail("transition_invalid") end
+            -- Check inside the acquired private gate immediately before mutation.
+            if not relationshipCurrent() then return fail("correlation_invalid") end
             r.catalogPublication=checkpoint("catalogPublication",now,{flickrPhotoId=photoId})
             return {state="catalog_acknowledged"},true
         end)
+        -- The gate/readback may have yielded. A committed acknowledgement never
+        -- implies that a removed/replaced relationship is still observed now.
+        if result.state=="catalog_acknowledged" and not relationshipCurrent() then return fail("write_unconfirmed") end
+        return result
     end
     function S:acknowledgeProof(scope,photo,e,proof,now)
         if not C.object(proof,fields("fgaPhotoBindingId flickrPhotoId linkedFlickrRevision verificationRevision"))
