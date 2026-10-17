@@ -53,10 +53,10 @@ generated Album removed and known owned files deleted. A separate filesystem
 check found only `receipts.json` in the scratch directory. A byte-identical copy
 was retained outside the disposable catalog before proposing disposal.
 
-The **15 imported synthetic photo rows and test publish service remain** until
-the separate whole-catalog disposal. Automatic cleanup does not claim to remove
-them. Fixture unregistration and manual catalog/workspace disposal require their
-own applicable immediate confirmation; no disposal is claimed by this record.
+At native completion, the **15 imported synthetic photo rows and test publish
+service remained** pending separate whole-catalog disposal. Automatic cleanup
+did not remove them. Terry subsequently gave the applicable immediate
+confirmation; the verified disposal is recorded below.
 
 These explicit receipt limits remain in force:
 
@@ -81,3 +81,30 @@ amend the accepted format contract or clear unrelated qualification gates.
 Supplemental source checks are tracked by #0158 for integration into the later
 #0124 packet and #0128 run; #0137 retains the exact action-time decision.
 The downstream #0128/#0129/#0131 relationships preserve these unpassed gates.
+
+## Subsequent approved disposal
+
+Terry explicitly approved fixture unregistration, normal host closure and
+removal of the exact disposable folder. Lightroom had already been closed by
+Terry, so the operator reopened it once through the supported launcher solely
+for this cleanup; no fixture case was invoked again.
+
+- The exact qualification fixture path/version 0.0.1.2 was observed before one
+  Remove action. Its entry was absent afterward; the disposable service showed
+  missing plug-in. The other plug-ins remained registered.
+- Lightroom was closed normally. Both the returned window inventory and a
+  process check confirmed exit; no force termination was used.
+- Before deletion, the exact resolved target was checked against its approved
+  workspace boundary, linked ancestors/descendants were refused, and catalog
+  lock absence and the retained 13/13 terminal-render evidence were verified.
+- Only the separately approved disposable folder was removed, and its absence
+  was verified. This disposed of the synthetic catalog, its photo rows, service
+  and generated cache data.
+- The immutable fixture/manifest, consent and owner-decision records, and copied
+  native receipt remain outside that folder. Their expected hashes/retention
+  were checked. Private task-workspace operator receipt: `private-evidence/0126/disposal-v4.json`.
+
+The original native JSON remains byte-identical. Its `catalogDisposalRequired`
+field describes the native fixture's earlier completion state; this later
+operator record establishes manual disposal without rewriting that measurement.
+All profile, callback/scheduling and production qualification limits above remain.
