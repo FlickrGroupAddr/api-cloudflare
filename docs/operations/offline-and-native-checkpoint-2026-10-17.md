@@ -87,3 +87,11 @@ The later same-day [native result](provider-render-native-result-2026-10-17.md)
 records the newly confirmed run: 14 passing fixture cases and 13 terminal render
 sessions. It supersedes only this checkpoint's pending-run state. The profile,
 actual callback/scheduling, production and later action gates remain explicit.
+
+## Subsequent POST attempt
+
+The later same-day [POST attempt result](group-post-native-result-2026-10-17.md)
+records the approved attempt and completed remote and separately approved local/UI
+cleanup. Dispatch expired before native input; all 23 POST cases remain unmeasured.
+This supersedes only the earlier pending POST action state, preserving its history
+and all qualification gates.

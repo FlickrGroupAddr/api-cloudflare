@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "kind": "closed_synthetic_post_attempt_result",
+  "date": "2026-10-17",
+  "ticket": "0060",
+  "runId": "c01ba6d2c2754597aa311c9f",
+  "sourceCommit": "ba7f5b7e722b57b6e32ffef7670d98f269f36e07",
+  "provenance": {
+    "baseManifestSha2_256": "87e52649df09518ed372e5482ca3c61be7c3ac4f7e8c6bd07c7cdc09206805ed",
+    "bridgeManifestSha2_256": "bd8a2797d8fb1e23209f6c78f997d54d52ed1b8c18bc366cf65b5f16ba966392",
+    "approvalSha2_256": "e76c865d6324f1e59333d167c0a67efd99095f9e178b7c21738406d89d6622c3",
+    "basis": "closed_lifecycle_projection_and_primary_operator_attestation"
+  },
+  "host": {
+    "observed": "15.6 / 202609251514-f839cde9",
+    "declaredSdk": "15.3",
+    "fixtureVersionObserved": "0.0.1.1"
+  },
+  "outcome": "failed_dispatch_before_native_input",
+  "nativeOutcome": "unmeasured",
+  "dispatch": {
+    "deadlineSeconds": 30,
+    "deadlineExpiredBeforeInput": true,
+    "bridgeNativeInvocations": 1,
+    "bridgeNativeInvocationsMeaning": "requested_dispatch_callback_count_not_observed_native_menu_invocations",
+    "actualNativeMenuInvocations": 0,
+    "targetConsumed": false,
+    "nativeStatusPresent": false,
+    "laterStopWriteFailure": "node_fs_EPERM_after_deadline",
+    "laterStopWriteFailureCausedOriginalExpiry": false,
+    "stopPreserved": true,
+    "retryPerformed": false,
+    "bypassPerformed": false
+  },
+  "measurement": {
+    "plannedNativeCases": 23,
+    "measuredNativeCases": 0,
+    "receiverObservationRows": 0,
+    "cases": [
+      {
+        "id": "proof",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "batch-one",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "batch-sixty",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "status-400",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "status-401",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "status-409",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "status-429",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "status-503",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "oversize-success",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "oversize-error",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "timeout",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "lost-response",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "same-301",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "cross-301",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "same-302",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "cross-302",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "same-303",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "cross-303",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "same-307",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "cross-307",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "same-308",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "cross-308",
+        "outcome": "unmeasured"
+      },
+      {
+        "id": "cancel",
+        "outcome": "unmeasured"
+      }
+    ]
+  },
+  "cloudLifecycle": {
+    "providerCalls": 18,
+    "samePythonOwnerCleanupConfirmed": true,
+    "resources": [
+      {
+        "kind": "database",
+        "acknowledged": true,
+        "deleted": true
+      },
+      {
+        "kind": "worker",
+        "acknowledged": true,
+        "deleted": true
+      },
+      {
+        "kind": "worker",
+        "acknowledged": true,
+        "deleted": true
+      }
+    ],
+    "exactResourcesConfirmedAbsent": 3,
+    "ownerClosed": true
+  },
+  "separateCleanup": {
+    "tokenRevokedOwnerConfirmed": true,
+    "tokenRevocationIndependentlyQueried": false,
+    "localAndUiCleanupSeparatelyApproved": true,
+    "localAndUiCleanupCompleted": true,
+    "fixtureUnregisteredObserved": true,
+    "exactLocalRuntimeFolderRemoved": true,
+    "tokenFileRemoved": true
+  },
+  "productionQualified": false,
+  "qualifiedPostPolicyAvailable": false
+}

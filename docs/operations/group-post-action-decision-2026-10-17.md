@@ -75,3 +75,12 @@ The installed [Computer Use skill](C:/Users/TDO-XPS15-2024/.codex/plugins/cache/
 #0145's completed independent review resolved sticky-stop/terminal races, unknown-dispatch grace and approval/configuration snapshot substitution; its 16 offline tests passed. That is engineering evidence, not native execution proof. Current local artifact verification is recorded separately for this handoff; do not infer a fresh runtime test from hashes.
 
 Keep only closed outcomes, statuses, byte counts, header-presence/exact-match booleans and wall timings in public evidence. Failed/stopped/unmeasured results stay explicit regardless of teardown success. This finite run cannot qualify production transport, credentials, group additions or a later Lightroom major. #0037 remains unqualified; #0044 remains NO-GO and #0043 restoration remains negative in their independent scopes. No new provider request, cloud resource change, native initialization/input, credential read or owner execution consent occurred in this preparation.
+
+## Subsequent owner action and result
+
+The later same-day [POST attempt result](group-post-native-result-2026-10-17.md)
+records Terry's exact action-time approval and the stopped attempt. Dispatch
+expired before any native command invocation; all 23 planned cases are unmeasured.
+Remote teardown and separately approved local/UI cleanup are complete. This
+preserves the historical proposed packet above and supplies no production
+qualification or authorization for another attempt.

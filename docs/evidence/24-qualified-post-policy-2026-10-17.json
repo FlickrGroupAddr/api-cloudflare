@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "negative_qualified_post_policy_projection",
+  "date": "2026-10-17",
+  "ticket": "0024",
+  "evidenceTicket": "0060",
+  "evidence": "group-post-native-2026-10-17.json",
+  "status": "unqualified",
+  "reason": "dispatch_expired_before_native_input_all_23_cases_unmeasured",
+  "actualNativeMenuInvocations": 0,
+  "measuredNativeCases": 0,
+  "qualifiedPostPolicyAvailable": false,
+  "proofPostQualified": false,
+  "wholeSetBatchPostQualified": false,
+  "redirectBearerBehaviorQualified": false,
+  "preallocationByteCapQualified": false,
+  "hardElapsedDeadlineQualified": false,
+  "activeCancellationQualified": false,
+  "productionQualified": false,
+  "dependentAdapterMayConsumeAsPositiveEvidence": false,
+  "unmeasured": [
+    "method_body_and_header_receipt",
+    "complete_60_group_single_call",
+    "status_and_error_handling",
+    "same_and_cross_origin_redirect_behavior",
+    "bearer_forwarding",
+    "oversize_response_behavior",
+    "timeout_and_lost_response_behavior",
+    "cooperative_cancel_behavior"
+  ]
+}
