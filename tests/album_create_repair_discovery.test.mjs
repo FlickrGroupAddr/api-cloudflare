@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createSyntheticAlbumCreateRepairReader, AlbumRepairReadError } from '../src/album_create_repair_discovery.ts';
 import { signedAlbumRest } from '../src/flickr_reads.ts';
 
@@ -169,4 +171,39 @@ test('whole-operation deadline bounds fetch and aborts its injected request', as
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(cancelled, true, 'late upstream body was canceled');
   assert.equal(calls, 1, 'no info read continued after the deadline');
+});
+test('whole-operation cancellation survives forced garbage collection', { timeout: 20_000 }, async () => {
+  if (typeof globalThis.gc !== 'function') {
+    execFileSync(process.execPath, ['--expose-gc', '--test',
+      '--test-name-pattern=^whole-operation cancellation survives forced garbage collection$', fileURLToPath(import.meta.url)],
+    { timeout: 15_000, stdio: 'pipe' });
+    return;
+  }
+  await fixture().reader.discover(1, 1);
+  let signal, expire, finish, entered, calls = 0, cancelled = false;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const started = new Promise(resolve => { entered = resolve; });
+  const schedule = globalThis.setTimeout;
+  // Trigger the real operation deadline callback after GC without racing wall-clock scheduling.
+  globalThis.setTimeout = (callback, delay, ...args) => delay === 100
+    ? (expire = () => callback(...args), schedule(() => {}, 10_000)) : schedule(callback, delay, ...args);
+  try {
+    const f = fixture({ deadlineMs: 100, fetcher: request => {
+      calls++; signal = request.signal; entered(); return pending;
+    } });
+    const rejected = assert.rejects(f.reader.discover(1, 1), code('candidate_evidence_unavailable'));
+    await started;
+    for (let n = 0; n < 8; n++) {
+      await new Promise(resolve => setImmediate(resolve));
+      globalThis.gc();
+    }
+    assert.equal(typeof expire, 'function');
+    expire();
+    await rejected;
+    assert.equal(signal.aborted, true, 'request cancellation must survive collection of intermediate followers');
+    finish(new Response(new ReadableStream({ cancel() { cancelled = true; } }), { headers: { 'Content-Type': 'application/json' } }));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(cancelled, true, 'late upstream body was canceled after GC');
+    assert.equal(calls, 1, 'no info read continued after the deadline');
+  } finally { globalThis.setTimeout = schedule; }
 });

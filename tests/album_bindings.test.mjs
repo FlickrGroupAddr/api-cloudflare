@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { sqlStore } from './sql_store.mjs';
 import { materializeAdmissionAlbum } from './album_admission_materialization_fixture.mjs';
 import { albumBindingRequest, ALBUM_BINDINGS_RELEASE_METADATA, ALBUM_BINDINGS_ROUTES } from '../src/album_bindings.ts';
@@ -99,8 +100,9 @@ test('same candidate receipt replay ignores new title and old proof revision, in
   f.db.raw.exec("UPDATE photo_bindings SET verification_revision=2 WHERE binding_id='proved-upload'; INSERT INTO photo_binding_events(event_id,binding_id,verification_revision,kind) VALUES('refresh-event','proved-upload',2,'existing_public_verified')");
   let before = albumState(f.db), repeat = await f.call(ensure('proved-upload', 'Ignored rename'));
   assert.equal(repeat.status, 200); assert.deepEqual(await repeat.json(), first); assert.deepEqual(albumState(f.db), before);
-  // Lifecycle mutation is a fixture for accepted replay semantics; no lifecycle endpoint is introduced here.
-  f.db.raw.exec("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1");
+  await putAlbumLocalRemoval(f.db, f.auth, first.binding.fgaAlbumBindingId, {
+    schemaVersion: 1, expectedBindingRevision: first.binding.bindingRevision, acknowledgedCreateAttemptId: null,
+  });
   before = albumState(f.db); repeat = await f.call(ensure('proved-upload', 'Ignored restored-catalog title'));
   assert.equal(repeat.status, 200); assert.equal((await repeat.json()).binding.bindingRevision, 2); assert.deepEqual(albumState(f.db), before);
   await error(await f.call(ensure('proved-existing')), 409, 'album_binding_exists'); assert.deepEqual(albumState(f.db), before);

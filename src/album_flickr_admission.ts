@@ -1,6 +1,6 @@
 import type { SqlStore } from './admission.ts';
 import { reserveFlickrCapacity, type FlickrCapacityReservation } from './flickr_rate.ts';
-import type { FlickrFetch } from './flickr_reads.ts';
+import type { FlickrFetch, FlickrFetchLifetime } from './flickr_reads.ts';
 
 export type AlbumAdmittedMethod = 'flickr.photos.getAllContexts' | 'flickr.photosets.getInfo'
   | 'flickr.photosets.addPhoto' | 'flickr.photosets.editMeta';
@@ -72,7 +72,7 @@ export function createAlbumFlickrAdmission(dependencies: AlbumFlickrAdmissionDep
       if (!METHODS.has(method)) return unavailable();
       await allocate(1, method);
     },
-    async fetcher(request: Request) {
+    async fetcher(request: Request, lifetime?: FlickrFetchLifetime) {
       checkAbort(request);
       if (allocating) return unavailable();
       const url = new URL(request.url);
@@ -95,7 +95,9 @@ export function createAlbumFlickrAdmission(dependencies: AlbumFlickrAdmissionDep
       if (!credit.reservation.unexpired()) return unavailable();
       const signal = deps.signal ? AbortSignal.any([deps.signal, request.signal]) : request.signal;
       if (signal.aborted) return unavailable();
-      return deps.fetcher(new Request(request, { signal }));
+      const forwarded = new Request(request, { signal });
+      lifetime?.retain(forwarded);
+      return deps.fetcher(forwarded, lifetime);
     },
   });
 }

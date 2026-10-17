@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { Miniflare } from 'miniflare';
@@ -37,7 +38,7 @@ test('concurrent distinct rename requests have one winner and never silently upg
 
 test('exact receipt replay after archive and remote authority loss preserves original acceptance without reopening work',async t=>{
  const f=await titleFixture(t),b=await f.binding(),body=request(b,'Retained desired');const accepted=await api.putAlbumTitleIntent(f.db,f.auth,f.bindingId,2,body);
- f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.bindingId);
+ await putAlbumLocalRemoval(f.db,f.auth,f.bindingId,{schemaVersion:1,expectedBindingRevision:(await f.binding()).binding_revision,acknowledgedCreateAttemptId:null});
  f.db.raw.exec("UPDATE flickr_links SET state='paused' WHERE user_id='user'");const before=await titleSnapshot(f.db);
  const replay=await api.putAlbumTitleIntent(f.db,f.auth,f.bindingId,2,body);assert.equal(replay.created,false);assert.equal(replay.receipt.acceptedAt,accepted.receipt.acceptedAt);assert.equal(replay.receipt.acceptedDesiredTitle,'Retained desired');assert.equal(replay.receipt.current.localLifecycle,'local_collection_removed_remote_preserved');assert.deepEqual(await titleSnapshot(f.db),before);
  await assert.rejects(f.rename('Forbidden after archive'),/album_closed/);assert.deepEqual(await titleSnapshot(f.db),before);
@@ -167,6 +168,10 @@ test('actual local D1 migration0024 preserves populated bindings, primary member
  await db.batch(migration.sql.map(sql=>db.prepare(sql)));const after=await titleSnapshot(db,tables);
  for(const table of tables)for(let i=0;i<before[table].length;i++)for(const [key,value]of Object.entries(before[table][i]))assert.deepEqual(after[table][i][key],value,table+':'+key);
  assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);
+ // Preservation and rollback above are pinned to migration0024. Current-head
+ // lifecycle APIs also read later archival tables, so upgrade explicitly before
+ // exercising those APIs rather than presenting them as a 0024-only proof.
+ for(const later of migrations.filter(m=>m.name>migration.name))await db.batch(later.sql.map(sql=>db.prepare(sql)));
  await f.rename('Native title');const revisionBefore=(await f.binding()).binding_revision;let c=await api.claimAlbumTitle(db,f.bindingId);assert(c);const failedRead=await api.beginAlbumTitleRead(db,c);assert(failedRead);await api.reconcileAlbumTitle(db,failedRead,null);await new Promise(resolve=>setTimeout(resolve,5100));c=await api.claimAlbumTitle(db,f.bindingId);assert(c);assert.equal(c.dispatchCount,0);const r=await api.beginAlbumTitleRead(db,c);assert(r);assert.equal((await f.binding()).binding_revision,revisionBefore);const marked=await api.markAlbumTitleDispatch(db,r,titleProof(ORIGINAL));assert(marked);assert.equal((await f.binding()).binding_revision,revisionBefore+1);
  const post=await api.beginAlbumTitleRead(db,marked);assert(post);assert.equal((await f.binding()).binding_revision,revisionBefore+1);await api.reconcileAlbumTitle(db,post,titleProof('Native title'));assert.equal((await api.readAlbumLifecycle(db,f.auth,f.bindingId)).title.state,'synced');assert.equal((await f.binding()).binding_revision,revisionBefore+2);const semantic=(await db.prepare('SELECT binding_revision_before,binding_revision_after FROM album_title_semantic_events WHERE binding_id=? ORDER BY binding_revision_after').bind(f.bindingId).all()).results;assert.deepEqual(semantic.map(e=>[e.binding_revision_before,e.binding_revision_after]),[[revisionBefore,revisionBefore+1],[revisionBefore+1,revisionBefore+2]]);
  await assert.rejects(db.prepare('DELETE FROM album_title_attempts').run());

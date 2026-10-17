@@ -18,6 +18,7 @@ async function nativeFixture(t) {
   const f = await materializationFixture({ after() {} }, db);
   await f.associate('later-photo');
   const archived = await f.ensure('third-photo', 'Archived:009');
+  // Historical 0021 schema predates local-removal receipts; retain its actual archival transition.
   await db.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?")
     .bind(archived.binding.fgaAlbumBindingId).run();
   return f;

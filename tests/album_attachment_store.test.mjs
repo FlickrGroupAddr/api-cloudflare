@@ -46,6 +46,7 @@ async function preceding(t) {
   const db = await nativeDatabase(t, '0023_');
   const f = await attachmentFixture(t, { db });
   const archived = await f.ensure('third-photo', 'Archived:prior');
+  // This fixture intentionally remains on migration0022, where raw archival was permitted.
   await db.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").bind(archived.binding.fgaAlbumBindingId).run();
   for (const item of splitMigrations().filter(item => item.name >= '0023_' && item.name < '0025_'))
     await db.batch(item.sql.map(sql => db.prepare(sql)));
@@ -62,8 +63,13 @@ async function preceding(t) {
       ownerNsid: 'owner', firstPhotoId: 'third-remote', contextIds: [request.selectedPhotosetId],
       observedAt: new Date(now / 1000).toISOString().replace(/(\.\d{3})Z$/, '$1000Z') });
   const original = await db.prepare('SELECT * FROM album_bindings WHERE binding_id=?').bind(f.bindingId).first();
-  await title.putAlbumTitleIntent(db, AUTH, f.bindingId, original.title_revision + 1,
-    { schemaVersion: 1, expectedBindingRevision: original.binding_revision, expectedTitleRevision: original.title_revision, desiredTitle: 'Prior retained desired title' });
+  // Seed the guarded0024 receipt directly: the current title response snapshot requires0026.
+  // Applying0026 here would invalidate the0025 predecessor migration proof.
+  await db.prepare(`INSERT INTO album_title_receipts(binding_id,title_revision,expected_binding_revision,
+    expected_title_revision,desired_title,accepted_binding_revision,installation_id,credential_digest)
+    VALUES(?,?,?,?,?,?,?,?)`).bind(f.bindingId, original.title_revision + 1, original.binding_revision,
+      original.title_revision, 'Prior retained desired title', original.binding_revision + 1,
+      AUTH.installationId, AUTH.credentialDigest).run();
   assert(await title.claimAlbumTitle(db, f.bindingId));
   return f;
 }

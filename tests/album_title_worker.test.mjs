@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { titleFixture,titleClock,SET,OWNER,ORIGINAL } from './album_title_fixture.mjs';
 import { consumeAlbumTitle } from '../src/album_title_worker.ts';
 import { createSyntheticAlbumTitleTransport } from '../src/album_title_transport.ts';
@@ -109,7 +110,7 @@ test('attachment missing-album evidence racing the pre-read fences title dispatc
 });
 
 test('archive during a marked write allows read-only reconciliation and never a retry',async t=>{
- const f=await fixture(t),clock=titleClock(f.db);f.responses[EDIT]={stat:'ok'};f.hooks[EDIT]=()=>f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.bindingId);
+ const f=await fixture(t),clock=titleClock(f.db);f.responses[EDIT]={stat:'ok'};f.hooks[EDIT]=async()=>{await putAlbumLocalRemoval(f.db,f.auth,f.bindingId,{schemaVersion:1,expectedBindingRevision:(await f.binding()).binding_revision,acknowledgedCreateAttemptId:null});};
  assert.equal(await f.run(),'reconciliation_pending');assert.equal((await f.lifecycle()).title.state,'local_removed_reconciliation_pending');assert.equal(writes(f).length,1);assert.equal(f.calls.filter(c=>c.method===INFO).length,1);
  const row=attempts(f)[0];clock.set(Math.max(row.lease_expires_at_us,row.next_read_at_us));assert.equal(await f.run(),'local_removed');assert.equal((await f.lifecycle()).title.state,'local_removed');assert.equal(writes(f).length,1);assert.equal(f.calls.filter(c=>c.method===INFO).length,2);assert.equal(attempts(f)[0].attempt_id,row.attempt_id);
  clock.advance(600000);await f.run();assert.equal(writes(f).length,1);assert.equal((await f.binding()).flickr_photoset_id,SET);

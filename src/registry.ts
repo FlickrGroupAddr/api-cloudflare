@@ -1,3 +1,4 @@
+import { ALBUM_LOCAL_REMOVAL_ROUTES } from "./album_local_removal.ts";
 import { ALBUM_CREATE_REPAIR_ROUTES } from "./album_create_repair.ts";
 import { ALBUM_TITLE_ROUTES } from "./album_title.ts";
 import { ALBUM_OBLIGATIONS_ROUTES } from "./album_obligations.ts";
@@ -42,6 +43,7 @@ export const BINDING_RESPONSE_SCHEMA={type:"object",additionalProperties:false,r
 export const ROUTES = [
  ...ALBUM_CREATE_REPAIR_ROUTES,
  ...ALBUM_TITLE_ROUTES,
+ ...ALBUM_LOCAL_REMOVAL_ROUTES,
  ...ALBUM_OBLIGATIONS_ROUTES,
  ...ALBUM_BINDINGS_ROUTES,
  ...UPLOAD_CANDIDATES_ROUTES,

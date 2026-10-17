@@ -95,9 +95,9 @@ export function createSyntheticAlbumTitleTransport(input: AlbumTitleIdentity, de
     if ([...params].length !== Object.keys(expected).length || Object.entries(expected).some(([key, value]) => params.getAll(key).length !== 1 || params.get(key) !== value)) return invalid();
     return signed;
   }
-  const json = (req: Request, signal: AbortSignal, deadline: number) => readJson(req, next => {
+  const json = (req: Request, signal: AbortSignal, deadline: number) => readJson(req, (next, lifetime) => {
     if (signal.aborted || performance.now() >= deadline) return Promise.reject(new AlbumTitleTransportError());
-    return deps!.fetcher(new Request(next, { signal: AbortSignal.any([signal, next.signal]) }));
+    return deps!.fetcher(next, lifetime);
   }, raw => strictFlickrJson(raw, 1_048_576), { maxBytes: 1_048_576, signal });
   return {
     async read() {

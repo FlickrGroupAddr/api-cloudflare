@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { sqlStore } from './sql_store.mjs';
 import { materializeAdmissionAlbum } from './album_admission_materialization_fixture.mjs';
 import { legacyAlbumStore, migrateAlbumObligations } from './album_migration_fixture.mjs';
@@ -275,8 +276,9 @@ test('committed photoset selects attachment-pending for later photos without cha
 test('local collection removal archives retained primary/later obligations; replay never resurrects or admits new work', async t => {
   const f = await fixture(t); assert.equal((await f.call()).status, 201);
   const admitted = albumState(f.db);
-  // Exercise accepted storage lifecycle semantics only; #0094 lifecycle HTTP remains unaccepted.
-  f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.binding);
+  await putAlbumLocalRemoval(f.db, f.auth, f.binding, {
+    schemaVersion: 1, expectedBindingRevision: admitted.album_bindings[0].binding_revision, acknowledgedCreateAttemptId: null,
+  });
   const archived = albumState(f.db); assert.equal(archived.album_bindings[0].binding_revision, 3);
   for (const obligation of archived.album_photo_obligations) {
     const original = admitted.album_photo_obligations.find(item => item.obligation_id === obligation.obligation_id);
@@ -320,6 +322,7 @@ test('production migration preserves nonempty #0108 receipts, immutable first ph
   assert.equal(row(f, 'primary-photo').state, 'materialization_pending');
   assert.equal((await f.ensure('later-photo', 'Materialized')).status, 201);
   assert.equal((await f.ensure('third-photo', 'Archived')).status, 201);
+  // Historical 0020 schema predates local-removal receipts; retain its actual archival transition.
   f.db.raw.exec("UPDATE album_bindings SET flickr_photoset_id='existing-photoset',binding_revision=binding_revision+1 WHERE local_collection_id='Materialized'; UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE local_collection_id='Archived'");
   const bindings = f.db.raw.prepare('SELECT * FROM album_bindings ORDER BY rowid').all();
   const events = f.db.raw.prepare('SELECT * FROM album_binding_events ORDER BY rowid').all();
@@ -345,7 +348,10 @@ test('archival racing the handoff commits only retained archival facts and refus
   const f = await fixture(t), batch = f.db.batch.bind(f.db); let archived;
   f.db.batch = async statements => {
     if (!archived) {
-      f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.binding);
+      f.db.batch = batch;
+      await putAlbumLocalRemoval(f.db, f.auth, f.binding, {
+        schemaVersion: 1, expectedBindingRevision: f.first.binding.bindingRevision, acknowledgedCreateAttemptId: null,
+      });
       archived = albumState(f.db);
     }
     return batch(statements);

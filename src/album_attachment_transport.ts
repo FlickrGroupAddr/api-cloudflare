@@ -104,9 +104,9 @@ export function createSyntheticAlbumAttachmentTransport(input: AlbumAttachmentId
   }
   async function json(request: Request, signal: AbortSignal, deadline: number) {
     if (signal.aborted || performance.now() >= deadline) return invalid();
-    return readJson(request, next => {
+    return readJson(request, (next, lifetime) => {
       if (signal.aborted || performance.now() >= deadline) return Promise.reject(new AlbumAttachmentTransportError());
-      return deps!.fetcher(new Request(next, { signal: AbortSignal.any([signal, next.signal]) }));
+      return deps!.fetcher(next, lifetime);
     }, strictFlickrJson, { signal });
   }
   return {

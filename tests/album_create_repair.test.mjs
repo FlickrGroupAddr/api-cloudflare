@@ -4,6 +4,7 @@ import { materializationFixture, contexts, PHOTO, OWNER } from './album_material
 import { albumCreateRepairRequest } from '../src/album_create_repair.ts';
 import { createSyntheticAlbumCreateRepairReader } from '../src/album_create_repair_discovery.ts';
 import { assertAlbumRepairContext } from '../src/album_create_repair_store.ts';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { NOW_US_SQL, credentialDigest } from '../src/installations.ts';
 import { createWorker } from '../src/worker.ts';
 import { digest } from '../src/browser_sessions.ts';
@@ -235,7 +236,10 @@ test('old status during pending selection does not authorize another create and 
 
 test('retained removed binding remains readable, discoverable and reparable through admin only without catalog or new work', async t => {
   const f = await fixture(t);
-  f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.binding);
+  const removal = await putAlbumLocalRemoval(f.db, f.auth, f.binding, { schemaVersion: 1,
+    expectedBindingRevision: f.album().binding_revision, acknowledgedCreateAttemptId: f.initial.materialization.createAttemptId });
+  assert.equal(removal.created, true);
+  assert.equal(removal.receipt.repairHandoff.createAttemptId, f.initial.materialization.createAttemptId);
   const removed = await body(await f.call()); statusShape(removed);
   assert.equal(removed.localLifecycle, 'local_collection_removed_remote_preserved');
   assert.equal(removed.materialization.repairSurface, 'admin_only');

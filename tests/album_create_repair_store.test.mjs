@@ -4,6 +4,7 @@ import * as api from '../src/album_create_repair_store.ts';
 import * as materialization from '../src/album_materialization_store.ts';
 import * as attachment from '../src/album_attachment_store.ts';
 import * as title from '../src/album_title_store.ts';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { NOW_US_SQL } from '../src/installations.ts';
 import { INSTALL, ADMIN, sqliteDatabase, nativeDatabase, applyRemaining, splitMigrations, unknownFixture,
   rows, retained, firstBinding, delayFirstBatch } from './album_create_repair_fixture.mjs';
@@ -156,7 +157,10 @@ test('stale binding revision and malformed or mismatched fresh proof commit noth
 
 test('removed collection requires administrative repair and retains its archived obligations after selection and replay', async t => {
   const f = await unknownFixture(t);
-  await f.db.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").bind(f.bindingId).run();
+  const removal = await putAlbumLocalRemoval(f.db, INSTALL, f.bindingId, { schemaVersion: 1,
+    expectedBindingRevision: (await firstBinding(f)).binding_revision, acknowledgedCreateAttemptId: f.claim.attemptId });
+  assert.equal(removal.created, true);
+  assert.equal(removal.receipt.repairHandoff.createAttemptId, f.claim.attemptId);
   assert.equal((await api.readAlbumStatus(f.db, INSTALL, f.bindingId)).materialization.repairSurface, 'admin_only');
   await rejected(api.readAlbumRepairContext(f.db, INSTALL, f.bindingId), 'administrative_repair_required');
   const p = await prepared(f, ADMIN), status = await commit(f, p, ADMIN);
@@ -183,7 +187,10 @@ test('competing equal selections replay and different selections have only one a
 
 test('owner-scoped photoset uniqueness includes archived bindings and cannot orphan the losing first obligation', async t => {
   const f = await unknownFixture(t), p = await prepared(f); await commit(f, p);
-  await f.db.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").bind(f.bindingId).run();
+  const removal = await putAlbumLocalRemoval(f.db, INSTALL, f.bindingId, { schemaVersion: 1,
+    expectedBindingRevision: (await firstBinding(f)).binding_revision, acknowledgedCreateAttemptId: null });
+  assert.equal(removal.created, true);
+  assert.equal(removal.receipt.repairHandoff.destination, 'none');
   const other = await f.ensure('third-photo', 'Different:Repair'), id = other.binding.fgaAlbumBindingId;
   const c = await materialization.claimAlbumMaterialization(f.db, id), marker = await materialization.markAlbumCreateDispatch(f.db, c, []);
   assert.equal(await materialization.unknownAlbumMaterialization(f.db, marker), true);
@@ -218,6 +225,8 @@ test('each atomic batch statement failure and each semantic/event trigger failur
 test('actual local D1 applies every current migration over populated0022 unknown/archive history and resolves via RETURNING', async t => {
   const db = await nativeDatabase(t, '0023_'), f = await unknownFixture(t, { db, received: true });
   const archived = await f.ensure('third-photo', 'Archived:Repair');
+  // Deliberate historical0022 fixture:0026 receipts and guards do not exist yet.
+  // Current-schema removals above use the guarded operation instead.
   await db.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?")
     .bind(archived.binding.fgaAlbumBindingId).run();
   const before = await retained(db); await applyRemaining(db);

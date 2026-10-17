@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { albumTitleRequest, parseAlbumTitleIntent, parseAlbumTitleRevision, albumLifecycleProjection,
   albumTitleReceiptProjection, albumTitleFailure, ALBUM_TITLE_ROUTES, ALBUM_TITLE_RELEASE_METADATA } from '../src/album_title.ts';
 import { titleFixture, titleSnapshot } from './album_title_fixture.mjs';
@@ -93,7 +94,7 @@ test('HTTP acceptance and exact replay expose immutable receipt with fresh curre
   await failure(await albumTitleRequest(env,f.auth,request(target,{...value,desiredTitle:'Conflicting text'}),f.bindingId,rev),409,'title_intent_conflict');
   await failure(await albumTitleRequest(env,f.auth,request(target,{...value,expectedTitleRevision:value.expectedTitleRevision+1}),f.bindingId,rev),409,'title_intent_conflict');
   await failure(await albumTitleRequest(env,f.auth,request(target,{...value,expectedBindingRevision:value.expectedBindingRevision+1}),f.bindingId,rev),409,'title_intent_conflict');
-  f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.bindingId);
+  await putAlbumLocalRemoval(f.db,f.auth,f.bindingId,{schemaVersion:1,expectedBindingRevision:(await f.binding()).binding_revision,acknowledgedCreateAttemptId:null});
   f.db.raw.exec("UPDATE flickr_links SET state='paused' WHERE user_id='user'");
   const archived=await titleSnapshot(f.db),archivedReplay=await albumTitleRequest(env,f.auth,request(target,value),f.bindingId,rev);
   assert.equal(archivedReplay.status,200);const retained=await archivedReplay.json();assert.equal(retained.acceptedAt,receipt.acceptedAt);

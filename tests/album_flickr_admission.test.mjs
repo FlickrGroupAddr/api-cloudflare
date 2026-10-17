@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { readJson } from '../src/flickr_reads.ts';
 import { Miniflare } from 'miniflare';
 import { sqlStore } from './sql_store.mjs';
 import { budgetedFlickrFetch, reserveFlickrCapacity } from '../src/flickr_rate.ts';
@@ -230,4 +233,42 @@ test('native local D1 enforces shared saturation, rollback, and final gate mutat
     assert.equal((await db.prepare('PRAGMA foreign_key_check').all()).results.length, 0);
     assert.equal(outbound, 0);
   } finally { source.raw.close(); await mf.dispose(); }
+});
+test('admitted shared reader cancellation survives forced GC through response bodies', { timeout: 20_000 }, async t => {
+  if (typeof globalThis.gc !== 'function') {
+    execFileSync(process.execPath, ['--expose-gc', '--test',
+      '--test-name-pattern=^admitted shared reader cancellation survives forced GC through response bodies$', fileURLToPath(import.meta.url)],
+    { timeout: 15_000, stdio: 'pipe' });
+    return;
+  }
+  const f = setup(t);
+  for (const headersReceived of [false, true]) for (const useRequestSignal of [false, true]) {
+    const root = new AbortController();
+    let signal, entered, finish, cancelled = false;
+    const started = new Promise(resolve => { entered = resolve; });
+    const pending = new Promise(resolve => { finish = resolve; });
+    const response = () => new Response(new ReadableStream({
+      pull() { if (headersReceived) entered(); }, cancel() { cancelled = true; },
+    }), { headers: { 'Content-Type': 'application/json' } });
+    const admission = createAlbumFlickrAdmission({ ...f.deps, signal: useRequestSignal ? undefined : root.signal,
+      fetcher: next => {
+        signal = next.signal;
+        if (headersReceived) return Promise.resolve(response());
+        entered(); return pending;
+      } });
+    await admission.reserveReads(1);
+    const rejected = assert.rejects(readJson(request(readMethod, useRequestSignal ? root.signal : undefined),
+      admission.fetcher, undefined, useRequestSignal ? {} : { signal: root.signal }), /upstream_unavailable/);
+    await started;
+    for (let n = 0; n < 8; n++) {
+      await new Promise(resolve => setImmediate(resolve));
+      globalThis.gc();
+    }
+    root.abort();
+    await rejected;
+    assert.equal(signal.aborted, true, 'innermost admitted request must abort after GC');
+    if (!headersReceived) finish(response());
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(cancelled, true, 'admitted late/stalled response body must cancel');
+  }
 });

@@ -50,7 +50,7 @@ const SNAPSHOT=`SELECT CASE WHEN c.binding_id IS NULL THEN NULL ELSE json_object
  'bindingRevision',c.binding_revision,'titleRevision',c.title_revision,'desiredTitle',c.desired_title,
  'firstPhotoBindingId',c.first_photo_binding_id,'flickrPhotosetId',c.flickr_photoset_id),
  'localLifecycle',CASE WHEN c.state='local_collection_removed_remote_preserved' THEN c.state ELSE 'active' END,
- 'unresolvedCreateAttemptId',(SELECT attempt_id FROM album_materialization_attempts WHERE binding_id=c.binding_id AND state='create_outcome_unknown' ORDER BY epoch DESC LIMIT 1),
+ 'unresolvedCreateAttemptId',(SELECT attempt_id FROM album_materialization_attempts WHERE binding_id=c.binding_id AND state='create_outcome_unknown' AND c.materialization_state='create_outcome_unknown' AND c.flickr_photoset_id IS NULL ORDER BY epoch DESC LIMIT 1),
  'attempt',json((SELECT json_object('state',t.state,'titleRevision',t.title_revision,'desiredTitle',t.desired_title,
  'dispatchCount',t.dispatch_count,'completed',t.completed_at_us,'remoteMissing',t.remote_missing,'satisfiedRevision',t.satisfied_title_revision)
  FROM album_title_attempts t WHERE t.binding_id=c.binding_id ORDER BY epoch DESC LIMIT 1)),
@@ -58,13 +58,14 @@ const SNAPSHOT=`SELECT CASE WHEN c.binding_id IS NULL THEN NULL ELSE json_object
  FROM album_title_attempts t WHERE t.binding_id=c.binding_id AND t.observed_at_us IS NOT NULL ORDER BY t.observed_at_us DESC,t.epoch DESC LIMIT 1)),
  'dispatch',json((SELECT json_object('revision',t.title_revision,'id',t.attempt_id,'open',t.completed_at_us IS NULL)
  FROM album_title_attempts t WHERE t.binding_id=c.binding_id AND t.dispatch_count=1 ORDER BY t.epoch DESC LIMIT 1)),
+ 'removalAcknowledgedAt',(SELECT archived_at_us FROM album_local_removal_receipts r WHERE r.binding_id=c.binding_id),
  'materializationState',c.materialization_state) END snapshot,
  CASE WHEN c.binding_id IS NULL THEN 'resource_not_found' ELSE NULL END error FROM context c`;
 function lifecycle(row:SnapshotRow|undefined|null):AlbumLifecycle {
  if(!row)fail('invalid_token'); if(row.error)fail(row.error);
  const data=JSON.parse(row.snapshot) as {binding:AlbumBinding;localLifecycle:AlbumLifecycle['localLifecycle'];unresolvedCreateAttemptId:string|null;
  attempt:{state:string;titleRevision:number;desiredTitle:string;dispatchCount:number;completed:number|null;remoteMissing:number;satisfiedRevision:number|null}|null;
- observation:{title:string;at:number}|null;dispatch:{revision:number;id:string;open:number}|null;materializationState:string};
+ observation:{title:string;at:number}|null;dispatch:{revision:number;id:string;open:number}|null;materializationState:string;removalAcknowledgedAt:number|null};
  const b=data.binding;
  if(!b||!UUID.test(b.fgaAlbumBindingId)||!UUID.test(b.fgaPublishServiceId)||!OPAQUE.test(b.localCollectionIdentifier)
  ||!OPAQUE.test(b.firstPhotoBindingId)||![b.bindingRevision,b.titleRevision,b.linkedFlickrRevision].every(revision)||!title(b.desiredTitle)
@@ -84,7 +85,9 @@ function lifecycle(row:SnapshotRow|undefined|null):AlbumLifecycle {
  else state='pending';
  return {schemaVersion:1,binding:b,localLifecycle:data.localLifecycle,title:{state,observedTitle:observation?.title??null,
  observedAt:observation?stamp(observation.at):null,dispatchTitleRevision:data.dispatch?.revision??null,dispatchAttemptId:data.dispatch?.id??null},
- unresolvedCreateAttemptId:data.unresolvedCreateAttemptId,repairHandoff:{destination:'none',fgaAlbumBindingId:b.fgaAlbumBindingId,createAttemptId:null,acknowledgedAt:null}};
+ unresolvedCreateAttemptId:data.unresolvedCreateAttemptId,repairHandoff:data.localLifecycle!=='active'&&data.unresolvedCreateAttemptId!==null
+ ?{destination:'administrative_album_create_repair',fgaAlbumBindingId:b.fgaAlbumBindingId,createAttemptId:data.unresolvedCreateAttemptId,acknowledgedAt:stamp(data.removalAcknowledgedAt)}
+ :{destination:'none',fgaAlbumBindingId:b.fgaAlbumBindingId,createAttemptId:null,acknowledgedAt:null}};
 }
 export async function readAlbumLifecycle(db:SqlStore,auth:AdmissionAuth,bindingId:string):Promise<AlbumLifecycle> {
  input(auth,bindingId);
@@ -244,3 +247,7 @@ export async function releaseAlbumTitle(db:SqlStore,c:AlbumTitleClaim,notBeforeU
 export async function missingAlbumTitle(db:SqlStore,c:AlbumTitleClaim):Promise<boolean>{
  return !!await update(db,c,`state='needs_attention',remote_missing=1,lease_expires_at_us=${NOW}`,`${LIVE} AND t.read_count>0`);
 }
+
+// Shared projection for lifecycle mutations: callers include this read in the
+// same owning D1 batch as the receipt rather than a later independent read.
+export { CONTEXT as ALBUM_LIFECYCLE_CONTEXT, SNAPSHOT as ALBUM_LIFECYCLE_SNAPSHOT, lifecycle as albumLifecycleFromRow };

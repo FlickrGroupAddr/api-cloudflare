@@ -137,6 +137,24 @@ for(const route of ROUTES){
   if(route.request)paths[route.pathPattern][method].requestBody.description="UTF-8 application/json, at most 4096 bytes; duplicate, unknown and null members and alternate framing are rejected.";
   if(route.handler==="album_title_intent")responses[201].headers.Location={description:"Exact relative URI of the newly accepted title-revision resource",schema:{type:"string",pattern:"^/api/v001/album-bindings/[0-9a-f-]{36}/title-intents/[1-9][0-9]*$"}};
  }
+ if(["album_local_removal","album_photo_local_removal"].includes(route.handler)){
+  const photo=route.handler==="album_photo_local_removal";
+  const codes={400:["invalid_request"],401:["invalid_token"],403:["insufficient_scope"],404:["resource_not_found"],
+   409:photo?["stale_binding_revision","stale_obligation_revision","revision_exhausted"]:["stale_binding_revision","removal_acknowledgement_required","removal_acknowledgement_conflict","revision_exhausted"],429:["rate_limited"],503:["service_unavailable"]};
+  for(const status of Object.keys(responses))if(Number(status)>=400&&Number(status)!==405&&!(status in codes))delete responses[status];
+  for(const [status,values] of Object.entries(codes)){
+   const schema=structuredClone(ALBUM_TITLE_ERROR_SCHEMA),properties=schema.properties.error.properties;
+   properties.code={enum:values};properties.retryable={const:["429","503"].includes(status)};
+   responses[status].content={"application/json":{schema}};
+  }
+  for(const response of Object.values(responses))response.headers["Cache-Control"]={schema:{type:"string",const:"private, no-store"}};
+  responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
+  responses[429].headers["Retry-After"]={schema:{type:"string",pattern:"^[1-9][0-9]*$"}};
+  for(const parameter of parameters)if(parameter.name==="bindingId")parameter.schema={type:"string",pattern:SERVICE_ID.source};
+  responses[201].headers.Location={description:"Exact relative PUT address of the immutable local-removal receipt",schema:{type:"string"}};
+  paths[route.pathPattern][method].description="Default-off accepted local-removal protocol. Current non-pending installation and owning service only; remote grant pause/revocation does not prevent safe local archive. One-way archive preserves immutable identities, history, accepted attachments and ambiguous create evidence. Exact receipt replay allocates nothing and returns current lifecycle; album acknowledgement conflicts refuse. This request performs no Flickr call, deletion, replacement, unarchive or new obligation admission.";
+  paths[route.pathPattern][method].requestBody.description="Closed UTF-8 application/json, at most 4096 bytes. Album acknowledgement is exactly the original unresolved attempt UUID or null; duplicates, unknown fields and alternate framing are rejected.";
+ }
  if(route.handler==="upload_authorization"){
   paths[route.pathPattern][method].description="Current installation credential only. Metadata-only direct-upload signing under current linked-account authority and both enabled Flickr write gates. The backend durably records the authorization association and sanitized audit before returning the exact signed metadata and fixed Flickr upload URL. The bearer envelope is kept in memory only, is not image-bound or guaranteed single-use, and has no backend-enforced Flickr expiry. No image or Flickr network request reaches this handler. Separately disabled pending hosted qualification.";
   responses[200].description="Durably recorded upload authorization with the exact signed metadata and fixed Flickr upload URL; sensitive bearer envelope must be used immediately and never persisted or logged.";

@@ -63,7 +63,9 @@ export function signedAlbumRest(method:AlbumRestMethod,parameters:Record<string,
  if(post)headers['Content-Type']='application/x-www-form-urlencoded';
  return new Request(url,{method:verb,headers,redirect:'manual',...(post?{body:new URLSearchParams(data).toString()}:{})});
 }
-export type FlickrFetch=(request:Request)=>Promise<Response>;
+/** A read may retain one innermost adapter clone through body consumption. */
+export interface FlickrFetchLifetime { retain(request: Request): void; }
+export type FlickrFetch=(request:Request,lifetime?:FlickrFetchLifetime)=>Promise<Response>;
 export interface FlickrJsonReadOptions {
  /** Defaults to 256 KiB; explicit Album reads may request at most 1 MiB. */
  maxBytes?: number;
@@ -76,6 +78,14 @@ export async function readJson(request:Request,fetcher:FlickrFetch,decoder?:(raw
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>1048576||options.onBytes!==undefined&&typeof options.onBytes!=='function')throw new FlickrReadError("upstream_unavailable");
  const controller=new AbortController();
  const signal=AbortSignal.any([request.signal,controller.signal,...(options.signal?[options.signal]:[])]);
+ // Request owns its abort follower's controller. Keep both requests alive until
+ // completion/cancellation; retaining only their signals can lose abort after GC.
+ const retainedRequests=new Set<Request>([request]);
+ let released=false;
+ const lifetime:FlickrFetchLifetime={retain(next){
+  if(released||signal.aborted||!(next instanceof Request)||retainedRequests.size>=3&&!retainedRequests.has(next))throw new FlickrReadError("upstream_unavailable");
+  retainedRequests.add(next);
+ }};
  let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
  let complete=false;
  const cancel=()=>{if(reader&&!complete)void reader.cancel().catch(()=>{});};
@@ -89,7 +99,8 @@ export async function readJson(request:Request,fetcher:FlickrFetch,decoder?:(raw
   if(signal.aborted)onAbort();
   return await Promise.race([aborted,(async()=>{
    current();
-   const response=await fetcher(new Request(request,{signal}));
+   const outgoing=new Request(request,{signal});retainedRequests.add(outgoing);
+   const response=await fetcher(outgoing,lifetime);
    // A fetcher may ignore abort; release a late response without reading it.
    if(signal.aborted){void response.body?.cancel().catch(()=>{});current();}
    if(!response.ok||!/^application\/json(?:;|$)/i.test(response.headers.get("Content-Type")??"")||!response.body){void response.body?.cancel().catch(()=>{});throw new FlickrReadError("upstream_unavailable");}
@@ -109,7 +120,7 @@ export async function readJson(request:Request,fetcher:FlickrFetch,decoder?:(raw
    } finally {cancel();reader.releaseLock();}
   })()]);
  }catch(error){if(error instanceof FlickrReadError)throw error;throw new FlickrReadError("upstream_unavailable");}
- finally {clearTimeout(timer);signal.removeEventListener('abort',onAbort);}
+ finally {clearTimeout(timer);signal.removeEventListener('abort',onAbort);released=true;retainedRequests.clear();}
 }
 export async function verifyPhoto(db:SqlStore,auth:AdmissionAuth,secrets:SecretReads,snapshot:GrantSnapshot,photoId:string,fetcher:FlickrFetch):Promise<void> {
  const result=await withGrant(db,auth,secrets,snapshot,(pair,app)=>readJson(signedRead("flickr.photos.getInfo",photoId,pair,app),fetcher));

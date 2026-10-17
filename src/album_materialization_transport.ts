@@ -140,9 +140,9 @@ export function createSyntheticAlbumMaterializationTransport(
     if ([...params].length !== Object.keys(expected).length || Object.entries(expected).some(([key, value]) => params.getAll(key).length !== 1 || params.get(key) !== value)) return invalid();
     return signed;
   }
-  const json = (req: Request, signal: AbortSignal) => readJson(req, next => {
+  const json = (req: Request, signal: AbortSignal) => readJson(req, (next, lifetime) => {
     if (signal.aborted || performance.now() >= invocationDeadline || performance.now() >= (operationDeadlines.get(signal) ?? 0)) return Promise.reject(new AlbumMaterializationTransportError());
-    return deps!.fetcher(new Request(next, { signal: AbortSignal.any([signal, next.signal]) }));
+    return deps!.fetcher(next, lifetime);
   }, strictFlickrJson, { signal });
   return {
     async contexts() {

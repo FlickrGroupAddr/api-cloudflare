@@ -1,3 +1,4 @@
+import {albumLocalRemovalRequest} from "./album_local_removal.ts";
 import {albumCreateRepairRequest,type AlbumCreateRepairDependencies} from "./album_create_repair.ts";
 import {albumTitleRequest} from "./album_title.ts";
 import {albumObligationRequest} from "./album_obligations.ts";
@@ -24,7 +25,7 @@ import { ROUTES } from "./registry.ts";
 export {ROUTES};
 import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
 import {duePartitions} from "./scheduling.ts";
-export interface Env extends IntakeEnv,AdminEnv { FGA_ALBUM_CREATE_REPAIR_ENABLED?:string; FGA_ALBUM_TITLE_ENABLED?:string; FGA_ALBUM_OBLIGATIONS_ENABLED?:string; FGA_ALBUM_BINDINGS_ENABLED?:string; FGA_UPLOAD_CANDIDATES_ENABLED?:string; FGA_PUBLISH_SERVICE_ENABLED?:string; ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; FGA_UPLOAD_PHOTO_BINDING_ENABLED?:string; FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED?:string; }
+export interface Env extends IntakeEnv,AdminEnv { FGA_ALBUM_CREATE_REPAIR_ENABLED?:string; FGA_ALBUM_TITLE_ENABLED?:string; FGA_ALBUM_LOCAL_REMOVAL_ENABLED?:string; FGA_ALBUM_OBLIGATIONS_ENABLED?:string; FGA_ALBUM_BINDINGS_ENABLED?:string; FGA_UPLOAD_CANDIDATES_ENABLED?:string; FGA_PUBLISH_SERVICE_ENABLED?:string; ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; FGA_UPLOAD_PHOTO_BINDING_ENABLED?:string; FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED?:string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -39,17 +40,20 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request),alb
     const providerFetch=budgetedFlickrFetch(env.DB,flickrFetch);
     const path = safePath(request.url);
     if (path === null) return errorResponse(400,"invalid_request","Invalid request target.");
-    if(/^\/api\/v001\/(?:admin\/)?album-bindings\//.test(path)&&path.includes("%")){const reply=errorResponse(400,"invalid_request","Invalid request target.");reply.headers.set("Cache-Control","private, no-store");return reply;}
+    const canonicalRemovalPhotoPath=/^\/api\/v001\/album-bindings\/[0-9a-f-]{36}\/photo-associations\/[^/]+\/local-removal$/.test(path)
+      && path.split("/")[6]===encodeURIComponent(decodeURIComponent(path.split("/")[6]!))
+      && /^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$/.test(decodeURIComponent(path.split("/")[6]!));
+    if(/^\/api\/v001\/(?:admin\/)?album-bindings\//.test(path)&&path.includes("%")&&!canonicalRemovalPhotoPath){const reply=errorResponse(400,"invalid_request","Invalid request target.");reply.headers.set("Cache-Control","private, no-store");return reply;}
     if(path==="/admin/login"||path==="/admin/google-login"||path==="/admin/flickr-oauth/callback")return createAdmin(providerFetch).fetch(request,env);
     const candidates=ROUTES.filter(route=>{
       const pattern=route.pathPattern.split("/").map(part=>part.startsWith("{")?"[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}":part).join("/");
-      const routePath=(route.handler==="photo_thumbnail"||route.handler==="album_binding_ensure"||route.handler==="album_binding_read"||route.handler==="album_photo_association")?decodeURIComponent(path):path;
+      const routePath=(route.handler==="photo_thumbnail"||route.handler==="album_binding_ensure"||route.handler==="album_binding_read"||route.handler==="album_photo_association"||route.handler==="album_photo_local_removal")?decodeURIComponent(path):path;
       return new RegExp("^"+pattern+"$").test(routePath);
     });
     const route=candidates.find(route=>route.method===request.method)??candidates[0];
     if (route) {
       const routeReply=(response:Response):Response=>{
-        if(["album_binding_status","album_photo_association_status","album_create_repair_candidates","album_create_repair_resolution","album_create_repair_admin","album_lifecycle_read","album_title_intent"].includes(route.handler)){response.headers.set("Cache-Control","private, no-store");if(response.status===503)response.headers.set("Retry-After","5");}
+        if(["album_binding_status","album_photo_association_status","album_create_repair_candidates","album_create_repair_resolution","album_create_repair_admin","album_lifecycle_read","album_title_intent","album_local_removal","album_photo_local_removal"].includes(route.handler)){response.headers.set("Cache-Control","private, no-store");if(response.status===503)response.headers.set("Retry-After","5");}
         if(route.handler==="upload_candidates")response.headers.set("Cache-Control","private, no-store");
         if((route.handler==="publish_service_create"||route.handler==="publish_service_read"||route.handler==="album_binding_ensure"||route.handler==="album_binding_read"||route.handler==="album_photo_association")&&response.status===503)response.headers.set("Retry-After","5");
         return response;
@@ -59,7 +63,8 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request),alb
       }
       if(route.handler==="admin"||route.handler==="plugin_code"||route.handler==="status_admin"||route.handler==="album_create_repair_admin")return routeReply(await createAdmin(providerFetch,albumRepairDependencies).fetch(request,env));
       const photosEnabled=env.FGA_READ_ENABLED==="1"&&env.FGA_EXISTING_PHOTOS_ENABLED==="1";
-      const enabled=["album_binding_status","album_photo_association_status","album_create_repair_candidates","album_create_repair_resolution"].includes(route.handler) ? env.FGA_ALBUM_CREATE_REPAIR_ENABLED==="1" :
+      const enabled=["album_local_removal","album_photo_local_removal"].includes(route.handler) ? env.FGA_ALBUM_LOCAL_REMOVAL_ENABLED==="1" :
+        ["album_binding_status","album_photo_association_status","album_create_repair_candidates","album_create_repair_resolution"].includes(route.handler) ? env.FGA_ALBUM_CREATE_REPAIR_ENABLED==="1" :
         (route.handler==="album_lifecycle_read"||route.handler==="album_title_intent") ? env.FGA_ALBUM_TITLE_ENABLED==="1" :
         route.handler==="album_photo_association" ? env.FGA_ALBUM_OBLIGATIONS_ENABLED==="1" :
         (route.handler==="album_binding_ensure"||route.handler==="album_binding_read") ? env.FGA_ALBUM_BINDINGS_ENABLED==="1" :
@@ -80,6 +85,8 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request),alb
         {kind:"installation",installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},request,path.split("/")[4]!,albumRepairDependencies));
       if(route.handler==="album_lifecycle_read"||route.handler==="album_title_intent")return routeReply(await albumTitleRequest(env,
         {installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},request,path.split("/")[4]!,route.handler==="album_title_intent"?path.split("/")[6]:undefined));
+      if(route.handler==="album_local_removal"||route.handler==="album_photo_local_removal")return routeReply(await albumLocalRemovalRequest(env,
+        {installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},request,path.split("/")[4]!,route.handler==="album_photo_local_removal"?decodeURIComponent(path.split("/")[6]!):undefined));
       if(route.handler==="current")return jsonCurrent(result);
       if(route.handler==="album_photo_association")return albumObligationRequest(env,
         {installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},

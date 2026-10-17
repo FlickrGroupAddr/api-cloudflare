@@ -102,9 +102,9 @@ export function createSyntheticAlbumCreateRepairReader(input: AlbumRepairReadIde
           || signed.method !== 'GET' || signed.redirect !== 'manual' || signed.body !== null
           || [...url.searchParams].length !== Object.keys(expected).length
           || Object.entries(expected).some(([key, value]) => url.searchParams.getAll(key).length !== 1 || url.searchParams.get(key) !== value)) return fail(kind);
-        return readJson(signed, request => {
+        return readJson(signed, (request, lifetime) => {
           if (abort.signal.aborted || performance.now() >= deadline) return Promise.reject(new AlbumRepairReadError(kind));
-          return deps!.fetcher(new Request(request, { signal: AbortSignal.any([abort.signal, request.signal]) }));
+          return deps!.fetcher(request, lifetime);
         }, raw => strictFlickrJson(raw, MiB), { maxBytes: MiB, signal: abort.signal, onBytes: count => {
           consumed += count; if (consumed > maxBytes) return fail(kind);
         } });

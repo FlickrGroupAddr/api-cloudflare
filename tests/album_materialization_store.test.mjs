@@ -2,6 +2,7 @@ import test from 'node:test';
 import { NOW_US_SQL } from '../src/installations.ts';
 import assert from 'node:assert/strict';
 import { materializationFixture, migrateMaterialization, through0021, retainedState, rows, databaseClock, AUTH } from './album_materialization_sqlite.mjs';
+import { putAlbumLocalRemoval } from '../src/album_local_removal_store.ts';
 import { putAlbumTitleIntent } from '../src/album_title_store.ts';
 
 const storage = () => import('../src/album_materialization_store.ts');
@@ -37,6 +38,7 @@ test('0022 preserves populated 0021 bindings, obligations and original event tim
   const f = await materializationFixture(t, through0021());
   await f.associate();
   const other = await f.ensure('third-photo', 'ArchivedAlbum');
+  // Historical 0021 schema predates local-removal receipts; retain its actual archival transition.
   f.db.raw.prepare("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1 WHERE binding_id=?")
     .run(other.binding.fgaAlbumBindingId);
   const bound = await f.ensure('later-photo', 'KnownAlbum');
@@ -253,7 +255,9 @@ test('changed title or malformed complete context evidence allocates no dispatch
 
 test('archived accepted first-photo obligations complete through the original marker and keep archived history', async t => {
   const f = await claimed(t);
-  f.db.raw.exec("UPDATE album_bindings SET state='local_collection_removed_remote_preserved',binding_revision=binding_revision+1");
+  await putAlbumLocalRemoval(f.db, AUTH, f.bindingId, {
+    schemaVersion: 1, expectedBindingRevision: binding(f).binding_revision, acknowledgedCreateAttemptId: null,
+  });
   const archived = rows(f.db, 'album_obligation_events');
   const claim = await f.api.markAlbumCreateDispatch(f.db, f.claim, []); assert(claim);
   assert.equal(await f.api.recordAlbumCreateResult(f.db, claim, result()), true);
