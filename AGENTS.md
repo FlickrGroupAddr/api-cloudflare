@@ -153,6 +153,20 @@ credentials and private data out of commits. This does not authorize
 force-pushing, changing repository visibility, or publishing packages or
 releases.
 
+## Ticket lane semantics
+
+Terry reaffirmed the lane meanings on 2026-10-17:
+
+- **Ready for Work** includes sufficiently scoped, authorized cards that depend
+  on another card. Retain the dependency relationship; this lane does not imply
+  its prerequisite is resolved.
+- **Blocked** is reserved for an external obstacle that neither Terry nor Bot
+  can advance, such as waiting for new hardware to arrive. An ordinary ticket
+  dependency is not a reason to use this lane.
+- **Needs Terry** identifies the card whose next meaningful step needs Terry's
+  input or judgment. A dependent implementation card stays Ready for Work while
+  that separate owner-decision card is Needs Terry.
+
 ## Ticket priority default
 
 Terry clarified on 2026-10-16 that **P3 (Normal)** is the default for FGA tickets,

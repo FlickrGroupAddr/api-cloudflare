@@ -2,7 +2,8 @@
 
 Terry resumed the eight tickets staged at the previous stopping point. Seven
 deliverables reached independent review handoff. The dormant upload store has
-corrected code and remains blocked on the existing #0092 vocabulary decision;
+corrected code and remains Ready for Work, dependent on the existing #0092
+vocabulary decision;
 this is not a full #0095 contract-completion or production qualification claim.
 
 ## Delivered work
@@ -54,8 +55,9 @@ repair wire, finite budgets and narrow administrative repair allowlist. Existing
 server-side session and CSRF policy remain controlling. It accepts no new
 authentication ceremony and grants no deployment/live authority.
 
-#0092 must accept or return that exact proposal. Link #0092 as blocking #0095;
-do not request a duplicate owner decision or treat proposal review as acceptance.
+#0092 must accept or return that exact proposal. Keep the #0092-blocks-#0095 relationship and #0095 in Ready for Work.
+The Blocked lane is reserved for external obstacles neither Terry nor Bot can
+advance. Do not request a duplicate owner decision or treat proposal review as acceptance.
 Until then, #0095 retains pending local work and refuses invented hosted-state
 acknowledgements. Existing accepted membership states remain representable.
 Compaction immediately after an unmaterialized obligation admission is not

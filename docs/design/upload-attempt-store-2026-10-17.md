@@ -202,8 +202,9 @@ and allows legitimate hosted revision advances. Numeric checks precede lossy
 JSON decoding. Final verification passed 39 actual Lua tests, independent scope/
 retirement probes, 10,005 exact-decimal comparisons and SDK15.3 parsing.
 
-No material code finding remains. Full #0095 completion is still blocked by the
-existing #0092 initial-obligation vocabulary decision. The reviewed canonical
+No material code finding remains. Full #0095 completion still depends on the
+existing #0092 initial-obligation vocabulary decision. #0095 stays Ready for Work
+with that explicit relationship; it does not belong in the Blocked lane. The reviewed canonical
 proposal is architecture commit `403e603`,
 `docs/proposals/album-status-create-repair-wire-2026-10-17.md`. After acceptance,
 add only the accepted initial states with focused acknowledgement/retirement
