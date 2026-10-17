@@ -1,0 +1,36 @@
+{
+  "deployable": false,
+  "maximumClientRequestsPerScenario": 32,
+  "maximumDiagnosticSeconds": 30,
+  "maximumFreshResourcePairs": 4,
+  "maximumPhaseSeconds": 60,
+  "maximumRequests": 64,
+  "maximumRequestsScope": "offline_diagnostic_only",
+  "maximumRunSeconds": 1800,
+  "maximumSyntheticPostsPerPhase": 1,
+  "maximumSyntheticProviderCallsPerPhase": 16,
+  "mode": "offline_preparation_only",
+  "network": "forbidden",
+  "phases": [
+    "seed",
+    "http",
+    "materialize",
+    "attach",
+    "title",
+    "remove",
+    "finish"
+  ],
+  "productionCapabilitiesEnabled": false,
+  "qualificationEntrypoint": "probes/publisher-qualification/worker.ts",
+  "resourceReuseAcrossScenarios": false,
+  "resources": [],
+  "scenarios": [
+    "happy",
+    "create_lost",
+    "attachment_lost",
+    "title_lost"
+  ],
+  "schemaVersion": 1,
+  "status": "NO-GO",
+  "syntheticOnly": true
+}

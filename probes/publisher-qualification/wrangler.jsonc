@@ -1,0 +1,31 @@
+{
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "REPLACE_WITH_DISPOSABLE_PUBLISHER_DATABASE",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "main": "worker.ts",
+  "name": "fga-publisher-qualification-disposable",
+  "observability": {
+    "enabled": false
+  },
+  "preview_urls": false,
+  "vars": {
+    "PROBE_ACCESS_TOKEN": "",
+    "PROBE_ARTIFACT_SHA2_256": "",
+    "PROBE_ENABLED": "0",
+    "PROBE_EXPIRES_AT": "",
+    "PROBE_RESOURCE_ID": "00000000-0000-0000-0000-000000000000",
+    "PROBE_RUN_ID": "",
+    "PROBE_SCENARIO": "happy",
+    "PROBE_SCOPE": "publisher-disposable-v1"
+  },
+  "workers_dev": false
+}
