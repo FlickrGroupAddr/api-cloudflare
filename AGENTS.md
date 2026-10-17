@@ -362,3 +362,36 @@ Use spaces around `/`. Render API effort `low` as `Light` and `xhigh` as
 presentation rule and its examples do not authorize additional models or
 effort levels, change per-turn Astra approval, or remove the requirement to
 pass full explicit model and reasoning-effort identifiers in every spawn call.
+
+## Subagent sidebar names
+
+Terry revised subagent naming on 2026-10-17 because the sidebar normalizes case
+and removes punctuation. Use a plain-word model/effort prefix:
+`[version, only if not latest for the family] [luna|sol|astra] [light|medium|high]`.
+For ticket work, follow the prefix with the four-digit, zero-padded ticket number and a short task
+description. Examples: `Sol Medium 0039 Implement`, `Sol High 0065 Review`,
+`Luna Light 0144 Check`, and `5.6 Sol Medium 0124 Docs`. For non-ticket work,
+use a clear scope label instead of inventing a ticket number.
+
+Omit the version for the latest release of its family. At this update,
+`Sol Medium` and `Sol High` mean GPT-6.1 Sol; `Luna Light` means GPT-6 Luna.
+Render API effort `low` as `Light`. Reassess the latest-family mapping when
+releases change. This naming rule does not authorize new models or efforts;
+Astra Medium still requires Terry's explicit approval for each turn.
+
+When the spawn tool requires lowercase letters, digits and underscores, use
+`sol_medium_0039_implement`, `sol_high_0065_review`, `luna_light_0144_check`, or
+`5_6_sol_medium_0124_docs`. Underscores are tool separators, not a meaningful
+part of the display. Accept app-controlled capitalization rather than relying
+on punctuation or uppercase initials. Existing agents can be renamed only
+through a supported rename capability; do not claim they changed otherwise.
+
+Keep full explicit model and reasoning-effort spawn arguments. In delegation
+updates, the plain-word name already identifies the model/effort; do not add a
+redundant second pair. Reused agents must keep names matching their actual
+configuration. This supersedes the 2026-10-16 compact letter tags for new names,
+while preserving ticket-before-description order and concurrency limits.
+
+Terry confirmed the actual sidebar rendering on 2026-10-17: `sol_high_0105_review`
+appears as `Sol high 0105 review`, preserving the four-digit ticket. Full words
+remain legible after punctuation/case normalization; compact letter tags do not.

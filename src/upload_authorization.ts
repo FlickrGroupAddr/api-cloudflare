@@ -148,9 +148,9 @@ export async function uploadAuthorizationRequest(env: UploadAuthorizationEnv, au
     const authorizationId = crypto.randomUUID(), tx = crypto.randomUUID();
     const committed = await db.batch([
       guard(db, auth, authority, tx),
-      db.prepare(`INSERT INTO upload_authorizations(authorization_id,installation_id,user_id,issued_at_us,photo_id)
-        SELECT ?,?,?,now_us,NULL FROM transaction_guards WHERE transaction_id=?`)
-        .bind(authorizationId, auth.installationId, credential.userId, tx),
+      db.prepare(`INSERT INTO upload_authorizations(authorization_id,installation_id,user_id,issued_at_us,photo_id,owner_nsid,link_revision)
+        SELECT ?,?,?,now_us,NULL,?,CAST(? AS INTEGER) FROM transaction_guards WHERE transaction_id=?`)
+        .bind(authorizationId, auth.installationId, credential.userId, grant.ownerNsid, grant.revision, tx),
       db.prepare(`INSERT INTO audit_events(event_id,user_id,action,request_correlation_id,outcome,reason,target_id)
         VALUES(?,?,'upload_authorization.issued',?,'succeeded','current_grant_and_gates_verified',?)`)
         .bind(crypto.randomUUID(), credential.userId, tx, authorizationId),

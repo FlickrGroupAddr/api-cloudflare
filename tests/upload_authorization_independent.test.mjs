@@ -62,9 +62,9 @@ test("actual upload envelope independently verifies RFC5849 HMAC over exact Unic
  const tampered=structuredClone(body);tampered.flickrMetadata.title+="!";
  assert.notEqual(oauth.oauth_signature,independentSignature(tampered));
  const row=f.db.raw.prepare("SELECT * FROM upload_authorizations").get();
- assert.deepEqual(Object.keys(row).sort(),["authorization_id","installation_id","user_id","issued_at_us","photo_id"].sort());
+ assert.deepEqual(Object.keys(row).sort(),["authorization_id","installation_id","user_id","issued_at_us","photo_id","owner_nsid","link_revision"].sort());
  assert.equal(row.authorization_id,body.fgaUploadAuthorizationId);assert.equal(row.installation_id,"install");
- assert.equal(row.user_id,"owner");assert.equal(row.photo_id,null);
+ assert.equal(row.user_id,"owner");assert.equal(row.photo_id,null);assert.equal(row.owner_nsid,"owner-nsid");assert.equal(row.link_revision,1);
  const persisted=f.db.raw.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'").all()
   .map(({name})=>JSON.stringify(f.db.raw.prepare('SELECT * FROM "'+name+'"').all())).join("\n");
  for(const secret of [APP.consumerSecret,GRANT.tokenSecret,body.authorizationHeader,body.uploadUrl,metadata().title,metadata().description])assert(!persisted.includes(secret));

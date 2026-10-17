@@ -3,6 +3,267 @@
   "scope": "installation-read-and-photo-admission",
   "routes": [
     {
+      "id": "uploadAmbiguityCandidates",
+      "method": "GET",
+      "pathPattern": "/api/v001/upload-authorizations/{uploadAuthorizationId}/ambiguity-candidates",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "upload_candidates",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "fgaUploadAuthorizationId",
+          "linkedFlickrRevision",
+          "observedAt",
+          "minUploadDate",
+          "maxUploadDate",
+          "page",
+          "pageSize",
+          "pages",
+          "total",
+          "photos"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "fgaUploadAuthorizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          },
+          "linkedFlickrRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "\\.[0-9]{6}Z$"
+          },
+          "minUploadDate": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})$"
+          },
+          "maxUploadDate": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,11})$"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "photos": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "flickrPhotoId",
+                "title",
+                "dateUploaded",
+                "thumbnail",
+                "photopageUrl"
+              ],
+              "properties": {
+                "flickrPhotoId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 4096
+                },
+                "dateUploaded": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]{0,11})$"
+                },
+                "thumbnail": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "url",
+                    "sizeClass"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri",
+                      "maxLength": 2048
+                    },
+                    "sizeClass": {
+                      "const": "q"
+                    }
+                  }
+                },
+                "photopageUrl": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ],
+      "request": null
+    },
+    {
+      "id": "publish_service_create",
+      "method": "POST",
+      "pathPattern": "/api/v001/publish-services",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "publish_service_create",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "fgaPublishServiceId",
+          "issuingInstallationId",
+          "linkedFlickrRevision",
+          "serviceRevision",
+          "linkStatus"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "fgaPublishServiceId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "issuingInstallationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          },
+          "linkedFlickrRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "serviceRevision": {
+            "const": 1
+          },
+          "linkStatus": {
+            "enum": [
+              "ready",
+              "link_changed",
+              "link_unavailable"
+            ]
+          }
+        }
+      },
+      "successStatuses": [
+        201
+      ]
+    },
+    {
+      "id": "publish_service_read",
+      "method": "GET",
+      "pathPattern": "/api/v001/publish-services/{fgaPublishServiceId}",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "publish_service_read",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "fgaPublishServiceId",
+          "issuingInstallationId",
+          "linkedFlickrRevision",
+          "serviceRevision",
+          "linkStatus"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "fgaPublishServiceId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "issuingInstallationId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          },
+          "linkedFlickrRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "serviceRevision": {
+            "const": 1
+          },
+          "linkStatus": {
+            "enum": [
+              "ready",
+              "link_changed",
+              "link_unavailable"
+            ]
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
       "id": "groups",
       "method": "GET",
       "pathPattern": "/api/v001/groups",

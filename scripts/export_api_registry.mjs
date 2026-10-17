@@ -1,3 +1,4 @@
+import { SERVICE_ID } from "../src/publish_services.ts";
 // Node imports the executable TypeScript registry; Python owns artifact writing/checking.
 import { ROUTES, GUARDS, ERROR_SCHEMA } from "../src/registry.ts";
 import { GROUP_PENDING_SCHEMA } from "../src/group_registry.ts";
@@ -30,6 +31,11 @@ for(const route of ROUTES){
   responses[200].headers["Cache-Control"]={schema:{type:"string",const:"private, no-store"}};
   responses[200].content={"image/jpeg":{schema:route.response},"image/png":{schema:route.response}};
  }
+ if(route.handler==="upload_candidates"){
+  for(const response of Object.values(responses))response.headers["Cache-Control"]={schema:{type:"string",const:"private, no-store"}};
+  parameters.push({name:"page",in:"query",required:true,schema:{type:"integer",minimum:1,maximum:1000}},
+    {name:"page_size",in:"query",required:true,schema:{type:"integer",minimum:1,maximum:100}});
+ }
  if(route.handler==="groups"){
   responses[200].description="One complete snapshot keyset page with explicit freshness state.";
   responses[202].description="First snapshot is refreshing; no group data is available yet.";
@@ -55,6 +61,27 @@ for(const route of ROUTES){
   responses[201].headers.Location={description:"Relative URI of this authorization's ambiguity-resolution resource",schema:{type:"string"}};
   responses[503].description="Missing or unavailable provider proof is retryable; no association or provenance is committed.";
   responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
+ }
+ if(route.handler==="upload_candidates"){
+  paths[route.pathPattern][method].description="Disabled advisory candidate read. Current installation and original authorization link snapshot only. One complete bounded owner-photo page inside the retained authorization time window; rows do not establish upload success, byte identity or binding. No automatic selection, binding, upload, album or group mutation.";
+ }
+ if(route.handler==="publish_service_create"||route.handler==="publish_service_read"){
+  const codes={400:["invalid_request",false],401:["invalid_token",false],403:["insufficient_scope",false],
+    404:["publish_service_not_found",false],409:["flickr_link_unavailable",false],429:["rate_limited",true],503:["service_unavailable",true]};
+  for(const status of Object.keys(responses))if(Number(status)>=400&&Number(status)!==405&&!(status in codes))delete responses[status];
+  for(const [status,[code,retryable]] of Object.entries(codes)){
+    const schema=structuredClone(ERROR_SCHEMA), properties=schema.properties.error.properties;
+    properties.code={enum:[code]};properties.retryable={const:retryable};
+    properties.message={type:"string",minLength:1,maxLength:256};
+    properties.correlationId={type:"string",pattern:SERVICE_ID.source};
+    responses[status].content["application/json"].schema=schema;
+  }
+  responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
+  responses[429].headers["Retry-After"]={schema:{type:"string",pattern:"^[1-9][0-9]*$"}};
+  for(const parameter of parameters)if(parameter.name==="fgaPublishServiceId")parameter.schema={type:"string",pattern:SERVICE_ID.source};
+
+  paths[route.pathPattern][method].description="Disabled publish-service identity protocol. Current installation only. Create issues a fresh server UUID under current linked-owner authority; every create is distinct and lost responses may leave safe unused orphans. Read returns the owned identity and current link status. The client must durably save and freshly verify the exact identity before use. No Flickr request or Album provisioning.";
+  if(route.handler==="publish_service_create")responses[201].headers.Location={description:"Relative URI of the issued publish-service resource",schema:{type:"string"}};
  }
  if(route.handler==="upload_authorization"){
   paths[route.pathPattern][method].description="Current installation credential only. Metadata-only direct-upload signing under current linked-account authority and both enabled Flickr write gates. The backend durably records the authorization association and sanitized audit before returning the exact signed metadata and fixed Flickr upload URL. The bearer envelope is kept in memory only, is not image-bound or guaranteed single-use, and has no backend-enforced Flickr expiry. No image or Flickr network request reaches this handler. Separately disabled pending hosted qualification.";

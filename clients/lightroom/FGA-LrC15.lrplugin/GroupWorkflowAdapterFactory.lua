@@ -9,11 +9,8 @@ local MAX = 9007199254740991
 local function integer(v,minimum)
     return type(v)=="number" and v>=minimum and v<=MAX and v==math.floor(v)
 end
-local function decode(bytes)
-    local value,position,err=json.decode(bytes,1,json.null)
-    if err or type(position)~="number" or bytes:sub(position):find("%S") then return nil end
-    return value
-end
+-- Shared strict JSON policy does not enable any transport capability.
+local decode=(require "SharedReadTransport").decode
 local function unavailable() return nil,"qualification_required" end
 
 -- Only start() owns a POST-capable documented SDK task context.
