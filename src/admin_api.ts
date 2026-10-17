@@ -1,12 +1,14 @@
+import {albumCreateRepairRequest,albumCreateRepairFailure,type AlbumCreateRepairDependencies} from "./album_create_repair.ts";
 import {readSubmissionStatus,statusFailure} from "./submission_status.ts";
 import {PluginCodeError,createPluginCode,getPluginCode,listPluginCodes,changePluginCode,pluginCodeEtag} from "./plugin_codes.ts";
 import {sessionInventory,revokeSession,revokeOtherSessions} from "./session_inventory.ts";
 import {startFlickrOAuth,completeFlickrOAuth,retireOAuthSlot,observeOAuthRetirement,type OAuthSlots,FlickrOAuthError} from "./flickr_oauth.ts";
 import {Hono,type Context} from "hono";
 import {html} from "hono/html";
-import {parse} from "cookie-es";
+import {parse,serialize} from "cookie-es";
+import {SERVICE_ID} from "./publish_services.ts";
 import {timingSafeEqual} from "node:crypto";
-import {authenticateBrowser,enforceUnsafe,startLogin,finishLogin,logoutBrowser,digest,ADMIN_ORIGIN,BrowserAuthError} from "./browser_sessions.ts";
+import {authenticateBrowser,enforceUnsafe,startLogin,finishLogin,logoutBrowser,digest,ADMIN_ORIGIN,BrowserAuthError,type AdminSession} from "./browser_sessions.ts";
 import {admitAuthentication,finishAuthentication,sourceKey,AuthAdmissionError} from "./auth_admission.ts";
 import {validateGoogleIdentity,ownerDiscoverySubject} from "./google_identity.ts";
 import {connectionView,resumeWriteGate,beginLifecycle,dispatchLifecycle,reconcileLifecycle,LifecycleError} from "./native_lifecycle.ts";
@@ -14,7 +16,7 @@ import {nativeWriter} from "./native_writer.ts";
 import {NOW_US_SQL as NOW,errorResponse} from "./installations.ts";
 import {jsonBody} from "./intake_api.ts";
 import type {FlickrFetch,SecretReads} from "./flickr_reads.ts";
-export interface AdminEnv extends SecretReads {ASSETS?:Fetcher;DB:D1Database;FGA_ADMIN_ENABLED?:string;FGA_ARTIFACT_SHA2_256?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_OWNER_SUB?:string;GOOGLE_OWNER_DISCOVERY_EMAIL?:string;GOOGLE_OWNER_DISCOVERY_UNTIL?:string;FGA_FLICKR_OWNER_NSID?:string;AUTH_LIMITER_KEY?:Pick<SecretsStoreSecret,"get">;NATIVE_WRITER_TOKEN?:Pick<SecretsStoreSecret,"get">;CF_ACCOUNT_ID?:string;CF_SECRET_STORE_ID?:string;CF_GRANT_SLOT_ID?:string;CF_OAUTH_SLOT_IDS?:string;FLICKR_TEMP_0?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_1?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_2?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_3?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_4?:Pick<SecretsStoreSecret,"get">;}
+export interface AdminEnv extends SecretReads {FGA_ALBUM_CREATE_REPAIR_ENABLED?:string;ASSETS?:Fetcher;DB:D1Database;FGA_ADMIN_ENABLED?:string;FGA_ARTIFACT_SHA2_256?:string;GOOGLE_CLIENT_ID?:string;GOOGLE_OWNER_SUB?:string;GOOGLE_OWNER_DISCOVERY_EMAIL?:string;GOOGLE_OWNER_DISCOVERY_UNTIL?:string;FGA_FLICKR_OWNER_NSID?:string;AUTH_LIMITER_KEY?:Pick<SecretsStoreSecret,"get">;NATIVE_WRITER_TOKEN?:Pick<SecretsStoreSecret,"get">;CF_ACCOUNT_ID?:string;CF_SECRET_STORE_ID?:string;CF_GRANT_SLOT_ID?:string;CF_OAUTH_SLOT_IDS?:string;FLICKR_TEMP_0?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_1?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_2?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_3?:Pick<SecretsStoreSecret,"get">;FLICKR_TEMP_4?:Pick<SecretsStoreSecret,"get">;}
 export const ADMIN_PATHS=["/admin/login","/admin/google-login","/admin/flickr-oauth/callback","/api/v001/admin/session","/api/v001/admin/session/reauthentication","/api/v001/admin/session/logout","/api/v001/admin/flickr-connection","/api/v001/admin/flickr-connection/disconnection"] as const;
 const timestamp=(us:number)=>new Date(us/1000).toISOString().replace("Z","000Z");
 type CompletionTarget="/admin/"|"/admin/?flickr=linked"|"/admin/?flickr=unconfirmed";
@@ -23,7 +25,7 @@ function browserCompletion(c:Context<{Bindings:AdminEnv}>,target:CompletionTarge
  c.header("Content-Security-Policy","default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
  return c.html(html`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><link rel="stylesheet" href="/admin/styles.css"><main class="login-page"><section class="login-card"><h1>${title}</h1><p>You will continue to administration automatically.</p><a data-auth-continue href="${target}">Continue to administration</a></section></main><script src="/admin/login-complete.mjs" defer></script></html>`);
 }
-export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
+export function createAdmin(fetcher:FlickrFetch=request=>fetch(request),albumRepairDependencies?:AlbumCreateRepairDependencies){
  const app=new Hono<{Bindings:AdminEnv}>();
  app.use("*",async(c,next)=>{
   c.header("Cache-Control","no-store");c.header("X-Content-Type-Options","nosniff");c.header("Referrer-Policy","no-referrer");
@@ -136,6 +138,41 @@ export function createAdmin(fetcher:FlickrFetch=request=>fetch(request)){
   try{return c.json(await readSubmissionStatus(c.env.DB,{family:"admin",userId:session.userId,subjectId:session.sessionId,proof:c.env.GOOGLE_OWNER_SUB!},new URL(c.req.url),c.req.param("submissionIntentId")) as object);}
   catch(error){return statusFailure(error);}
  });
+ const repairPaths=["/api/v001/admin/album-create-repairs","/api/v001/admin/album-bindings/:bindingId/status","/api/v001/admin/album-bindings/:bindingId/photo-association-status","/api/v001/admin/album-bindings/:bindingId/create-repair-candidates"] as const;
+ const repairRequest=async(c:Context<{Bindings:AdminEnv}>)=>{
+  if(c.env.FGA_ALBUM_CREATE_REPAIR_ENABLED!=="1")return albumCreateRepairFailure("service_unavailable");
+  let session:AdminSession|undefined;
+  const complete=async(response:Response):Promise<Response>=>{
+   if(session&&response.status>=400){
+    try{
+     const body=await response.clone().json() as {error:{code:string;correlationId:string}};
+     const reason=body.error.code; // Produced only by the closed album repair error mapper.
+     const bindingId=c.req.param("bindingId");
+     const audited=await c.env.DB.prepare("INSERT INTO audit_events(event_id,user_id,action,request_correlation_id,session_correlation_id,outcome,reason,target_id) SELECT ?,s.user_id,'album_create_repair.request_failed',?,s.correlation_id,'failed',?,? FROM admin_sessions s WHERE s.session_id=? AND s.user_id=? RETURNING event_id")
+      .bind(crypto.randomUUID(),body.error.correlationId,reason,bindingId&&SERVICE_ID.test(bindingId)?bindingId:null,session.sessionId,session.userId).first();
+     if(!audited)throw new Error("failure_audit_unavailable");
+    }catch{
+     console.warn("album_repair_failure_audit_unavailable");
+     response=albumCreateRepairFailure("service_unavailable");
+    }
+   }
+   // CSRF is held only in browser memory. An exact-origin unauthorized response
+   // expires the sole session cookie; it neither revokes nor repairs any row.
+   if(response.status===401&&c.req.header("Origin")===ADMIN_ORIGIN)response.headers.append("Set-Cookie",serialize("__Host-fga_admin","",{path:"/",secure:true,httpOnly:true,sameSite:"strict",maxAge:0}));
+   return response;
+  };
+  try{
+   session=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);
+   if(c.req.method==="PUT")enforceUnsafe(c.req.raw,session);
+   const token=parse(c.req.header("Cookie")??"")["__Host-fga_admin"];
+   if(!token)return complete(albumCreateRepairFailure("unauthorized"));
+   return complete(await albumCreateRepairRequest(c.env,{kind:"admin",sessionId:session.sessionId,tokenDigest:digest(token),ownerSub:c.env.GOOGLE_OWNER_SUB!},c.req.raw,c.req.param("bindingId"),albumRepairDependencies));
+  }catch(error){
+   return complete(albumCreateRepairFailure(error instanceof BrowserAuthError?(error.message==="invalid_origin"||error.message==="invalid_csrf"?"forbidden":"unauthorized"):"service_unavailable"));
+  }
+ };
+ for(const path of repairPaths)app.get(path,repairRequest);
+ app.put("/api/v001/admin/album-bindings/:bindingId/create-repair-resolution",repairRequest);
  app.get("/api/v001/admin/session",async c=>{const s=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);return c.json({schemaVersion:1,sessionId:s.sessionId,revision:s.revision,sessionSetRevision:s.sessionSetRevision,createdAt:timestamp(s.createdAtUs),recentAuthenticationAt:timestamp(s.recentAtUs),lastActivityAt:timestamp(s.lastActivityUs),expiresAt:timestamp(s.expiresAtUs),csrfToken:s.csrfToken});});
  app.post("/api/v001/admin/session/reauthentication",async c=>{const s=await authenticateBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);enforceUnsafe(c.req.raw,s);await admission(c.req.raw,c.env,"start");return c.json({schemaVersion:1,...await startLogin(c.env.DB,s)},201);});
  app.post("/api/v001/admin/session/logout",async c=>{const cookie=await logoutBrowser(c.req.raw,c.env.DB,c.env.GOOGLE_OWNER_SUB!);c.header("Set-Cookie",cookie);return c.body(null,204);});

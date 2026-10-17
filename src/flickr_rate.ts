@@ -88,26 +88,60 @@ export async function reserveFlickrAttempt(
   };
 }
 
+/** Capacity is charged once, never refunded, and is not request authority. */
+export interface FlickrCapacityReservation {
+  readonly windowId: string;
+  readonly expiresAtUs: number;
+  check(): Promise<boolean>;
+  /** Conservative monotonic expiry established by the last database check. */
+  unexpired(): boolean;
+}
+export async function reserveFlickrCapacity(
+  db: SqlStore, slots = 1, policy: FlickrRatePolicy = DEFAULT_FLICKR_RATE_POLICY,
+): Promise<FlickrCapacityReservation> {
+  const { capacity, windowMs } = policy;
+  if (!Number.isSafeInteger(capacity) || capacity < 3 || capacity > 3600 ||
+      !Number.isSafeInteger(windowMs) || windowMs < 1000 || windowMs > 3_600_000 ||
+      !Number.isSafeInteger(slots) || slots < 1 || slots > capacity)
+    throw new Error("invalid_flickr_rate_policy");
+  const id = crypto.randomUUID(), window = crypto.randomUUID();
+  let allocation: { window_id: string; expires_at_us: number };
+  try {
+    const result = await db.batch([
+      db.prepare(`INSERT INTO flickr_rate_window(singleton,window_id,capacity,window_ms,expires_at_us)
+        VALUES(1,?,?,?,${NOW_US_SQL}+?*1000) ON CONFLICT(singleton) DO UPDATE SET
+        window_id=excluded.window_id,capacity=excluded.capacity,window_ms=excluded.window_ms,
+        expires_at_us=excluded.expires_at_us,reserved_slots=0
+        WHERE flickr_rate_window.expires_at_us<=${NOW_US_SQL}`).bind(window,capacity,windowMs,windowMs),
+      db.prepare(`INSERT INTO transaction_guards(transaction_id,approved) VALUES(?,
+        EXISTS(SELECT 1 FROM flickr_rate_window WHERE singleton=1 AND capacity=? AND window_ms=?
+          AND reserved_slots+?<=capacity AND expires_at_us>${NOW_US_SQL}))`).bind(id,capacity,windowMs,slots),
+      db.prepare("UPDATE flickr_rate_window SET reserved_slots=reserved_slots+? WHERE singleton=1 RETURNING window_id,expires_at_us").bind(slots),
+      db.prepare("DELETE FROM transaction_guards WHERE transaction_id=?").bind(id),
+    ]);
+    if (result[2]?.results.length !== 1) throw new Error("missing_flickr_allocation");
+    allocation = result[2].results[0] as unknown as typeof allocation;
+    if (typeof allocation.window_id !== "string" || !Number.isSafeInteger(allocation.expires_at_us)) throw new Error("invalid_flickr_allocation");
+  } catch { throw new Error("flickr_global_rate_unavailable"); }
+  const { window_id: windowId, expires_at_us: expiresAtUs } = allocation;
+  let validUntil = 0;
+  return Object.freeze({ windowId, expiresAtUs, unexpired: () => performance.now() < validUntil, async check() {
+    validUntil = 0;
+    const started = performance.now();
+    const row = await db.prepare(`SELECT expires_at_us-${NOW_US_SQL} remaining_us FROM flickr_rate_window WHERE singleton=1
+      AND window_id=? AND expires_at_us=? AND capacity=? AND window_ms=? AND expires_at_us>${NOW_US_SQL}`)
+      .bind(windowId,expiresAtUs,capacity,windowMs).first<{ remaining_us: number }>();
+    if (!row || !Number.isSafeInteger(row.remaining_us) || row.remaining_us <= 0) return false;
+    validUntil = started + row.remaining_us / 1000;
+    return performance.now() < validUntil;
+  } });
+}
+
 /** API/lifecycle calls share the dispatcher's key-wide budget, one operation at a time. */
 export function budgetedFlickrFetch(db:SqlStore,fetcher:(request:Request)=>Promise<Response>) {
   return async(request:Request):Promise<Response>=>{
     if(new URL(request.url).origin!=="https://www.flickr.com")return fetcher(request);
-    const {capacity,windowMs}=DEFAULT_FLICKR_RATE_POLICY;
-    const id=crypto.randomUUID(),window=crypto.randomUUID();
-    try {
-      await db.batch([
-        db.prepare(`INSERT INTO flickr_rate_window(singleton,window_id,capacity,window_ms,expires_at_us)
-          VALUES(1,?,?,?,${NOW_US_SQL}+?*1000) ON CONFLICT(singleton) DO UPDATE SET
-          window_id=excluded.window_id,capacity=excluded.capacity,window_ms=excluded.window_ms,
-          expires_at_us=excluded.expires_at_us,reserved_slots=0
-          WHERE flickr_rate_window.expires_at_us<=${NOW_US_SQL}`).bind(window,capacity,windowMs,windowMs),
-        db.prepare(`INSERT INTO transaction_guards(transaction_id,approved) VALUES(?,
-          EXISTS(SELECT 1 FROM flickr_rate_window WHERE singleton=1 AND capacity=? AND window_ms=?
-            AND reserved_slots+1<=capacity AND expires_at_us>${NOW_US_SQL}))`).bind(id,capacity,windowMs),
-        db.prepare("UPDATE flickr_rate_window SET reserved_slots=reserved_slots+1 WHERE singleton=1"),
-        db.prepare("DELETE FROM transaction_guards WHERE transaction_id=?").bind(id),
-      ]);
-    } catch {throw new Error("flickr_global_rate_unavailable");}
+    await reserveFlickrCapacity(db);
     // Once charged, an uncertain network outcome remains charged until window expiry.
     return fetcher(request);
   };

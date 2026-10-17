@@ -1,3 +1,5 @@
+import { ALBUM_CREATE_REPAIR_ROUTES } from "./album_create_repair.ts";
+import { ALBUM_TITLE_ROUTES } from "./album_title.ts";
 import { ALBUM_OBLIGATIONS_ROUTES } from "./album_obligations.ts";
 import { ALBUM_BINDINGS_ROUTES } from "./album_bindings.ts";
 import { UPLOAD_CANDIDATES_ROUTES } from "./upload_candidates.ts";
@@ -38,6 +40,8 @@ export const BATCH_RESPONSE_SCHEMA={type:"object",additionalProperties:false,req
 export const BINDING_REQUEST_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","flickrPhotoId","expectedLinkedFlickrRevision"],properties:{schemaVersion:{const:1},flickrPhotoId:ID_SCHEMA,expectedLinkedFlickrRevision:REV_SCHEMA}} as const;
 export const BINDING_RESPONSE_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","fgaPhotoBindingId","sourceKind","flickrPhotoId","linkedFlickrRevision","verificationRevision","verifiedAt"],properties:{schemaVersion:{const:1},fgaPhotoBindingId:ID_SCHEMA,sourceKind:{enum:["fga_direct_upload","existing_public_flickr_photo","photographer_reconciled_ambiguous_upload"]},flickrPhotoId:ID_SCHEMA,linkedFlickrRevision:REV_SCHEMA,verificationRevision:REV_SCHEMA,verifiedAt:TIMESTAMP_SCHEMA}} as const;
 export const ROUTES = [
+ ...ALBUM_CREATE_REPAIR_ROUTES,
+ ...ALBUM_TITLE_ROUTES,
  ...ALBUM_OBLIGATIONS_ROUTES,
  ...ALBUM_BINDINGS_ROUTES,
  ...UPLOAD_CANDIDATES_ROUTES,

@@ -3,6 +3,2304 @@
   "scope": "installation-read-and-photo-admission",
   "routes": [
     {
+      "id": "album_binding_status",
+      "method": "GET",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/status",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "album_binding_status",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "binding",
+          "localLifecycle",
+          "materialization",
+          "catalogRepair",
+          "membershipCounts"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "fgaAlbumBindingId",
+              "fgaPublishServiceId",
+              "localCollectionIdentifier",
+              "linkedFlickrRevision",
+              "bindingRevision",
+              "titleRevision",
+              "desiredTitle",
+              "firstPhotoBindingId",
+              "flickrPhotosetId"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPublishServiceId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "localCollectionIdentifier": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "linkedFlickrRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "bindingRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "titleRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "desiredTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "firstPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              }
+            }
+          },
+          "localLifecycle": {
+            "enum": [
+              "active",
+              "local_collection_removed_remote_preserved"
+            ]
+          },
+          "materialization": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "createAttemptId",
+              "repairSurface",
+              "resolvedPhotosetId",
+              "resolutionProvenance"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "materialization_pending",
+                  "create_rejected",
+                  "create_outcome_unknown",
+                  "materialized",
+                  "remote_album_missing_needs_attention",
+                  "album_identity_conflict"
+                ]
+              },
+              "createAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              },
+              "repairSurface": {
+                "enum": [
+                  "none",
+                  "plugin_or_admin",
+                  "admin_only"
+                ]
+              },
+              "resolvedPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "resolutionProvenance": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "const": "owner_reconciled_ambiguous_album_create"
+                  }
+                ]
+              }
+            }
+          },
+          "catalogRepair": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flickrPhotosetId",
+              "navigationUrl",
+              "identityVerifiedAt"
+            ],
+            "properties": {
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "navigationUrl": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  }
+                ]
+              },
+              "identityVerifiedAt": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                ]
+              }
+            }
+          },
+          "membershipCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "waitingForAlbum",
+              "attachmentPending",
+              "membershipVerified",
+              "reconciliationPending",
+              "needsAttention"
+            ],
+            "properties": {
+              "waitingForAlbum": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "attachmentPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipVerified": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reconciliationPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "needsAttention": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "album_photo_association_status",
+      "method": "GET",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/photo-association-status",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "album_photo_association_status",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "page",
+          "pageSize",
+          "pages",
+          "total",
+          "fgaAlbumBindingId",
+          "bindingRevision",
+          "obligations"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fgaAlbumBindingId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "bindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "obligations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "obligation",
+                "state",
+                "membershipObservedAt",
+                "localRelationship"
+              ],
+              "properties": {
+                "obligation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "fgaAlbumObligationId",
+                    "fgaAlbumBindingId",
+                    "fgaPhotoBindingId",
+                    "obligationRevision"
+                  ],
+                  "properties": {
+                    "fgaAlbumObligationId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    },
+                    "fgaAlbumBindingId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    },
+                    "fgaPhotoBindingId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                    },
+                    "obligationRevision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                "state": {
+                  "enum": [
+                    "waiting_for_album",
+                    "attachment_pending",
+                    "membership_verified",
+                    "membership_reconciliation_pending",
+                    "album_attachment_needs_attention"
+                  ]
+                },
+                "membershipObservedAt": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    }
+                  ]
+                },
+                "localRelationship": {
+                  "enum": [
+                    "active",
+                    "archived"
+                  ]
+                }
+              }
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "album_create_repair_candidates",
+      "method": "GET",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/create-repair-candidates",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "album_create_repair_candidates",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "page",
+          "pageSize",
+          "pages",
+          "total",
+          "fgaAlbumBindingId",
+          "bindingRevision",
+          "createAttemptId",
+          "observedAt",
+          "candidates"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fgaAlbumBindingId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "bindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "createAttemptId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "observedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "flickrPhotosetId",
+                "title",
+                "ownerNsid",
+                "primaryPhotoId",
+                "createdAt",
+                "updatedAt",
+                "navigationUrl",
+                "thumbnail"
+              ],
+              "properties": {
+                "flickrPhotosetId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 4096
+                },
+                "ownerNsid": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "primaryPhotoId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "createdAt": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    }
+                  ]
+                },
+                "updatedAt": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    }
+                  ]
+                },
+                "navigationUrl": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                "thumbnail": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "url"
+                      ],
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2048
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "maxItems": 20
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "album_create_repair_resolution",
+      "method": "PUT",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/create-repair-resolution",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "handler": "album_create_repair_resolution",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "expectedBindingRevision",
+          "createAttemptId",
+          "selectedPhotosetId"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "expectedBindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "createAttemptId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "selectedPhotosetId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "binding",
+          "localLifecycle",
+          "materialization",
+          "catalogRepair",
+          "membershipCounts"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "fgaAlbumBindingId",
+              "fgaPublishServiceId",
+              "localCollectionIdentifier",
+              "linkedFlickrRevision",
+              "bindingRevision",
+              "titleRevision",
+              "desiredTitle",
+              "firstPhotoBindingId",
+              "flickrPhotosetId"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPublishServiceId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "localCollectionIdentifier": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "linkedFlickrRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "bindingRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "titleRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "desiredTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "firstPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              }
+            }
+          },
+          "localLifecycle": {
+            "enum": [
+              "active",
+              "local_collection_removed_remote_preserved"
+            ]
+          },
+          "materialization": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "createAttemptId",
+              "repairSurface",
+              "resolvedPhotosetId",
+              "resolutionProvenance"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "materialization_pending",
+                  "create_rejected",
+                  "create_outcome_unknown",
+                  "materialized",
+                  "remote_album_missing_needs_attention",
+                  "album_identity_conflict"
+                ]
+              },
+              "createAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              },
+              "repairSurface": {
+                "enum": [
+                  "none",
+                  "plugin_or_admin",
+                  "admin_only"
+                ]
+              },
+              "resolvedPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "resolutionProvenance": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "const": "owner_reconciled_ambiguous_album_create"
+                  }
+                ]
+              }
+            }
+          },
+          "catalogRepair": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flickrPhotosetId",
+              "navigationUrl",
+              "identityVerifiedAt"
+            ],
+            "properties": {
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "navigationUrl": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  }
+                ]
+              },
+              "identityVerifiedAt": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                ]
+              }
+            }
+          },
+          "membershipCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "waitingForAlbum",
+              "attachmentPending",
+              "membershipVerified",
+              "reconciliationPending",
+              "needsAttention"
+            ],
+            "properties": {
+              "waitingForAlbum": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "attachmentPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipVerified": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reconciliationPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "needsAttention": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "admin_album_create_repairs",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/album-create-repairs",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "album_create_repair_admin",
+      "auth": "browser_session",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "page",
+          "pageSize",
+          "pages",
+          "total",
+          "repairs"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "repairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fgaAlbumBindingId",
+                "bindingRevision",
+                "fgaPublishServiceId",
+                "localCollectionIdentifier",
+                "desiredTitle",
+                "localLifecycle",
+                "createAttemptId"
+              ],
+              "properties": {
+                "fgaAlbumBindingId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "bindingRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "fgaPublishServiceId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "localCollectionIdentifier": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "desiredTitle": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                "localLifecycle": {
+                  "enum": [
+                    "active",
+                    "local_collection_removed_remote_preserved"
+                  ]
+                },
+                "createAttemptId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                }
+              }
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "admin_album_binding_status",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/album-bindings/{bindingId}/status",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "album_create_repair_admin",
+      "auth": "browser_session",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "binding",
+          "localLifecycle",
+          "materialization",
+          "catalogRepair",
+          "membershipCounts"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "fgaAlbumBindingId",
+              "fgaPublishServiceId",
+              "localCollectionIdentifier",
+              "linkedFlickrRevision",
+              "bindingRevision",
+              "titleRevision",
+              "desiredTitle",
+              "firstPhotoBindingId",
+              "flickrPhotosetId"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPublishServiceId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "localCollectionIdentifier": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "linkedFlickrRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "bindingRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "titleRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "desiredTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "firstPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              }
+            }
+          },
+          "localLifecycle": {
+            "enum": [
+              "active",
+              "local_collection_removed_remote_preserved"
+            ]
+          },
+          "materialization": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "createAttemptId",
+              "repairSurface",
+              "resolvedPhotosetId",
+              "resolutionProvenance"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "materialization_pending",
+                  "create_rejected",
+                  "create_outcome_unknown",
+                  "materialized",
+                  "remote_album_missing_needs_attention",
+                  "album_identity_conflict"
+                ]
+              },
+              "createAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              },
+              "repairSurface": {
+                "enum": [
+                  "none",
+                  "plugin_or_admin",
+                  "admin_only"
+                ]
+              },
+              "resolvedPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "resolutionProvenance": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "const": "owner_reconciled_ambiguous_album_create"
+                  }
+                ]
+              }
+            }
+          },
+          "catalogRepair": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flickrPhotosetId",
+              "navigationUrl",
+              "identityVerifiedAt"
+            ],
+            "properties": {
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "navigationUrl": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  }
+                ]
+              },
+              "identityVerifiedAt": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                ]
+              }
+            }
+          },
+          "membershipCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "waitingForAlbum",
+              "attachmentPending",
+              "membershipVerified",
+              "reconciliationPending",
+              "needsAttention"
+            ],
+            "properties": {
+              "waitingForAlbum": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "attachmentPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipVerified": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reconciliationPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "needsAttention": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "admin_album_photo_association_status",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/album-bindings/{bindingId}/photo-association-status",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "album_create_repair_admin",
+      "auth": "browser_session",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "page",
+          "pageSize",
+          "pages",
+          "total",
+          "fgaAlbumBindingId",
+          "bindingRevision",
+          "obligations"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fgaAlbumBindingId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "bindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "obligations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "obligation",
+                "state",
+                "membershipObservedAt",
+                "localRelationship"
+              ],
+              "properties": {
+                "obligation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "fgaAlbumObligationId",
+                    "fgaAlbumBindingId",
+                    "fgaPhotoBindingId",
+                    "obligationRevision"
+                  ],
+                  "properties": {
+                    "fgaAlbumObligationId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    },
+                    "fgaAlbumBindingId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    },
+                    "fgaPhotoBindingId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                    },
+                    "obligationRevision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                "state": {
+                  "enum": [
+                    "waiting_for_album",
+                    "attachment_pending",
+                    "membership_verified",
+                    "membership_reconciliation_pending",
+                    "album_attachment_needs_attention"
+                  ]
+                },
+                "membershipObservedAt": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    }
+                  ]
+                },
+                "localRelationship": {
+                  "enum": [
+                    "active",
+                    "archived"
+                  ]
+                }
+              }
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "admin_album_create_repair_candidates",
+      "method": "GET",
+      "pathPattern": "/api/v001/admin/album-bindings/{bindingId}/create-repair-candidates",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "album_create_repair_admin",
+      "auth": "browser_session",
+      "allowPending": false,
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "page",
+          "pageSize",
+          "pages",
+          "total",
+          "fgaAlbumBindingId",
+          "bindingRevision",
+          "createAttemptId",
+          "observedAt",
+          "candidates"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fgaAlbumBindingId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "bindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "createAttemptId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "observedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "flickrPhotosetId",
+                "title",
+                "ownerNsid",
+                "primaryPhotoId",
+                "createdAt",
+                "updatedAt",
+                "navigationUrl",
+                "thumbnail"
+              ],
+              "properties": {
+                "flickrPhotosetId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 4096
+                },
+                "ownerNsid": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "primaryPhotoId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                },
+                "createdAt": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    }
+                  ]
+                },
+                "updatedAt": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                    }
+                  ]
+                },
+                "navigationUrl": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                "thumbnail": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "url"
+                      ],
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2048
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "maxItems": 20
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "id": "admin_album_create_repair_resolution",
+      "method": "PUT",
+      "pathPattern": "/api/v001/admin/album-bindings/{bindingId}/create-repair-resolution",
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": null,
+      "handler": "album_create_repair_admin",
+      "auth": "browser_session",
+      "allowPending": false,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "expectedBindingRevision",
+          "createAttemptId",
+          "selectedPhotosetId"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "expectedBindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "createAttemptId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "selectedPhotosetId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "binding",
+          "localLifecycle",
+          "materialization",
+          "catalogRepair",
+          "membershipCounts"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "fgaAlbumBindingId",
+              "fgaPublishServiceId",
+              "localCollectionIdentifier",
+              "linkedFlickrRevision",
+              "bindingRevision",
+              "titleRevision",
+              "desiredTitle",
+              "firstPhotoBindingId",
+              "flickrPhotosetId"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPublishServiceId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "localCollectionIdentifier": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "linkedFlickrRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "bindingRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "titleRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "desiredTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "firstPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              }
+            }
+          },
+          "localLifecycle": {
+            "enum": [
+              "active",
+              "local_collection_removed_remote_preserved"
+            ]
+          },
+          "materialization": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "createAttemptId",
+              "repairSurface",
+              "resolvedPhotosetId",
+              "resolutionProvenance"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "materialization_pending",
+                  "create_rejected",
+                  "create_outcome_unknown",
+                  "materialized",
+                  "remote_album_missing_needs_attention",
+                  "album_identity_conflict"
+                ]
+              },
+              "createAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              },
+              "repairSurface": {
+                "enum": [
+                  "none",
+                  "plugin_or_admin",
+                  "admin_only"
+                ]
+              },
+              "resolvedPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "resolutionProvenance": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "const": "owner_reconciled_ambiguous_album_create"
+                  }
+                ]
+              }
+            }
+          },
+          "catalogRepair": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flickrPhotosetId",
+              "navigationUrl",
+              "identityVerifiedAt"
+            ],
+            "properties": {
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              },
+              "navigationUrl": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  }
+                ]
+              },
+              "identityVerifiedAt": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                ]
+              }
+            }
+          },
+          "membershipCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "waitingForAlbum",
+              "attachmentPending",
+              "membershipVerified",
+              "reconciliationPending",
+              "needsAttention"
+            ],
+            "properties": {
+              "waitingForAlbum": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "attachmentPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipVerified": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reconciliationPending": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "needsAttention": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "id": "album_lifecycle_read",
+      "handler": "album_lifecycle_read",
+      "method": "GET",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/lifecycle",
+      "request": null,
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "binding",
+          "localLifecycle",
+          "title",
+          "unresolvedCreateAttemptId",
+          "repairHandoff"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "fgaAlbumBindingId",
+              "fgaPublishServiceId",
+              "localCollectionIdentifier",
+              "linkedFlickrRevision",
+              "bindingRevision",
+              "titleRevision",
+              "desiredTitle",
+              "firstPhotoBindingId",
+              "flickrPhotosetId"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "fgaPublishServiceId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "localCollectionIdentifier": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "linkedFlickrRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "bindingRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "titleRevision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "desiredTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "firstPhotoBindingId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+              },
+              "flickrPhotosetId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  }
+                ]
+              }
+            }
+          },
+          "localLifecycle": {
+            "enum": [
+              "active",
+              "local_collection_removed_remote_preserved"
+            ]
+          },
+          "title": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "observedTitle",
+              "observedAt",
+              "dispatchTitleRevision",
+              "dispatchAttemptId"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "waiting_for_materialization",
+                  "pending",
+                  "reconciliation_pending",
+                  "synced",
+                  "conflict",
+                  "needs_attention",
+                  "local_removed_reconciliation_pending",
+                  "local_removed"
+                ]
+              },
+              "observedTitle": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "maxLength": 4096
+                  }
+                ]
+              },
+              "observedAt": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                ]
+              },
+              "dispatchTitleRevision": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                ]
+              },
+              "dispatchAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              }
+            }
+          },
+          "unresolvedCreateAttemptId": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            ]
+          },
+          "repairHandoff": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "destination",
+              "fgaAlbumBindingId",
+              "createAttemptId",
+              "acknowledgedAt"
+            ],
+            "properties": {
+              "destination": {
+                "enum": [
+                  "none",
+                  "administrative_album_create_repair"
+                ]
+              },
+              "fgaAlbumBindingId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "createAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              },
+              "acknowledgedAt": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200
+      ]
+    },
+    {
+      "owner": "fga_api_backend",
+      "routingClass": "worker_first",
+      "probe": "missing_authentication",
+      "expectedStatus": 401,
+      "expectedChallenge": "Bearer realm=\"fga-api\"",
+      "auth": "installation_bearer",
+      "allowPending": false,
+      "id": "album_title_intent",
+      "handler": "album_title_intent",
+      "method": "PUT",
+      "pathPattern": "/api/v001/album-bindings/{bindingId}/title-intents/{titleRevision}",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "expectedBindingRevision",
+          "expectedTitleRevision",
+          "desiredTitle"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "expectedBindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expectedTitleRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "desiredTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "fgaAlbumBindingId",
+          "acceptedTitleRevision",
+          "acceptedDesiredTitle",
+          "acceptedBindingRevision",
+          "acceptedAt",
+          "current"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          },
+          "fgaAlbumBindingId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "acceptedTitleRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "acceptedDesiredTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "acceptedBindingRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "acceptedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+          },
+          "current": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "binding",
+              "localLifecycle",
+              "title",
+              "unresolvedCreateAttemptId",
+              "repairHandoff"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              },
+              "binding": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "schemaVersion",
+                  "fgaAlbumBindingId",
+                  "fgaPublishServiceId",
+                  "localCollectionIdentifier",
+                  "linkedFlickrRevision",
+                  "bindingRevision",
+                  "titleRevision",
+                  "desiredTitle",
+                  "firstPhotoBindingId",
+                  "flickrPhotosetId"
+                ],
+                "properties": {
+                  "schemaVersion": {
+                    "const": 1
+                  },
+                  "fgaAlbumBindingId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  "fgaPublishServiceId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  "localCollectionIdentifier": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  },
+                  "linkedFlickrRevision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "bindingRevision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "titleRevision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "desiredTitle": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "firstPhotoBindingId": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                  },
+                  "flickrPhotosetId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$"
+                      }
+                    ]
+                  }
+                }
+              },
+              "localLifecycle": {
+                "enum": [
+                  "active",
+                  "local_collection_removed_remote_preserved"
+                ]
+              },
+              "title": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "state",
+                  "observedTitle",
+                  "observedAt",
+                  "dispatchTitleRevision",
+                  "dispatchAttemptId"
+                ],
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "waiting_for_materialization",
+                      "pending",
+                      "reconciliation_pending",
+                      "synced",
+                      "conflict",
+                      "needs_attention",
+                      "local_removed_reconciliation_pending",
+                      "local_removed"
+                    ]
+                  },
+                  "observedTitle": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "maxLength": 4096
+                      }
+                    ]
+                  },
+                  "observedAt": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      }
+                    ]
+                  },
+                  "dispatchTitleRevision": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  },
+                  "dispatchAttemptId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                      }
+                    ]
+                  }
+                }
+              },
+              "unresolvedCreateAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                ]
+              },
+              "repairHandoff": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "destination",
+                  "fgaAlbumBindingId",
+                  "createAttemptId",
+                  "acknowledgedAt"
+                ],
+                "properties": {
+                  "destination": {
+                    "enum": [
+                      "none",
+                      "administrative_album_create_repair"
+                    ]
+                  },
+                  "fgaAlbumBindingId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  "createAttemptId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                      }
+                    ]
+                  },
+                  "acknowledgedAt": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "successStatuses": [
+        200,
+        201
+      ]
+    },
+    {
       "id": "album_photo_association",
       "method": "PUT",
       "pathPattern": "/api/v001/album-bindings/{bindingId}/photo-associations/{photoBindingId}",

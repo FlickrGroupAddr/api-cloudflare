@@ -1,7 +1,7 @@
 /** Bounded provider-only JSON grammar. Admission requests retain their own parser. */
-export function strictFlickrJson(raw: string): unknown {
+export function strictFlickrJson(raw: string, maxBytes = 262144): unknown {
   const invalid = (): never => { throw new Error('invalid_flickr_json'); };
-  if (typeof raw !== 'string' || raw.length > 262144 || new TextEncoder().encode(raw).length > 262144) return invalid();
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 1048576 || typeof raw !== 'string' || raw.length > maxBytes || new TextEncoder().encode(raw).length > maxBytes) return invalid();
   let offset = 0, nodes = 0;
   const space = () => { while (offset < raw.length && /[\x20\t\r\n]/.test(raw[offset]!)) offset++; };
   function string(): string {

@@ -46,16 +46,16 @@ export function signedRead(method:"flickr.photos.getInfo"|"flickr.auth.oauth.che
  oauth.getNonce=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,"0")).join("");
  return new Request(url,{method:"GET",headers:{...oauth.toHeader(oauth.authorize({url:String(url),method:"GET"},{key:pair.token,secret:pair.tokenSecret})),Accept:"application/json"},redirect:"manual"});
 }
-export type AlbumRestMethod = 'flickr.photos.getAllContexts' | 'flickr.photosets.getInfo' | 'flickr.photosets.create';
+export type AlbumRestMethod = 'flickr.photos.getAllContexts' | 'flickr.photosets.getInfo' | 'flickr.photosets.create' | 'flickr.photosets.editMeta' | 'flickr.photosets.addPhoto';
 /** Fixed operation signer; the caller supplies an already verified token pair.
  * No transport, credential lookup, dispatch marker or runtime binding lives here.
  */
 export function signedAlbumRest(method:AlbumRestMethod,parameters:Record<string,string>,pair:Pair,app:Application):Request {
- const expected=method==='flickr.photos.getAllContexts'?['photo_id']:method==='flickr.photosets.getInfo'?['photoset_id']:method==='flickr.photosets.create'?['title','primary_photo_id']:null;
+ const expected=method==='flickr.photos.getAllContexts'?['photo_id']:method==='flickr.photosets.getInfo'?['photoset_id']:method==='flickr.photosets.create'?['title','primary_photo_id']:method==='flickr.photosets.editMeta'?['photoset_id','title']:method==='flickr.photosets.addPhoto'?['photoset_id','photo_id']:null;
  if(!expected||!parameters||typeof parameters!=='object'||Array.isArray(parameters)||Object.keys(parameters).length!==expected.length||expected.some(key=>!Object.hasOwn(parameters,key)||typeof parameters[key]!=='string'||parameters[key].length===0||parameters[key].length>4096||/\p{Cs}/u.test(parameters[key])))throw new FlickrReadError('upstream_unavailable');
  const data:Record<string,string>={method,format:'json',nojsoncallback:'1'};
  for(const key of expected)data[key]=parameters[key]!;
- const post=method==='flickr.photosets.create',verb=post?'POST':'GET',url=new URL('https://www.flickr.com/services/rest/');
+ const post=method==='flickr.photosets.create'||method==='flickr.photosets.editMeta'||method==='flickr.photosets.addPhoto',verb=post?'POST':'GET',url=new URL('https://www.flickr.com/services/rest/');
  if(!post)for(const [key,value] of Object.entries(data))url.searchParams.set(key,value);
  const oauth=new OAuth({consumer:{key:app.consumerKey,secret:app.consumerSecret},signature_method:'HMAC-SHA1',hash_function:hmac});
  oauth.getNonce=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -64,20 +64,52 @@ export function signedAlbumRest(method:AlbumRestMethod,parameters:Record<string,
  return new Request(url,{method:verb,headers,redirect:'manual',...(post?{body:new URLSearchParams(data).toString()}:{})});
 }
 export type FlickrFetch=(request:Request)=>Promise<Response>;
-export async function readJson(request:Request,fetcher:FlickrFetch,decoder?:(raw:string)=>unknown):Promise<Record<string,unknown>> {
- const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10_000);
+export interface FlickrJsonReadOptions {
+ /** Defaults to 256 KiB; explicit Album reads may request at most 1 MiB. */
+ maxBytes?: number;
+ /** Incremental bytes actually received, including a chunk that exceeds a budget. */
+ onBytes?: (incrementalChunkBytes: number) => void;
+ signal?: AbortSignal;
+}
+export async function readJson(request:Request,fetcher:FlickrFetch,decoder?:(raw:string)=>unknown,options:FlickrJsonReadOptions={}):Promise<Record<string,unknown>> {
+ const maxBytes=options.maxBytes??262144;
+ if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>1048576||options.onBytes!==undefined&&typeof options.onBytes!=='function')throw new FlickrReadError("upstream_unavailable");
+ const controller=new AbortController();
+ const signal=AbortSignal.any([request.signal,controller.signal,...(options.signal?[options.signal]:[])]);
+ let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
+ let complete=false;
+ const cancel=()=>{if(reader&&!complete)void reader.cancel().catch(()=>{});};
+ let rejectAbort:(error:Error)=>void=()=>{};
+ const aborted=new Promise<never>((_,reject)=>{rejectAbort=reject;});
+ const onAbort=()=>{cancel();rejectAbort(new FlickrReadError("upstream_unavailable"));};
+ signal.addEventListener('abort',onAbort,{once:true});
+ const timer=setTimeout(()=>controller.abort(),10_000);
+ const current=()=>{if(signal.aborted)throw new FlickrReadError("upstream_unavailable");};
  try {
-  const response=await fetcher(new Request(request,{signal:controller.signal}));
-  if(!response.ok||!/^application\/json(?:;|$)/i.test(response.headers.get("Content-Type")??""))throw new FlickrReadError("upstream_unavailable");
-  if(!response.body)throw new FlickrReadError("upstream_unavailable");
-  const reader=response.body.getReader();let size=0;const chunks:Uint8Array[]=[];
-  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>262144){await reader.cancel();throw new FlickrReadError("upstream_unavailable");}chunks.push(value);}
-  const bytes=new Uint8Array(size);let offset=0;for(const part of chunks){bytes.set(part,offset);offset+=part.length;}
-  const value:unknown=(decoder??JSON.parse)(new TextDecoder("utf-8",{fatal:true,ignoreBOM:decoder!==undefined}).decode(bytes));
-  if(!value||typeof value!=="object"||Array.isArray(value))throw new FlickrReadError("upstream_unavailable");
-  return value as Record<string,unknown>;
+  if(signal.aborted)onAbort();
+  return await Promise.race([aborted,(async()=>{
+   current();
+   const response=await fetcher(new Request(request,{signal}));
+   // A fetcher may ignore abort; release a late response without reading it.
+   if(signal.aborted){void response.body?.cancel().catch(()=>{});current();}
+   if(!response.ok||!/^application\/json(?:;|$)/i.test(response.headers.get("Content-Type")??"")||!response.body){void response.body?.cancel().catch(()=>{});throw new FlickrReadError("upstream_unavailable");}
+   reader=response.body.getReader();let size=0;const chunks:Uint8Array[]=[];
+   try {
+    for(;;){
+     current();const {done,value}=await reader.read();current();if(done){complete=true;break;}
+     size+=value.byteLength;options.onBytes?.(value.byteLength);current();
+     if(size>maxBytes)throw new FlickrReadError("upstream_unavailable");
+     chunks.push(value);
+    }
+    const bytes=new Uint8Array(size);let offset=0;for(const part of chunks){bytes.set(part,offset);offset+=part.length;}
+    const value:unknown=(decoder??JSON.parse)(new TextDecoder("utf-8",{fatal:true,ignoreBOM:decoder!==undefined}).decode(bytes));
+    current();
+    if(!value||typeof value!=="object"||Array.isArray(value))throw new FlickrReadError("upstream_unavailable");
+    return value as Record<string,unknown>;
+   } finally {cancel();reader.releaseLock();}
+  })()]);
  }catch(error){if(error instanceof FlickrReadError)throw error;throw new FlickrReadError("upstream_unavailable");}
- finally {clearTimeout(timer);}
+ finally {clearTimeout(timer);signal.removeEventListener('abort',onAbort);}
 }
 export async function verifyPhoto(db:SqlStore,auth:AdmissionAuth,secrets:SecretReads,snapshot:GrantSnapshot,photoId:string,fetcher:FlickrFetch):Promise<void> {
  const result=await withGrant(db,auth,secrets,snapshot,(pair,app)=>readJson(signedRead("flickr.photos.getInfo",photoId,pair,app),fetcher));

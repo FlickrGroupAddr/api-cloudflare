@@ -70,7 +70,7 @@ export function albumCreateResult(value: Record<string, unknown>): AlbumCreateRe
   return { photosetId: value.photoset.id, url: albumNavigationUrl(value.photoset.url, value.photoset.id) };
 }
 
-function verifyInfo(value: Record<string, unknown>, photosetId: string, ownerNsid: string): void {
+export function verifyInfo(value: Record<string, unknown>, photosetId: string, ownerNsid: string): void {
   if (value.stat !== 'ok' || !keys(value, ['stat', 'photoset']) || !object(value.photoset)) return invalid();
   const set = value.photoset;
   if (set.id !== photosetId || set.owner !== ownerNsid || !id(set.primary) || !object(set.title) || !keys(set.title, ['_content']) || !text(set.title._content, 4096)) return invalid();
@@ -143,7 +143,7 @@ export function createSyntheticAlbumMaterializationTransport(
   const json = (req: Request, signal: AbortSignal) => readJson(req, next => {
     if (signal.aborted || performance.now() >= invocationDeadline || performance.now() >= (operationDeadlines.get(signal) ?? 0)) return Promise.reject(new AlbumMaterializationTransportError());
     return deps!.fetcher(new Request(next, { signal: AbortSignal.any([signal, next.signal]) }));
-  }, strictFlickrJson);
+  }, strictFlickrJson, { signal });
   return {
     async contexts() {
       if (phase !== 'new') return invalid();

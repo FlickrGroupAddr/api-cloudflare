@@ -1,7 +1,8 @@
 import test from 'node:test';
 import { NOW_US_SQL } from '../src/installations.ts';
 import assert from 'node:assert/strict';
-import { materializationFixture, migrateMaterialization, through0021, retainedState, rows, databaseClock } from './album_materialization_sqlite.mjs';
+import { materializationFixture, migrateMaterialization, through0021, retainedState, rows, databaseClock, AUTH } from './album_materialization_sqlite.mjs';
+import { putAlbumTitleIntent } from '../src/album_title_store.ts';
 
 const storage = () => import('../src/album_materialization_store.ts');
 const result = (extra = {}) => ({ photosetId: 'created-set', url: 'https://www.flickr.com/photos/owner/albums/created-set',
@@ -240,7 +241,10 @@ test('changed title or malformed complete context evidence allocates no dispatch
     assert.deepEqual(retainedState(f.db), before);
   }
   const f = await claimed(t);
-  f.db.raw.exec("UPDATE album_bindings SET desired_title='New synthetic title',title_revision=title_revision+1,binding_revision=binding_revision+1");
+  await putAlbumTitleIntent(f.db, AUTH, f.bindingId, f.claim.titleRevision + 1, {
+    schemaVersion: 1, expectedBindingRevision: binding(f).binding_revision,
+    expectedTitleRevision: f.claim.titleRevision, desiredTitle: 'New synthetic title',
+  });
   const before = retainedState(f.db);
   assert.equal(await f.api.markAlbumCreateDispatch(f.db, f.claim, []), null);
   assert.deepEqual(retainedState(f.db), before);

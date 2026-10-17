@@ -1,3 +1,5 @@
+import { ALBUM_CREATE_REPAIR_ERROR_SCHEMA } from "../src/album_create_repair.ts";
+import { ALBUM_TITLE_ERROR_SCHEMA } from "../src/album_title.ts";
 import { SERVICE_ID } from "../src/publish_services.ts";
 // Node imports the executable TypeScript registry; Python owns artifact writing/checking.
 import { ROUTES, GUARDS, ERROR_SCHEMA } from "../src/registry.ts";
@@ -103,6 +105,37 @@ for(const route of ROUTES){
     responses[201].description="Current binding and newly admitted natural-key obligation receipt.";
     paths[route.pathPattern][method].description="Disabled Album photo-association admission. Current non-pending installation, owning service/link and exact proved-photo authority only. New natural-key obligations require current binding/photo revisions and an active collection, increment the binding revision once and retain one immutable receipt. Exact replay rechecks current authority while ignoring stale expected revisions, allocates nothing and never resurrects archived relationships. No Flickr call, worker wake, image replay, materialization or membership claim.";
   } else paths[route.pathPattern][method].description="Disabled Album binding ensure/read protocol. Current owner, service/link and exact proved-photo authority only. First committed candidate creates one immutable natural-key binding and its initial obligation atomically; exact replay allocates nothing and ignores stale title/proof input while rechecking current authority. No Flickr create, membership write, general association delivery or production activation.";
+ }
+
+ if(["album_binding_status","album_photo_association_status","album_create_repair_candidates","album_create_repair_resolution","album_create_repair_admin","album_lifecycle_read","album_title_intent"].includes(route.handler)){
+  const repair=!["album_lifecycle_read","album_title_intent"].includes(route.handler),admin=route.auth==="browser_session";
+  const schema=repair?ALBUM_CREATE_REPAIR_ERROR_SCHEMA:ALBUM_TITLE_ERROR_SCHEMA;
+  const codes={400:["invalid_request",...(repair?["page_out_of_range"]:[])],401:[admin?"unauthorized":"invalid_token"],
+   403:[admin?"forbidden":"insufficient_scope"],404:["resource_not_found"],
+   409:repair?["stale_binding_revision","flickr_link_unavailable","administrative_repair_required","create_repair_not_pending","resolution_conflict","selected_album_not_verified"]:["stale_binding_revision","stale_title_revision","title_intent_conflict","album_closed","flickr_link_unavailable","revision_exhausted"],
+   429:["rate_limited"],503:repair?["candidate_evidence_unavailable","resolution_evidence_unavailable","service_unavailable"]:["service_unavailable"]};
+  for(const status of Object.keys(responses))if(Number(status)>=400&&Number(status)!==405&&!(status in codes))delete responses[status];
+  for(const [status,values] of Object.entries(codes)){
+   const specific=structuredClone(schema),properties=specific.properties.error.properties;
+   properties.code={enum:values};properties.retryable={const:["429","503"].includes(status)};
+   responses[status].content={"application/json":{schema:specific}};
+  }
+  for(const response of Object.values(responses))response.headers["Cache-Control"]={schema:{type:"string",const:"private, no-store"}};
+  responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
+  responses[429].headers["Retry-After"]={schema:{type:"string",pattern:"^[1-9][0-9]*$"}};
+  if(admin)responses[401].headers["Set-Cookie"]={description:"Only an exact-origin unauthorized request expires the host-only __Host-fga_admin cookie using Secure, HttpOnly, Path=/, SameSite=Strict and Max-Age=0. CSRF is browser memory only; no CSRF cookie is set.",schema:{type:"string"}};
+  for(const parameter of parameters){
+   if(parameter.name==="bindingId")parameter.schema={type:"string",pattern:SERVICE_ID.source};
+   if(parameter.name==="titleRevision")parameter.schema={type:"integer",minimum:1,maximum:Number.MAX_SAFE_INTEGER};
+  }
+  const pageRoute=route.pathPattern.endsWith("/photo-association-status")||route.pathPattern.endsWith("/create-repair-candidates")||route.pathPattern.endsWith("/admin/album-create-repairs");
+  if(pageRoute)parameters.push({name:"page",in:"query",required:true,schema:{type:"integer",minimum:1,maximum:1000},description:"Canonical positive decimal without leading zero or alternate encoding."},
+   {name:"page_size",in:"query",required:true,schema:{type:"integer",minimum:1,maximum:route.pathPattern.endsWith("/create-repair-candidates")?20:100},description:"Canonical positive decimal; no other query fields are accepted."});
+  paths[route.pathPattern][method].description=repair?
+   "Default-off accepted album status/create-repair protocol. Current installation credential or the owning Google-admitted server session only; pending credentials cannot use this route. Administrative resolution requires exact Origin and synchronizer CSRF, with no additional recent-authentication ceremony. Status and obligation reads use stored facts only. Candidate discovery is advisory and selection requires fresh exact-owner and first-photo membership proof. Same-attempt/same-ID receipt replay performs no new proof or work. Immutable identity and archived admin-only repair are retained; no Flickr write or recreation occurs. Raw canonical paths, strict closed UTF-8 JSON and finite response/read budgets are enforced.":
+   "Default-off accepted album lifecycle/title protocol. Current installation credential and owned binding only; pending credentials are refused. Lifecycle reads stored facts without Flickr calls. A title PUT addresses one explicit next revision, persists exact intent and returns an immutable receipt; exact replay returns the current lifecycle without another revision or work. This route performs no Flickr dispatch, local removal, deletion or recreation. Strict canonical paths and closed UTF-8 JSON are required.";
+  if(route.request)paths[route.pathPattern][method].requestBody.description="UTF-8 application/json, at most 4096 bytes; duplicate, unknown and null members and alternate framing are rejected.";
+  if(route.handler==="album_title_intent")responses[201].headers.Location={description:"Exact relative URI of the newly accepted title-revision resource",schema:{type:"string",pattern:"^/api/v001/album-bindings/[0-9a-f-]{36}/title-intents/[1-9][0-9]*$"}};
  }
  if(route.handler==="upload_authorization"){
   paths[route.pathPattern][method].description="Current installation credential only. Metadata-only direct-upload signing under current linked-account authority and both enabled Flickr write gates. The backend durably records the authorization association and sanitized audit before returning the exact signed metadata and fixed Flickr upload URL. The bearer envelope is kept in memory only, is not image-bound or guaranteed single-use, and has no backend-enforced Flickr expiry. No image or Flickr network request reaches this handler. Separately disabled pending hosted qualification.";
