@@ -80,3 +80,10 @@ has an older pin and does not supersede the current action-decision packet.
 Do not bank a native approval beyond its finite interval. Preserve Escape and
 all uncertain native outcomes. Later UI deletion/disposal needs its own
 applicable immediate confirmation; unknown render termination preserves state.
+
+## Subsequent native measurement
+
+The later same-day [native result](provider-render-native-result-2026-10-17.md)
+records the newly confirmed run: 14 passing fixture cases and 13 terminal render
+sessions. It supersedes only this checkpoint's pending-run state. The profile,
+actual callback/scheduling, production and later action gates remain explicit.
