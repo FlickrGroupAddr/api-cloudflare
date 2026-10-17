@@ -1,3 +1,4 @@
+import {albumBindingRequest} from "./album_bindings.ts";
 import {uploadCandidatesRequest} from "./upload_candidates.ts";
 import {publishServiceRequest} from "./publish_services.ts";
 import {budgetedFlickrFetch} from "./flickr_rate.ts";
@@ -20,7 +21,7 @@ import { ROUTES } from "./registry.ts";
 export {ROUTES};
 import {batchRequest,bindingRequest,configured,jsonBody,publishNativeHint,type IntakeEnv} from "./intake_api.ts";
 import {duePartitions} from "./scheduling.ts";
-export interface Env extends IntakeEnv,AdminEnv { FGA_UPLOAD_CANDIDATES_ENABLED?:string; FGA_PUBLISH_SERVICE_ENABLED?:string; ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; FGA_UPLOAD_PHOTO_BINDING_ENABLED?:string; FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED?:string; }
+export interface Env extends IntakeEnv,AdminEnv { FGA_ALBUM_BINDINGS_ENABLED?:string; FGA_UPLOAD_CANDIDATES_ENABLED?:string; FGA_PUBLISH_SERVICE_ENABLED?:string; ASSETS?: Fetcher; FGA_READ_ENABLED?: string; FGA_DISPATCH_ENABLED?:string; FGA_GROUPS_ENABLED?:string; FGA_EXISTING_PHOTOS_ENABLED?:string; FGA_PHOTO_THUMBNAILS_ENABLED?:string; FGA_UPLOAD_AUTHORIZATION_ENABLED?:string; FGA_UPLOAD_PHOTO_BINDING_ENABLED?:string; FGA_UPLOAD_AMBIGUITY_RESOLUTION_ENABLED?:string; }
 // Same request-target policy proved by probes/routes; duplicated here to keep production imports out of probes.
 export function safePath(raw: string): string | null {
   if (/[\\\x00-\x20\x7f]/.test(raw) || /%(?![0-9a-f]{2})/i.test(raw)) return null;
@@ -38,14 +39,14 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
     if(path==="/admin/login"||path==="/admin/google-login"||path==="/admin/flickr-oauth/callback")return createAdmin(providerFetch).fetch(request,env);
     const candidates=ROUTES.filter(route=>{
       const pattern=route.pathPattern.split("/").map(part=>part.startsWith("{")?"[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}":part).join("/");
-      const routePath=route.handler==="photo_thumbnail"?decodeURIComponent(path):path;
+      const routePath=(route.handler==="photo_thumbnail"||route.handler==="album_binding_ensure"||route.handler==="album_binding_read")?decodeURIComponent(path):path;
       return new RegExp("^"+pattern+"$").test(routePath);
     });
     const route=candidates.find(route=>route.method===request.method)??candidates[0];
     if (route) {
       const routeReply=(response:Response):Response=>{
         if(route.handler==="upload_candidates")response.headers.set("Cache-Control","private, no-store");
-        if((route.handler==="publish_service_create"||route.handler==="publish_service_read")&&response.status===503)response.headers.set("Retry-After","5");
+        if((route.handler==="publish_service_create"||route.handler==="publish_service_read"||route.handler==="album_binding_ensure"||route.handler==="album_binding_read")&&response.status===503)response.headers.set("Retry-After","5");
         return response;
       };
       if (request.method !== route.method) {
@@ -53,7 +54,8 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
       }
       if(route.handler==="admin"||route.handler==="plugin_code"||route.handler==="status_admin")return createAdmin(providerFetch).fetch(request,env);
       const photosEnabled=env.FGA_READ_ENABLED==="1"&&env.FGA_EXISTING_PHOTOS_ENABLED==="1";
-      const enabled=route.handler==="upload_candidates" ? env.FGA_UPLOAD_CANDIDATES_ENABLED==="1" :
+      const enabled=(route.handler==="album_binding_ensure"||route.handler==="album_binding_read") ? env.FGA_ALBUM_BINDINGS_ENABLED==="1" :
+        route.handler==="upload_candidates" ? env.FGA_UPLOAD_CANDIDATES_ENABLED==="1" :
         (route.handler==="publish_service_create"||route.handler==="publish_service_read") ? env.FGA_PUBLISH_SERVICE_ENABLED==="1" :
         route.handler==="groups" ? env.FGA_READ_ENABLED==="1"&&env.FGA_GROUPS_ENABLED==="1" :
         route.handler==="photo_thumbnail" ? photosEnabled&&env.FGA_PHOTO_THUMBNAILS_ENABLED==="1" :
@@ -64,9 +66,12 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request)) {r
         (route.handler==="current"||route.handler==="status") ? env.FGA_READ_ENABLED==="1" :
         route.handler==="binding" ? photosEnabled||configured(env) : configured(env);
       if(!enabled)return routeReply(errorResponse(503,"service_unavailable","Service unavailable."));
-      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,(route.handler==="current"||route.handler==="publish_service_read")?"empty":["status","groups","existing_photos","photo_memberships","photo_thumbnail","upload_candidates"].includes(route.handler)?"query":"json");
+      const result=await authenticate(request,d1Lookup(env.DB),route.allowPending,undefined,(route.handler==="current"||route.handler==="publish_service_read"||route.handler==="album_binding_read")?"empty":["status","groups","existing_photos","photo_memberships","photo_thumbnail","upload_candidates"].includes(route.handler)?"query":"json");
       if(result instanceof Response)return routeReply(result);
       if(route.handler==="current")return jsonCurrent(result);
+      if(route.handler==="album_binding_ensure"||route.handler==="album_binding_read")return albumBindingRequest(env,
+        {installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},
+        request,decodeURIComponent(path.split("/")[4]!),decodeURIComponent(path.split("/")[6]!));
       if(route.handler==="publish_service_create"||route.handler==="publish_service_read")return publishServiceRequest(env,
         {installationId:result.installationId,credentialDigest:await credentialDigest(request.headers.get("Authorization")!.slice(7))},
         request,route.handler==="publish_service_read"?path.split("/")[4]!:undefined);

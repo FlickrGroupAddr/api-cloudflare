@@ -409,3 +409,20 @@ while preserving ticket-before-description order and concurrency limits.
 Terry confirmed the actual sidebar rendering on 2026-10-17: `sol_high_0105_review`
 appears as `Sol high 0105 review`, preserving the four-digit ticket. Full words
 remain legible after punctuation/case normalization; compact letter tags do not.
+
+## In Progress before ticket work
+
+Terry made this a mandatory execution gate on 2026-10-17:
+
+- Move a ticket to **In Progress before any work on that ticket**, including
+  design, implementation, documentation, acceptance recording, tests,
+  verification and independent review.
+- Move the card before spawning or resuming an agent assigned to it. Recheck
+  its lane when resuming work; never begin first and update the board later.
+- Keep it In Progress throughout implementation and review. Move to a handoff
+  lane only when that work stops. Preserve owner-controlled Completed cards;
+  do not silently reopen or continue work on them.
+
+The sequence is: select an eligible card, move it to In Progress, then work or
+delegate. A Ready for Work card may retain prerequisites, but the prerequisite
+and In Progress gates still govern execution.

@@ -83,6 +83,23 @@ for(const route of ROUTES){
   paths[route.pathPattern][method].description="Disabled publish-service identity protocol. Current installation only. Create issues a fresh server UUID under current linked-owner authority; every create is distinct and lost responses may leave safe unused orphans. Read returns the owned identity and current link status. The client must durably save and freshly verify the exact identity before use. No Flickr request or Album provisioning.";
   if(route.handler==="publish_service_create")responses[201].headers.Location={description:"Relative URI of the issued publish-service resource",schema:{type:"string"}};
  }
+ if(route.handler==="album_binding_ensure"||route.handler==="album_binding_read"){
+  const codes={400:["invalid_request"],401:["invalid_token"],403:["insufficient_scope"],404:["resource_not_found"],
+    409:["album_binding_exists","stale_binding_revision","stale_photo_revision","flickr_link_unavailable","album_closed","photo_not_ready"],
+    429:["rate_limited"],503:["service_unavailable"]};
+  for(const status of Object.keys(responses))if(Number(status)>=400&&Number(status)!==405&&!(status in codes))delete responses[status];
+  for(const [status,values] of Object.entries(codes)){
+    const schema=structuredClone(ERROR_SCHEMA),properties=schema.properties.error.properties;
+    properties.code={enum:values};properties.retryable={const:["429","503"].includes(status)};
+    properties.message={type:"string",minLength:1,maxLength:256};properties.correlationId={type:"string",pattern:SERVICE_ID.source};
+    responses[status].content["application/json"].schema=schema;
+  }
+  responses[503].headers["Retry-After"]={schema:{type:"string",const:"5"}};
+  responses[429].headers["Retry-After"]={schema:{type:"string",pattern:"^[1-9][0-9]*$"}};
+  for(const parameter of parameters)if(parameter.name==="serviceId")parameter.schema={type:"string",pattern:SERVICE_ID.source};
+  if(route.handler==="album_binding_ensure")responses[201].headers.Location={description:"Relative URI of the service/local-collection binding",schema:{type:"string"}};
+  paths[route.pathPattern][method].description="Disabled Album binding ensure/read protocol. Current owner, service/link and exact proved-photo authority only. First committed candidate creates one immutable natural-key binding and its initial obligation atomically; exact replay allocates nothing and ignores stale title/proof input while rechecking current authority. No Flickr create, membership write, general association delivery or production activation.";
+ }
  if(route.handler==="upload_authorization"){
   paths[route.pathPattern][method].description="Current installation credential only. Metadata-only direct-upload signing under current linked-account authority and both enabled Flickr write gates. The backend durably records the authorization association and sanitized audit before returning the exact signed metadata and fixed Flickr upload URL. The bearer envelope is kept in memory only, is not image-bound or guaranteed single-use, and has no backend-enforced Flickr expiry. No image or Flickr network request reaches this handler. Separately disabled pending hosted qualification.";
   responses[200].description="Durably recorded upload authorization with the exact signed metadata and fixed Flickr upload URL; sensitive bearer envelope must be used immediately and never persisted or logged.";

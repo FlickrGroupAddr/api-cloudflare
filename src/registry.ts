@@ -1,3 +1,4 @@
+import { ALBUM_BINDINGS_ROUTES } from "./album_bindings.ts";
 import { UPLOAD_CANDIDATES_ROUTES } from "./upload_candidates.ts";
 import { PUBLISH_SERVICE_ROUTES } from "./publish_services.ts";
 import { STATUS_ROUTES } from "./status_registry.ts";
@@ -36,6 +37,7 @@ export const BATCH_RESPONSE_SCHEMA={type:"object",additionalProperties:false,req
 export const BINDING_REQUEST_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","flickrPhotoId","expectedLinkedFlickrRevision"],properties:{schemaVersion:{const:1},flickrPhotoId:ID_SCHEMA,expectedLinkedFlickrRevision:REV_SCHEMA}} as const;
 export const BINDING_RESPONSE_SCHEMA={type:"object",additionalProperties:false,required:["schemaVersion","fgaPhotoBindingId","sourceKind","flickrPhotoId","linkedFlickrRevision","verificationRevision","verifiedAt"],properties:{schemaVersion:{const:1},fgaPhotoBindingId:ID_SCHEMA,sourceKind:{enum:["fga_direct_upload","existing_public_flickr_photo","photographer_reconciled_ambiguous_upload"]},flickrPhotoId:ID_SCHEMA,linkedFlickrRevision:REV_SCHEMA,verificationRevision:REV_SCHEMA,verifiedAt:TIMESTAMP_SCHEMA}} as const;
 export const ROUTES = [
+ ...ALBUM_BINDINGS_ROUTES,
  ...UPLOAD_CANDIDATES_ROUTES,
  ...PUBLISH_SERVICE_ROUTES,
  ...GROUP_ROUTES,

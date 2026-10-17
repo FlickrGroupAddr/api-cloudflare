@@ -1,5 +1,9 @@
 # Staged FGA batch handoff, 2026-10-17
 
+Later same-day update: #0092 was accepted and the #0095 follow-up passed review.
+See the [next-priority batch handoff](fga-next-priority-batch-2026-10-17.md) for
+current status; the pending-decision description below records the earlier point.
+
 Terry resumed the eight tickets staged at the previous stopping point. Seven
 deliverables reached independent review handoff. The dormant upload store has
 corrected code and remains Ready for Work, dependent on the existing #0092

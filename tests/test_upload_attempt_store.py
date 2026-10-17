@@ -926,6 +926,148 @@ class UploadAttemptStoreTests(unittest.TestCase):
                 self.lua.globals().failAt = None
                 self.assertEqual(self.call("acknowledgeAlbum", ack).state, "album_acknowledged")
 
+    def initial_album_evidence(self, state, photoset_id):
+        return {
+            "fgaAlbumBindingId": "album-1",
+            "fgaPhotoBindingId": "binding-1",
+            "albumBindingRevision": 3,
+            "flickrPhotosetId": self.null if photoset_id is None else photoset_id,
+            "hostedObligationState": state,
+            "fgaPublishServiceId": "service-1",
+            "localCollectionIdentifier": "34",
+            "linkedFlickrRevision": 6,
+        }
+
+    def test_initial_obligation_acknowledgements_retire_exact_hosted_responsibility(self):
+        for state, photoset_id in (("waiting_for_album", None), ("attachment_pending", "set-1")):
+            for unbound in (False, True):
+                with self.subTest(state=state, unbound=unbound):
+                    self.setUp()
+                    if unbound:
+                        self.album = self.table(
+                            {"fgaAlbumBindingId": self.null, "albumBindingRevision": self.null}
+                        )
+                    self.ready_result(("group-1",))
+                    self.catalog_ack()
+                    self.proof()
+                    evidence = self.table(self.initial_album_evidence(state, photoset_id))
+                    self.assertEqual(
+                        self.call("acknowledgeAlbum", evidence).state, "album_acknowledged"
+                    )
+                    self.assertEqual(self.call("retire", "consumed").state, "retirement_refused")
+                    self.assertEqual(len(self.document()["attempts"]), 1)
+                    self.group_ack()
+                    self.assertEqual(self.call("retire", "consumed").state, "retired")
+                    entry = json.loads(
+                        self.lua.globals().photoProperties.publishedPhotoCorrelations
+                    )["entries"][0]
+                    self.assertEqual(entry["hostedObligationState"], state)
+                    self.assertEqual(entry["flickrPhotosetId"], photoset_id)
+                    self.assertEqual(entry["albumBindingRevision"], 3)
+                    self.assertEqual(self.inspect().classification, "published_correlation")
+
+    def test_initial_obligation_evidence_requires_exact_scope_proof_and_identity(self):
+        for state, photoset_id in (("waiting_for_album", None), ("attachment_pending", "set-1")):
+            self.setUp()
+            self.ready_result()
+            good = self.initial_album_evidence(state, photoset_id)
+            self.assertEqual(
+                self.call("acknowledgeAlbum", self.table(good)).state, "correlation_invalid"
+            )
+            self.catalog_ack()
+            self.proof()
+            for field, wrong in (
+                ("fgaAlbumBindingId", "foreign-album"),
+                ("fgaPhotoBindingId", "foreign-photo"),
+                ("fgaPublishServiceId", "foreign-service"),
+                ("localCollectionIdentifier", "034"),
+                ("linkedFlickrRevision", 5),
+                ("albumBindingRevision", 1),
+                ("hostedObligationState", "materialization_pending"),
+                ("hostedObligationState", self.null),
+                ("flickrPhotosetId", "set-1" if photoset_id is None else self.null),
+            ):
+                with self.subTest(state=state, field=field):
+                    evidence = dict(good)
+                    evidence[field] = wrong
+                    before = self.raw()
+                    self.assertEqual(
+                        self.call("acknowledgeAlbum", self.table(evidence)).state,
+                        "correlation_invalid",
+                    )
+                    self.assertEqual(self.raw(), before)
+                    self.assertEqual(self.inspect().record.albumObligation.state, "pending")
+            self.assertEqual(self.call("retire", "consumed").state, "retirement_refused")
+
+    def test_initial_obligation_cross_fields_are_checked_on_full_and_compact_reopen(self):
+        for state, photoset_id in (("waiting_for_album", None), ("attachment_pending", "set-1")):
+            for compact in (False, True):
+                with self.subTest(state=state, compact=compact):
+                    self.setUp()
+                    self.ready_result()
+                    self.catalog_ack()
+                    self.proof()
+                    self.call(
+                        "acknowledgeAlbum",
+                        self.table(self.initial_album_evidence(state, photoset_id)),
+                    )
+                    if compact:
+                        self.assertEqual(self.call("retire", "consumed").state, "retired")
+                        raw = self.lua.globals().photoProperties.publishedPhotoCorrelations
+                        value = json.loads(raw)
+                        target = value["entries"][0]
+                    else:
+                        value = self.document()
+                        target = value["attempts"][0]["albumObligation"]
+                    target["flickrPhotosetId"] = "set-1" if photoset_id is None else None
+                    if compact:
+                        self.lua.globals().photoProperties.publishedPhotoCorrelations = json.dumps(
+                            value
+                        )
+                    else:
+                        self.put(value)
+                    self.assertEqual(
+                        self.inspect().state,
+                        "photo_metadata_invalid" if compact else "stored_invalid",
+                    )
+
+    def test_initial_obligation_failed_and_uncertain_storage_never_grants_retirement(self):
+        for state, photoset_id in (("waiting_for_album", None), ("attachment_pending", "set-1")):
+            with self.subTest(state=state):
+                self.setUp()
+                self.ready_result()
+                self.catalog_ack()
+                self.proof()
+                evidence = self.table(self.initial_album_evidence(state, photoset_id))
+                before = self.raw()
+                self.lua.globals().failAt = "catalog"
+                self.assertEqual(
+                    self.call("acknowledgeAlbum", evidence).state, "storage_unavailable"
+                )
+                self.assertEqual(self.raw(), before)
+                self.lua.globals().failAt = None
+                self.assertEqual(self.inspect().record.albumObligation.state, "pending")
+                fence = self.fence()
+                self.lua.execute(
+                    "afterGate=function() local p=properties; "
+                    'p.uploadAttemptRecoveryStore=p.uploadAttemptRecoveryStore.." " '
+                    "end"
+                )
+                self.assertEqual(
+                    self.call("acknowledgeAlbum", evidence, fence=fence).state, "write_unconfirmed"
+                )
+                self.assertEqual(len(self.document()["attempts"]), 1)
+                self.assertIsNone(self.lua.globals().photoProperties.publishedPhotoCorrelations)
+                # Only a fresh, valid read can establish whether the uncertain write committed.
+                self.assertEqual(self.inspect().record.albumObligation.state, "acknowledged")
+                for fail_at in ("photo", "catalog"):
+                    before = self.raw()
+                    self.lua.globals().failAt = fail_at
+                    self.assertEqual(self.call("retire", "consumed").state, "storage_unavailable")
+                    self.assertEqual(self.raw(), before)
+                    self.assertIsNone(self.lua.globals().photoProperties.publishedPhotoCorrelations)
+                self.lua.globals().failAt = None
+
 
 if __name__ == "__main__":
     unittest.main()

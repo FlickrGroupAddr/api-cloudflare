@@ -30,11 +30,16 @@ local checkpointFields={
     catalogPublication=fields("state acknowledgedAt flickrPhotoId"),
     albumObligation=fields("state acknowledgedAt fgaAlbumBindingId fgaPhotoBindingId albumBindingRevision flickrPhotosetId hostedObligationState"),
     groupHandoff=fields("state acknowledgedAt fgaPhotoBindingId verificationRevision acceptedGroupCount allItemsValidated")}
--- The accepted album contract currently names membership_verified explicitly.
--- Other truthful natural-key admission states must be supplied by its reviewed
--- client validator, never inferred here from a generic HTTP success.
+-- Accepted #0092 observations require validated exact hosted obligation evidence.
+-- Acknowledgement records durable responsibility, not inferred membership.
 local function albumState(v)
-    return v=="membership_verified" or v=="membership_reconciliation_pending" or v=="album_attachment_needs_attention"
+    return v=="waiting_for_album" or v=="attachment_pending" or v=="membership_verified"
+        or v=="membership_reconciliation_pending" or v=="album_attachment_needs_attention"
+end
+local function albumIdentityValid(state,id)
+    if state=="waiting_for_album" then return id==N end
+    if state=="attachment_pending" or state=="membership_verified" then return C.opaque(id) end
+    return nullable(id,C.opaque)
 end
 local function checkpointValid(kind,v,r)
     if v==N then return true end
@@ -59,7 +64,7 @@ local function checkpointValid(kind,v,r)
     if kind=="albumObligation" then
         if (v.fgaAlbumBindingId==N)~=(v.albumBindingRevision==N) then return false end
         if ack and (not C.opaque(v.fgaAlbumBindingId) or not positive(v.albumBindingRevision)) then return false end
-        if ack and v.hostedObligationState=="membership_verified" and v.flickrPhotosetId==N then return false end
+        if not albumIdentityValid(v.hostedObligationState,v.flickrPhotosetId) then return false end
     end
     if kind=="catalogPublication" and v.flickrPhotoId~=N and v.flickrPhotoId~=r.flickrPhotoId then return false end
     if kind=="groupHandoff" then
@@ -172,7 +177,7 @@ local function entryValid(e)
         or not C.opaque(e.flickrPhotoId) or not C.opaque(e.fgaPhotoBindingId) or not C.opaque(e.fgaAlbumBindingId)
         or not positive(e.linkedFlickrRevision) or not positive(e.verificationRevision) or not positive(e.albumBindingRevision)
         or not nullable(e.flickrPhotosetId,C.opaque) or not albumState(e.hostedObligationState)
-        or (e.hostedObligationState=="membership_verified" and e.flickrPhotosetId==N)
+        or not albumIdentityValid(e.hostedObligationState,e.flickrPhotosetId)
         or (e.resultKind~="returned_upload_id" and e.resultKind~="photographer_assertion")
         or (e.groupHandoffAcknowledged~=true and e.groupHandoffAcknowledged~=N)
         or not C.time(e.completedAt) then return false end

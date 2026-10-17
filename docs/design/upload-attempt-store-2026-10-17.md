@@ -152,25 +152,24 @@ invented authorization/marker. A history-attention record cannot retire as a
 successful upload because its original group choice remains unknown. Unrecognized
 history loss remains the accepted operational limitation.
 
-## Concrete contract gap and safe refusal
+## Accepted initial obligation observations
 
-The accepted album-write reconciliation contract explicitly names obligation
-states `membership_verified`, `membership_reconciliation_pending` and
-`album_attachment_needs_attention`. Those are the only accepted hosted-state
-strings this implementation acknowledges. `membership_verified` additionally
-requires a non-null photoset ID. None is inferred from admission or a 202.
+Terry accepted the [#0092 status wire](../../../architecture-design/docs/proposals/album-status-create-repair-wire-2026-10-17.md)
+on 2026-10-17. Its exact `waiting_for_album` and `attachment_pending` states now
+join the three accepted reconciliation states in the strict checkpoint and
+completed-correlation vocabulary. Waiting retains a null photoset identity;
+attachment pending and verified membership require a non-null identity. Existing
+reconciliation/attention observations may retain null or committed identity.
+Both full-record and compact-metadata validation enforce these combinations.
 
-The accepted album-scoped publish contract requires a durable obligation while
-materialization is pending, but does not give that initial obligation an exact
-wire-state enum. Proposed #0091 vocabulary cannot fill that authority gap.
-Consequently, the store retains the pending local album checkpoint with null
-hosted state and refuses an invented initial acknowledgement. Verified
-membership and the other explicitly accepted observations can be represented.
-Compaction immediately after an unmaterialized obligation's admission remains
-unavailable pending the existing #0092 protocol acceptance boundary. The #0091
-proposal's `waiting_for_album` and `attachment_pending` remain proposed; no
-duplicate owner decision or invented enum is introduced here. This is an unresolved #0095
-acceptance limitation, not a passed transition or a request to weaken retention.
+Acknowledging durable hosted responsibility permits retirement after every other
+applicable checkpoint and choice disposition succeeds. It does not assert album
+membership: the compact entry retains the exact hosted state and nullable ID.
+Admission success alone still supplies no state or membership evidence. The
+adapter must validate the closed hosted binding/obligation/status projection and
+its exact natural key before passing the scoped acknowledgement. Missing,
+malformed, uncertain or foreign evidence leaves the local checkpoint pending
+and the full record retained. No network operation or schema field was added.
 
 ## Verification and qualification boundary
 
@@ -202,12 +201,8 @@ and allows legitimate hosted revision advances. Numeric checks precede lossy
 JSON decoding. Final verification passed 39 actual Lua tests, independent scope/
 retirement probes, 10,005 exact-decimal comparisons and SDK15.3 parsing.
 
-No material code finding remains. Full #0095 completion still depends on the
-existing #0092 initial-obligation vocabulary decision. #0095 stays Ready for Work
-with that explicit relationship; it does not belong in the Blocked lane. The reviewed canonical
-proposal is architecture commit `403e603`,
-`docs/proposals/album-status-create-repair-wire-2026-10-17.md`. After acceptance,
-add only the accepted initial states with focused acknowledgement/retirement
-regressions and independent High re-review. Until then, retain pending records
-and refuse invented acknowledgements. This is not a request to weaken retention
-or a passed initial-admission compaction transition.
+The #0092 acceptance resolved the initial-state vocabulary dependency. The
+bounded follow-up adds focused positive acknowledgement/retirement regressions,
+exact scope/proof/ID refusal checks and full/compact reopen validation. Fresh
+independent High review and the parent's integration receipt own the final
+handoff. Native qualification remains separate as described above.
