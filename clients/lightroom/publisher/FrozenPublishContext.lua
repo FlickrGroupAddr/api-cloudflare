@@ -18,7 +18,7 @@ end
 
 -- verifyTarget is the owning provider's fresh #0090 verified identity boundary.
 -- isOwner is its current dispatcher ownership predicate, never an invented lease.
-function M.new(d,exportContext)
+local function construct(d,exportContext,choiceFactory)
     if type(d)~='table' or type(exportContext)~='table' or d.plugin==nil
         or type(d.pcall)~='function' or type(d.activeCatalog)~='function'
         or d.activationToken==nil or type(d.currentActivation)~='function'
@@ -90,7 +90,7 @@ function M.new(d,exportContext)
                     or (catalog:findPhotoByUuid(ownershipScope.photoUuid)==photo
                         and d.isOwner(C.clone(ownershipScope),ownerNumber)==true))
             end
-            local adapter,reason=Choice.new({plugin=d.plugin,call=call,
+            local adapter,reason=choiceFactory({plugin=d.plugin,call=call,
                 activeCatalog=function() return choiceCurrent() and catalog or nil end,
                 cancelled=function() return not choiceCurrent() end},exportContext,photo)
             if not adapter then return fail(reason) end
@@ -185,5 +185,11 @@ function M.new(d,exportContext)
         end)
     end
     return S
+end
+function M.new(d,exportContext)
+    return construct(d,exportContext,Choice.new)
+end
+function M.newQualification(d,exportContext)
+    return construct(d,exportContext,Choice.newQualification)
 end
 return M

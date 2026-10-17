@@ -46,8 +46,25 @@ export function signedRead(method:"flickr.photos.getInfo"|"flickr.auth.oauth.che
  oauth.getNonce=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,"0")).join("");
  return new Request(url,{method:"GET",headers:{...oauth.toHeader(oauth.authorize({url:String(url),method:"GET"},{key:pair.token,secret:pair.tokenSecret})),Accept:"application/json"},redirect:"manual"});
 }
+export type AlbumRestMethod = 'flickr.photos.getAllContexts' | 'flickr.photosets.getInfo' | 'flickr.photosets.create';
+/** Fixed operation signer; the caller supplies an already verified token pair.
+ * No transport, credential lookup, dispatch marker or runtime binding lives here.
+ */
+export function signedAlbumRest(method:AlbumRestMethod,parameters:Record<string,string>,pair:Pair,app:Application):Request {
+ const expected=method==='flickr.photos.getAllContexts'?['photo_id']:method==='flickr.photosets.getInfo'?['photoset_id']:method==='flickr.photosets.create'?['title','primary_photo_id']:null;
+ if(!expected||!parameters||typeof parameters!=='object'||Array.isArray(parameters)||Object.keys(parameters).length!==expected.length||expected.some(key=>!Object.hasOwn(parameters,key)||typeof parameters[key]!=='string'||parameters[key].length===0||parameters[key].length>4096||/\p{Cs}/u.test(parameters[key])))throw new FlickrReadError('upstream_unavailable');
+ const data:Record<string,string>={method,format:'json',nojsoncallback:'1'};
+ for(const key of expected)data[key]=parameters[key]!;
+ const post=method==='flickr.photosets.create',verb=post?'POST':'GET',url=new URL('https://www.flickr.com/services/rest/');
+ if(!post)for(const [key,value] of Object.entries(data))url.searchParams.set(key,value);
+ const oauth=new OAuth({consumer:{key:app.consumerKey,secret:app.consumerSecret},signature_method:'HMAC-SHA1',hash_function:hmac});
+ oauth.getNonce=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+ const headers:Record<string,string>={...oauth.toHeader(oauth.authorize({url:String(url),method:verb,...(post?{data}:{})},{key:pair.token,secret:pair.tokenSecret})),Accept:'application/json'};
+ if(post)headers['Content-Type']='application/x-www-form-urlencoded';
+ return new Request(url,{method:verb,headers,redirect:'manual',...(post?{body:new URLSearchParams(data).toString()}:{})});
+}
 export type FlickrFetch=(request:Request)=>Promise<Response>;
-export async function readJson(request:Request,fetcher:FlickrFetch):Promise<Record<string,unknown>> {
+export async function readJson(request:Request,fetcher:FlickrFetch,decoder?:(raw:string)=>unknown):Promise<Record<string,unknown>> {
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),10_000);
  try {
   const response=await fetcher(new Request(request,{signal:controller.signal}));
@@ -56,7 +73,7 @@ export async function readJson(request:Request,fetcher:FlickrFetch):Promise<Reco
   const reader=response.body.getReader();let size=0;const chunks:Uint8Array[]=[];
   for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>262144){await reader.cancel();throw new FlickrReadError("upstream_unavailable");}chunks.push(value);}
   const bytes=new Uint8Array(size);let offset=0;for(const part of chunks){bytes.set(part,offset);offset+=part.length;}
-  const value:unknown=JSON.parse(new TextDecoder("utf-8",{fatal:true,ignoreBOM:false}).decode(bytes));
+  const value:unknown=(decoder??JSON.parse)(new TextDecoder("utf-8",{fatal:true,ignoreBOM:decoder!==undefined}).decode(bytes));
   if(!value||typeof value!=="object"||Array.isArray(value))throw new FlickrReadError("upstream_unavailable");
   return value as Record<string,unknown>;
  }catch(error){if(error instanceof FlickrReadError)throw error;throw new FlickrReadError("upstream_unavailable");}

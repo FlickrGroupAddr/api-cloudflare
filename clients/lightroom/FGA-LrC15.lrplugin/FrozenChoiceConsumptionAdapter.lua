@@ -38,7 +38,7 @@ local function failed(state) return {state=state} end
 
 -- context is the owning publisher's exportContext; photo is its exact rendition photo.
 -- call is LrTasks.pcall. Selection/active-source UI is deliberately irrelevant here.
-function Adapter.new(d,context,photo)
+local function construct(d,context,photo,pluginId)
     if type(d)~="table" or d.plugin==nil or type(d.call)~="function"
         or type(d.activeCatalog)~="function" or type(context)~="table"
         or (d.cancelled~=nil and type(d.cancelled)~="function") then return nil,"scope_invalid" end
@@ -52,7 +52,7 @@ function Adapter.new(d,context,photo)
             or type(context.publishedCollectionInfo)~="table"
             or context.publishedCollectionInfo.isDefaultCollection~=false
             or (cancelled and cancelled()) or service:type()~="LrPublishService"
-            or service:getPluginId()~=Core.PLUGIN_ID or album:type()~="LrPublishedCollection"
+            or service:getPluginId()~=pluginId or album:type()~="LrPublishedCollection"
             or album:isSmartCollection()~=false or album:getService()~=service
             or not integer(service.localIdentifier) or not integer(album.localIdentifier) then return nil end
         local id=photo:getRawMetadata("uuid")
@@ -163,5 +163,13 @@ function Adapter.new(d,context,photo)
         end)
     end
     return session
+end
+function Adapter.new(d,context,photo)
+    return construct(d,context,photo,Core.PLUGIN_ID)
+end
+-- Fixed isolated fixture identity; production construction is unchanged.
+function Adapter.newQualification(d,context,photo)
+    return construct(d,context,photo,
+        'com.sixbuckssolutions.fga.providerrender.qualification.lrc15')
 end
 return Adapter

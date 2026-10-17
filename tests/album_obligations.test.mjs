@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sqlStore } from './sql_store.mjs';
+import { materializeAdmissionAlbum } from './album_admission_materialization_fixture.mjs';
 import { legacyAlbumStore, migrateAlbumObligations } from './album_migration_fixture.mjs';
 import { albumBindingRequest } from '../src/album_bindings.ts';
 const obligations = () => import('../src/album_obligations.ts');
@@ -261,10 +262,13 @@ test('production route is default-disabled and authenticates each call before re
 });
 
 test('committed photoset selects attachment-pending for later photos without changing the first receipt', async t => {
-  const f = await fixture(t), primary = row(f, 'primary-photo');
-  f.db.raw.prepare("UPDATE album_bindings SET flickr_photoset_id='retained-photoset',binding_revision=binding_revision+1 WHERE binding_id=?").run(f.binding);
-  const response = await f.call(associate(2)); assert.equal(response.status, 201);
-  const body = await response.json(); assert.equal(body.binding.flickrPhotosetId, 'retained-photoset'); assert.equal(body.binding.bindingRevision, 3);
+  const f = await fixture(t);
+  await materializeAdmissionAlbum(f.db, f.binding, 'retained-photoset');
+  const primary = row(f, 'primary-photo');
+  assert.equal(primary.state, 'membership_verified');
+  assert.equal(primary.obligation_id, f.first.obligation.fgaAlbumObligationId);
+  const response = await f.call(associate(3)); assert.equal(response.status, 201);
+  const body = await response.json(); assert.equal(body.binding.flickrPhotosetId, 'retained-photoset'); assert.equal(body.binding.bindingRevision, 4);
   assert.equal(row(f).state, 'attachment_pending'); assert.deepEqual(row(f, 'primary-photo'), primary);
 });
 

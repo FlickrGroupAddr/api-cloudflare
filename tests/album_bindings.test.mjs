@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sqlStore } from './sql_store.mjs';
+import { materializeAdmissionAlbum } from './album_admission_materialization_fixture.mjs';
 import { albumBindingRequest, ALBUM_BINDINGS_RELEASE_METADATA, ALBUM_BINDINGS_ROUTES } from '../src/album_bindings.ts';
 import { createWorker, ROUTES } from '../src/worker.ts';
 import { credentialDigest, NOW_US_SQL } from '../src/installations.ts';
@@ -221,7 +222,7 @@ test('ordinary SQL cannot rewrite first identity, delete/replace history or reus
     "DELETE FROM album_binding_events", "UPDATE album_binding_events SET state='materialization_pending'", "INSERT OR REPLACE INTO album_binding_events SELECT * FROM album_binding_events"]) {
     const before = albumState(f.db); assert.throws(() => f.db.raw.exec(sql), sql); assert.deepEqual(albumState(f.db), before);
   }
-  f.db.raw.exec("UPDATE album_bindings SET flickr_photoset_id='photoset',binding_revision=binding_revision+1");
+  await materializeAdmissionAlbum(f.db, albumState(f.db).album_bindings[0].binding_id, 'photoset');
   for (const id of ["NULL", "'replacement'"]) assert.throws(() => f.db.raw.exec(`UPDATE album_bindings SET flickr_photoset_id=${id},binding_revision=binding_revision+1`));
   assert.equal((await f.call(ensure(), { local: 'second-album' })).status, 201);
   assert.throws(() => f.db.raw.exec("UPDATE album_bindings SET flickr_photoset_id='photoset',binding_revision=binding_revision+1 WHERE local_collection_id='second-album'"));

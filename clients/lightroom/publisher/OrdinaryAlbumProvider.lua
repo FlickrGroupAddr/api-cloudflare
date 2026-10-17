@@ -29,7 +29,7 @@ local function identityValid(value)
         and not id:find('[A-F]')
 end
 
-function Provider.new(deps)
+local function construct(deps,qualification)
     assert(type(deps) == 'table' and type(deps.pcall) == 'function'
         and type(deps.verifyService) == 'function' and type(deps.pluginId) == 'string')
     local callbacks = {
@@ -137,7 +137,9 @@ function Provider.new(deps)
         contextDeps.verifyTarget = function(context)
             return callbacks.validateTarget(context.propertyTable, context)
         end
-        local contexts, reason = require('FrozenPublishContext').new(contextDeps, exportContext)
+        local contextFactory = require('FrozenPublishContext')
+        local contexts, reason = (qualification and contextFactory.newQualification
+            or contextFactory.new)(contextDeps, exportContext)
         if not contexts then return nil, reason end
         local prepared, results, finished = {}, {}, {}
         local walked = deps.pcall(function()
@@ -220,4 +222,13 @@ function Provider.new(deps)
     return callbacks
 end
 
+function Provider.new(deps)
+    return construct(deps,false)
+end
+function Provider.newQualification(deps)
+    local fixed={}
+    for k,v in pairs(deps) do fixed[k]=v end
+    fixed.pluginId='com.sixbuckssolutions.fga.providerrender.qualification.lrc15'
+    return construct(fixed,true)
+end
 return Provider
