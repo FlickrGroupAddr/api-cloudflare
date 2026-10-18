@@ -1,10 +1,12 @@
 # Isolated private snapshot qualification decision packet
 
-Date: 2026-10-18. Ticket #0172. Status: **offline preparation; live action
-ungranted**. Accepted #0170 source is reused without changing its provider
-operator, credential loader, reader or codec. No current account, token, private
-artifact, endpoint or resource was inspected for this packet. No hosted result,
-effective grant, approval, custody qualification or cleanup pass is asserted.
+Date: 2026-10-18. Ticket #0172. Status: **narrow conditions accepted; private
+draft prepared; final live action ungranted**. Accepted #0170 source is reused
+without changing its provider operator, credential loader, reader or codec.
+Terry accepted the narrow experiment's conditions and preparation using retained
+grant metadata. No new account request, credential-content read, endpoint
+observation or resource action occurred. Hosted qualification, actual evidence
+custody and cleanup remain unproved.
 
 This packet makes one bounded source candidate reviewable for a later owner
 decision. The [reader operations record](private-full-snapshot-reader-2026-10-18.md)
@@ -55,7 +57,9 @@ forward silently.
 The reused entry point is `scripts.qualify_private_d1_snapshot.qualify`. Its
 existing CLI can perform real HTTPS after genuine exact inputs and consent;
 **do not invoke it with filled inputs until every decision below is settled**.
-No new operator or credential-delivery path is introduced by this work.
+No new operator or credential-delivery path is introduced by this work. Terry's
+acceptance of conditions does not supply the final sequenced caller window,
+private custody approval or executable consent.
 
 The finite recipe allows at most **26 requests**, in this order, with no retry,
 redirect, DNS lookup, account listing, existing-resource lookup, resume or
@@ -105,22 +109,38 @@ own finite approved scope.
 
 ## Owner decisions required before live execution
 
-Every row is currently **unknown / ungranted**. Owner/operator identity, private
-retrieval references and decisions must be genuine, independently reviewed
-records, never values invented to satisfy a hash validator.
+Terry accepted the narrow settlement/uncertainty/cleanup conditions and reuse of
+the existing publisher credential's D1 Write grant **for D1 actions only**. The
+credential also has Workers Write capability; that broader capability was
+acknowledged and remains unused by this experiment. Retained metadata review
+passed its account, binding, scope and exact-expiry checks. This supplies no new
+Workers action, grant expansion or production exception.
+
+An ACL-protected private draft now retains the reviewed account, credential
+fingerprint, effective policy evidence and provider timestamps without rounding.
+The fingerprint supplies the credential binding without reading token contents.
+A fresh run name is prepared; no database UUID is supplied. The closed draft
+packet keeps caller times, actual custody pin and actual sink bindings null;
+the separate draft consent remains false. Actual identifiers, policies,
+fingerprints, timestamps and paths remain only in protected private records.
+
+The following checklist distinguishes retained inputs from remaining decisions.
+Owner/operator identity, private references and decisions must be genuine records,
+never values invented to satisfy a hash validator.
 
 | Required input or decision | Exact record to settle |
 | --- | --- |
-| Operator and authority | Named primary operator; Terry's actual decision reference covering this candidate, request ceiling and proposed cleanup limits |
-| Account and fresh run | Independently established permitted account ID; fresh 32-hex run ID; exact numeric endpoint provenance; prohibit a supplied existing database ID |
+| Operator and authority | Narrow conditions and preparation accepted; parent owns final sequencing, live approval and primary operation |
+| Account and fresh run | Retained reviewed account bound privately; fresh 32-hex run/name prepared; numeric address retained from earlier metadata plan rather than freshly observed; no supplied existing database ID |
 | Source/tooling | Independently retained recipe pin and qualifier source map; pinned uv/Python/lock and independent source review |
+| Management response policy | Complete #0178 before final live readiness; qualifier and reader still use the strict management transport. Any source change needs fresh source/recipe pins and independent review before a later run |
 | Caller window | Exact UTC `startsAt` and `expiresAt`, at most 20 minutes; no appointment is inferred |
-| Credential | Exact credential delivery file/reader authority, credential binding retained privately, real provider expiry and named revocation owner/deadline |
-| Effective grants | Independent evidence of actual D1 Write scope and every broader effective capability; explicit permission for fresh create, fixed seed, reads, exact delete and single GET |
+| Credential | Existing credential reuse accepted for D1 actions; retained fingerprint and exact provider expiry bound privately; parent must settle final delivery authority and revocation owner/deadline |
+| Effective grants | Retained independent metadata review passed; D1 Write reused for only fresh create, fixed seed, reads, exact delete and one GET; Workers Write acknowledged unused |
 | Custody | Named owner/custodian, three distinct new absolute sink paths, actual ACL/encryption/no-sync/backup/access assessment, evidence pin and review access |
 | Retention | Finite evidence/partial-file retention and review deadline, responsible disposer, backup/recovery/telemetry limits and disposal evidence; no secure-erasure claim without proof |
-| SQL settlement | Decide whether documented provider terminal responses establish settlement sufficiently for this experiment; if evidence is missing, defer live work or first approve a separate bounded settlement qualification |
-| Cleanup | Explicitly accept the limited DELETE/GET observation and retained uncertainty, or defer pending independent absence/cleanup qualification; never relabel 404/7404 as absence |
+| SQL settlement | Accepted only for this narrow experiment: successful complete provider SQL responses suffice to proceed; unknown SQL/read outcome stops and retains, without deletion or replay; production requirements remain unchanged |
+| Cleanup | Limited DELETE/GET observation and possible cleanup-unconfirmed outcome accepted; any follow-up requires separate finite authority; 404/7404 remains an observation rather than absence |
 | Unknown outcomes | Named escalation owner and finite decision deadline for an unacknowledged create, unknown SQL/read/delete/GET or incomplete private write; no guessed resource ID, replay or automatic cleanup |
 
 The account/token/grant/custody/source pins bind the **private** execution packet.
@@ -136,32 +156,34 @@ retention and cleanup. Hash syntax is no substitute for their acceptance.
 
 The D1 Write token's actual effective scope may be broader than this narrow
 request surface. This packet supplies no new token restriction or enforcement
-guarantee. Do not inspect or claim those grants until separate exact authority
-exists. Token contents, authentication-derived bindings, account/resource
+guarantee. Retained grant review was explicitly authorized for preparation;
+no new provider observation or credential-content access follows from it.
+Token contents, authentication-derived bindings, account/resource
 identities, private paths and private evidence digests stay out of public
 documents, chat, tickets, logs and commit history.
 
-## Reviewable redline choices
+## Accepted conditions and remaining redlines
 
-The conventional recommendation is to **defer live execution** until the exact
-inputs and settlement/cleanup/custody decision are complete. Terry can choose
-one of these concrete next actions without treating preparation as execution:
+Terry selected **accept the conditions and prepare the packet**. This settles
+the narrow SQL-response, unknown-outcome and cleanup limits described above;
+the immutable source recipe and its pin are unchanged. It does not constitute
+the final run approval or a production preservation/cleanup exception.
 
-1. **Keep source preparation only.** Retain this packet and independent review;
-   record the missing inputs above. No account request, credential read, new D1
-   resource or private snapshot is authorized.
-2. **Approve the narrow experiment after filling every required decision.**
-   Explicitly accept possible resource retention after an uncertain operation,
-   `cleanupVerified=false` even on nominal completion, and the separate finite
-   reconciliation/revocation decision required afterward. The existing source
-   remains the only operator and the ceiling stays 26. This is not a production
-   preservation or cleanup exception.
-3. **Require stronger settlement/cleanup proof first.** Approve a separate
-   finite experiment specifying the exact allowed observation or reconciliation,
-   source, identities, time/request budget and retention. Do not silently append
-   requests, implement a new live operator here, or extend this recipe's window.
+The prepared private proposal supplies concrete custody, retention, review,
+escalation and credential-disposition choices. Its proposed evidence location
+is outside known checkouts; the directory has not been created or qualified.
+Only the draft directory's protected ACL was checked. Actual evidence ACLs,
+encryption, sync/backup behavior and review access remain unverified. Proposed
+retention and deadlines remain unaccepted rather than fabricated actual policy.
 
-These are proposed choices, not recorded owner selections. The publisher-only
+Before live execution, the parent must sequence this experiment with the other
+approved work, fix the exact finite caller window, settle those private custody
+and disposition choices, and retain genuine consent to the final packet digest.
+There is no appointment or ready flag. If stronger settlement or cleanup proof
+is desired, it needs a separate finite experiment; do not append requests,
+silently extend this window or replace the existing operator.
+
+The publisher-only
 synthetic disposal exception **does not apply** to this database experiment.
 Neither a run label nor deletion of a test database proves settlement,
 preservation, credential revocation, private artifact erasure or removal from
@@ -203,7 +225,7 @@ the pinned frozen uv environment. Checks include source/recipe tampering,
 independent-pin mismatch, IO boundaries, invalid consent before credential
 delivery, existing-ID rejection, fixed budgets and absence of invented evidence.
 Scoped Ruff check/format and Pyright passed. Those are local source checks;
-all hosted measurements and action-time grants remain unavailable.
+all hosted measurements and final action-time consent remain unavailable.
 
 ## Independent review record
 
@@ -211,5 +233,16 @@ Fresh independent High review passed the 54 focused/regression tests, scoped
 Ruff/format/Pyright checks and the independently recomputed documented recipe
 pin. The parent separately passed the thirteen new preparation tests. No
 material finding remains in the offline packet. Source acceptance and these
-local checks do not supply the missing private inputs, settlement/cleanup/
-custody decisions, actual provider measurements or live authorization above.
+local checks do not supply final custody/window decisions, actual provider
+measurements or live authorization. The later accepted narrow conditions and
+private draft preparation passed a fresh independent High handoff review. It verified retained bindings and exact metadata, source/recipe pins, false consent, deliberately unset execution inputs, draft ACLs and privacy boundaries. The management-response prerequisite above was corrected and rechecked; no material finding remains. No live or credential-content access occurred.
+### Management transport prerequisite
+
+The accepted cookie-discard policy applies only to metadata collection. The
+qualifier and reader still use the strict management-response transport. #0178
+must qualify the applicable response policy before this experiment's final live
+readiness; the draft remains ungranted meanwhile. This records a known policy
+gap, not an observed D1 creation response or a prediction of a failed request.
+Do not borrow the metadata exception implicitly. Any resulting source change
+requires freshly prepared source/recipe pins and independent review; the current
+closed draft cannot silently adopt it.
