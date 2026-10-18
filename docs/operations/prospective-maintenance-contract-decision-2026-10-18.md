@@ -1,13 +1,13 @@
 # Prospective maintenance baseline: exact source-contract decision
 
-Date: 2026-10-18. Ticket #0181. Status: **Proposed owner decision; not accepted,
-implemented or qualified.** This packet recommends a specific future source
+Date: 2026-10-18. Ticket #0181. Status: **Accepted source contract; implementation and qualification pending.**
+Terry accepted this specific future source
 contract, called **PMB-1** below. That label identifies this proposal, not an
 existing build, deployed configuration, production schema or captured baseline.
 
-## Recommended decision
+## Accepted decision
 
-Accept PMB-1 as the contract for a future maintenance-capable retained artifact:
+Terry accepted PMB-1 as the contract for a future maintenance-capable retained artifact:
 preinstalled D1 mutation guards, a durable singleton control, explicit outage,
 object-local enforcement for every included Durable Object, complete typed
 equality, and the existing ordinary current-installation GET as the successful
@@ -25,7 +25,7 @@ supplies rationale, writer coverage and a proposed finite fault allocation.
 #0171 accepted planning only; #0179 completed the reviewed design. This packet
 supplies the concrete contract choice left open by those records.
 
-### Exact acceptance wording for Terry
+### Adopted contract scope and actual owner decision
 
 > I accept PMB-1 in this document as the prospective maintenance source contract,
 > including its D1 control schema and fixed transitions, complete guard coverage,
@@ -37,8 +37,12 @@ supplies the concrete contract choice left open by those records.
 > provider access, schema installation, production migration/capture/deployment,
 > a cloud experiment, cleanup, reopening, or any relaxation of an existing gate.
 
-This is a recommendation awaiting an actual recorded owner decision. A review
-pass, ticket move, source merge or copied approval sentence is not acceptance.
+On 2026-10-18, Terry answered question 0 of
+`call_f3e424b7d6f3428fbfbb7a8c27f7c390` with **Accept PMB-1 source contract
+(Recommended)**. That genuine response adopts this source contract and the
+scope above; it is not inferred from review, publication or a ticket move.
+Implementation and independently qualified source remain pending. No private,
+provider, installation, production or live action authority follows.
 If Terry chooses an amendment, record its exact replacement clause and owning
 contract before relying on it. No generic reapproval is required for faithful
 implementation or a lossless codec that preserves the existing typed contract.
@@ -411,9 +415,9 @@ schema/object coverage cannot fit the existing resource/budget allocation,
 A miniature D1 fixture qualifies only the mechanism it actually exercises.
 
 All materialization, preservation, restoration and deployment readiness remains
-false. This packet is ready for owner judgment only after fresh independent
-High review of these concrete clauses. Owner acceptance will settle the source
-contract decision; it will not qualify the barrier or authorize an experiment.
+false. Fresh independent High review passed these concrete clauses, followed by
+Terry's actual source-contract acceptance. That decision does not qualify the
+barrier or authorize an experiment.
 ## Independent source-contract review
 
 Fresh independent High review passed PMB-1's concrete schema/transition, guard,
@@ -421,5 +425,10 @@ future-artifact and existing authenticated-check clauses, authority boundaries,
 full equality and remaining all-store/REAL qualification gates. No actionable
 finding remains. Frozen public/staged bytes matched; source and local-reference
 checks were static. No SQL, guard, private-data, provider or native operation was
-performed. PMB-1 remains Proposed until Terry makes the actual contract decision;
-review and publication alone do not accept it.
+performed. That review preceded Terry's actual source-contract acceptance recorded above;
+review and publication alone did not accept it.
+
+Accepted-source follow-ups are #0185 (unregistered D1 candidate), #0186
+(unregistered object-local candidate), #0187 (exact isolated packet) and #0188
+(later exact action decision). Their dependencies remain explicit on #0182;
+this source-contract acceptance does not complete actual qualification.
