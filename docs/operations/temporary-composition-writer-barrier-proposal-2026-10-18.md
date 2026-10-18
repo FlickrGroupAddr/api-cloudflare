@@ -1,8 +1,9 @@
 # Temporary composition: all-writer barrier decision proposal
 
-Date: 2026-10-18. Ticket #0171. Status: **Proposed; exact retained-original
-attempt remains NO-GO**. This is a source-based design and owner-decision
-candidate, not an implemented barrier, provider qualification or action packet.
+Date: 2026-10-18. Ticket #0171. Status: **Prospective baseline planning direction
+accepted; barrier mechanism Proposed, unimplemented and unqualified; exact
+retained-original attempt remains NO-GO**. This is a source-based design and
+scoped owner-decision record, not a qualified barrier or action packet.
 No private artifact, database, credential, account configuration or native state
 was read. No provider/account request or mutation was made.
 
@@ -15,11 +16,12 @@ Keep the complete baseline unavailable and materialization, preservation,
 restoration and deployment readiness false. This is an evidence/implementation
 gap; it is not a finding that Cloudflare cannot satisfy the requirement.
 
-The simplest safe present disposition is to preserve the original and stop the
-attempt. If Terry wants an engineering path forward, the concrete alternative
-below is a separately authorized prospective maintenance baseline, qualified
-before any new attempt. That alternative is **unselected** and cannot be used
-to relabel a changed artifact or schema as the historical original.
+Preserve the original and stop the historical attempt. Terry accepted design
+and isolated qualification planning for the prospective maintenance baseline
+below on 2026-10-18. Preinstalled write guards and an explicit maintenance outage
+are the selected planning direction. The mechanism remains Proposed and must
+be independently qualified before any separately authorized future attempt.
+A changed artifact or schema cannot be relabeled as the historical original.
 
 Controlling sources remain:
 
@@ -139,11 +141,13 @@ declare every authenticated GET either safe or necessarily mutating.
 
 ## Concrete alternative: prospective maintenance baseline
 
-**Proposed and unselected.** Separate barrier preparation from the historical
-attempt. First design, independently review and qualify persistent storage
-guards on isolated synthetic resources. Any production migration/install and
-new baseline then require their own explicit owner-approved action packet.
-Nothing in this document authorizes those actions.
+**Planning direction accepted; mechanism Proposed, unimplemented and
+unqualified.** Separate barrier preparation from the historical attempt.
+Design and plan independent qualification of persistent storage guards using
+isolated synthetic fixtures. Executing a cloud experiment requires a separate
+bounded action decision. Any production migration/install and new baseline
+also require their own explicit owner-approved action packet. Nothing in this
+document authorizes those actions.
 
 The conventional candidate is a preinstalled D1 maintenance-control row with a
 monotonic generation and closed state, plus guards enforcing closure for every
@@ -240,24 +244,52 @@ qualification packet.
 
 ## Exact owner decision and handoff
 
-The next owner choice is narrowly stated:
+On 2026-10-18, Terry selected **"Approve prospective baseline planning
+(Recommended)"** in the explicit owner question. The accepted scope is design
+and isolated qualification planning for a prospective maintenance baseline
+with preinstalled write guards and an explicit maintenance outage.
 
-1. **Retain the historical exact-original target and NO-GO.** Continue only
-   source/evidence work capable of demonstrating a supported external barrier
-   without changing that target or the equality contract. There is currently
-   no qualified mechanism or promise that such evidence can be obtained.
-2. **Authorize design/isolated qualification of a prospective maintenance
-   baseline under the candidate above.** Explicitly permit proposing the
-   preinstalled guard/control schema and maintenance outage; retain full
-   equality and the original packet. Record any later new-artifact/check
-   amendment at the owning contract, with the exact scope Terry accepts,
-   before implementation relies on it. Production migration, capture, access,
-   deployment or cleanup still needs its separate exact action decision.
+- Preserve the historical artifact, restoration packet and complete-state
+  equality requirement. The historical exact-original attempt remains NO-GO.
+- Accept the planning direction only. The candidate mechanism is still
+  Proposed, unimplemented and unqualified; no barrier or readiness gate passes.
+- Any later schema baseline, new artifact or authenticated-check amendment
+  requires separate acceptance at its owning contract before work relies on it.
+- Production migration, private capture/access, deployment, cleanup and cloud
+  experiments are outside this decision. Each needs its separate exact action
+  decision; the finite campaign above is a planning bound, not dispatch authority.
 
-Neither choice is recorded as Terry's acceptance here. If the second choice
-needs altered authenticated-check semantics, enumerate that separate decision
-without quietly coupling it to barrier acceptance. Do not move to an alternative
+If the prospective baseline requires altered authenticated-check semantics,
+enumerate that separate decision explicitly. Do not move to an alternative
 database or redesign safety authority merely because the original lacks a switch.
+
+### One bounded next offline planning follow-up
+
+Follow-up #0179 is P3 and Ready for Work for a source-only prospective barrier design and
+qualification-plan packet. Its inputs are this accepted planning direction,
+the public writer inventory above, the controlling preservation/restoration
+contracts, the reader's finite bounds and the separate #0172 qualification
+packet. Use public source and synthetic descriptions only; do not read private
+artifacts, access an account, implement guards, change schema or run a hosted
+experiment.
+
+The packet must contain:
+
+- A proposed control-row/guard design and coverage matrix for D1, included
+  Durable Object state, direct operators and provider bookkeeping, including
+  close/drain, stale executions, restore and fail-closed recovery limits.
+- A synthetic fixture and fault-case specification within the existing
+  twelve-case allocation and 24-run ceiling, with explicit finite budgets and
+  independent receipts; no runs are executed by this follow-up.
+- An explicit list of any required schema/artifact/authenticated-check owner
+  decisions and a proposed separately authorized action packet for later
+  qualification, including refusal and cleanup dispositions.
+
+Handoff requires fresh independent High review of the design and plan,
+resolved material findings and a clear list of remaining owner/action gates.
+It must leave implementation and qualification false. Keep #0163's writer-barrier
+dependency unresolved until a mechanism is separately accepted, implemented and
+independently qualified; planning acceptance alone cannot satisfy it.
 
 Independent High review must assess census completeness, storage/restore
 reasoning, operator limitations, fault bounds and owner wording before handoff.
@@ -268,10 +300,18 @@ independently qualified mechanism and its separately authorized complete packet.
 
 ## Independent review record
 
-Fresh independent High review found no material issue in the public writer
+The initial independent High review found no material issue in the public writer
 census, authority, all-store/restore limitations, twelve-case campaign or exact
-unselected owner choices. The author and reviewer checked formatting and local
+then-unselected owner choices. The author and reviewer checked formatting and local
 references; the reviewer checked 29 local links and relevant official provider
 references. This is a documentation/source review, not an implemented or hosted
-barrier qualification. The historical target remains NO-GO and the proposal
-remains unaccepted pending Terry's explicit choice.
+barrier qualification. That review predates the owner-decision record above;
+the revised acceptance wording requires its own fresh independent review before
+handoff. Planning direction acceptance leaves the mechanism Proposed,
+unimplemented and unqualified and the historical target NO-GO.
+Fresh independent High review of the accepted planning record passed after the
+owner decision, with no material findings. It checked the planning-only scope,
+historical NO-GO, complete-state equality, unresolved #0163 dependency and bounded
+follow-up. Formatting and 29 local link targets passed. Follow-up #0179 now owns
+the next offline design/qualification plan; creating it grants no implementation
+or experiment authority. No runtime or hosted test was performed for this record.
