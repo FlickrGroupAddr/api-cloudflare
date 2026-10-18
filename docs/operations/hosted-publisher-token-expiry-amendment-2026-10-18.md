@@ -427,3 +427,74 @@ a fresh finite window. Preserve the spent original. Source repair supplies no
 additional provider-call or hosted-test permission; exact successor approval
 remains required. No additional credential read or account request occurred
 during this repair.
+
+## Approved v3 metadata attempt — repeated-header refusal
+
+Terry approved one fresh attempt using the same protected tokens in decision
+`call_0df15e28a975440ca83d6748602fe07c`. Source was
+`62c012ead4c38ed684ce3f99a9a9cebda55244c5`; the reviewed v3 window was
+October 18, 2026, 13:43–14:03 EDT. Genuine approval and existing provisioning
+evidence were retained privately before the sole invocation. The original
+invocation was untouched; there was no new token creation, combined-file read,
+ACL change or DNS operation.
+
+The invocation stopped with the closed diagnostic
+`metadata_failed:request1_transport:refusal:execution_duplicate_response_header`.
+The private journal confirms the started and first-request intents are unknown
+with that same reason; no second or third request intent exists. The private
+evidence tombstone is empty. Returned counts are one attempted transport
+dispatch and zero fully returned/accounted response bytes; zero does not mean
+no network bytes were exchanged.
+
+This establishes a transport parser refusal on a repeated response header
+before token response-body validation. Its name/value was not retained. It
+does not establish token invalidity, actual grant policy/expiry, or that the
+original attempt failed for the same reason. No listing, token-details request,
+resource creation, hosted test or native action occurred. The v3 attempt is
+spent; preserve its claim, journal, authority and empty evidence sink. Existing
+tokens remain protected under Terry's same-token retention direction.
+
+## Proposed metadata response-cookie policy — #0176
+
+Status: **Proposed; requires exact owner acceptance before another live read.**
+The current hosted transport's documented all-duplicate refusal remains the
+default. The candidate adds an explicit metadata-only opt-in that discards
+`Set-Cookie` response fields, including repeats, after checking every raw line's
+syntax and charging all lines/bytes to existing bounds. Cookie values are not
+stored, returned, combined or sent in later requests. All other duplicate fields
+remain refused; metadata diagnostics use only closed categories, never arbitrary
+field names/values. Trailers and framing/authentication/redirect/deadline/wire
+checks retain their strict rules. Existing hosted callers retain the strict
+default.
+
+[RFC 9110 section 5.3](https://www.rfc-editor.org/rfc/rfc9110.html#section-5.3)
+recognizes repeated Set-Cookie as a special case rather than a comma-combined
+field. That supports evaluating this narrow stateless candidate; it does not
+prove the actual refused field was Set-Cookie. Do not claim that the candidate
+has resolved the live refusal before a separately approved measurement. A
+different duplicate still stops the attempt and must not trigger widening,
+fallback or replay.
+
+Offline implementation and raw-wire synthetic qualification must pass fresh
+independent review first. The next exact decision must identify this proposed
+policy, committed source, same private token files, fresh sinks/window and
+bounded three-GET action list. A future source-bound approval cannot be inferred
+from either spent invocation. No provider operation is authorized by this
+proposal or its tests.
+
+## Header-policy candidate verification — #0176
+
+Fresh independent High review passed all 60 focused synthetic tests: 11 raw-wire
+policy tests, 36 collector tests and 13 existing hosted transport regressions.
+The parent separately passed those 13 hosted regressions; pinned Ruff, format
+and Pyright checks passed. The candidate preserves strict hosted defaults and
+all line/byte/trailer/framing limits while explicitly discarding metadata
+Set-Cookie fields. Tests also cover closed duplicate categories, malformed
+fields, invalid opt-in, fragmented deadline expiry and all three request positions.
+
+No open review finding remains. This qualifies the offline candidate only; the
+policy remains Proposed pending exact owner acceptance. It does not identify
+the actual repeated field or prove token validity. Same-token successor plan
+preparation may follow; fresh exact policy/run approval is still required.
+No additional credential content, account request or native input was used
+for this source repair.

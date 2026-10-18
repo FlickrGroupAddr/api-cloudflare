@@ -192,6 +192,23 @@ class MetadataCollectionTests(unittest.TestCase):
             **kwargs,
         )
 
+    def test_concrete_collector_explicitly_selects_cookie_discard_on_all_three_gets(self):
+        def pinned(request, address, clock, guard, *, discard_set_cookie=False):
+            self.assertTrue(discard_set_cookie)
+            self.assertEqual(str(address), "1.1.1.1")
+            self.assertEqual(clock(), self.tick)
+            guard()
+            self.assertNotIn("Cookie", request.headers)
+            self.assertNotIn(b"Cookie:", request.wire)
+            return self.transport(request)
+
+        with patch.object(metadata, "_pinned_https", side_effect=pinned) as concrete:
+            result = self.run_collection(transport=None)
+        self.assertEqual(result["requests"], 3)
+        self.assertEqual(concrete.call_count, 3)
+        self.network.assert_not_called()
+        self.dns.assert_not_called()
+
     def assert_no_evidence(self):
         path = Path(self.plan["evidence"])
         self.assertTrue(not path.exists() or path.read_bytes() == b"")
@@ -272,6 +289,15 @@ class MetadataCollectionTests(unittest.TestCase):
                 metadata.UnknownOutcome("execution_response_incomplete"),
                 "refusal",
                 "execution_response_incomplete",
+            ),
+            *(
+                (metadata.UnknownOutcome(code), "refusal", code)
+                for code in (
+                    "execution_duplicate_response_header_framing",
+                    "execution_duplicate_response_header_content",
+                    "execution_duplicate_response_header_auth",
+                    "execution_duplicate_response_header_other",
+                )
             ),
             (RuntimeError(secret), "unexpected", "unclassified"),
         )

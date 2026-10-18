@@ -91,6 +91,8 @@ _DIAGNOSTIC_REFUSALS = frozenset(
     execution_response_deadline execution_response_wire_limit execution_response_stream_mode
     execution_header_syntax_invalid execution_status_or_interim_refused
     execution_bodyless_status_refused execution_header_limit execution_duplicate_response_header
+    execution_duplicate_response_header_framing execution_duplicate_response_header_content
+    execution_duplicate_response_header_auth execution_duplicate_response_header_other
     execution_trailer_limit execution_trailer_field_refused execution_chunk_separator_invalid
     execution_chunk_size_invalid execution_response_framing_or_redirect
     execution_response_framing_missing execution_response_body_limit execution_response_incomplete
@@ -710,7 +712,12 @@ def run(
                         response = (
                             transport(request)
                             if transport is not None
-                            else _pinned_https(request, address, monotonic, fence)
+                            # Proposed metadata-only stateless compatibility;
+                            # owner acceptance and a fresh exact-source approval
+                            # are required before any later live attempt.
+                            else _pinned_https(
+                                request, address, monotonic, fence, discard_set_cookie=True
+                            )
                         )
                         stage = f"request{index + 1}_validate"
                         used = response.wire_bytes

@@ -174,6 +174,19 @@ ceiling and the remaining monotonic budget within the at-most-20-minute absolute
 caller window. Each response is bounded to 64 KiB wire bytes and the total to
 192 KiB or the implementation's tighter bound.
 
+The #0176 source candidate has an explicit **Proposed** metadata-only cookie
+response policy. It discards Set-Cookie fields, including repeats, only after
+raw syntax and all field-count/wire bounds are checked; it never stores or sends
+cookies. Other repeated fields and forbidden trailer/framing/routing semantics
+remain refused. Strict hosted defaults remain strict. This is a change to the
+metadata reader's prior all-duplicate refusal and must be identified in the
+next exact owner decision; source review alone does not accept or run it. The
+[operation history](hosted-publisher-token-expiry-amendment-2026-10-18.md#proposed-metadata-response-cookie-policy--0176)
+records the actual duplicate-header measurement, standard reference, unknown
+offending field and proposed redline. Do not infer that cookies caused the
+actual failure or that token validity was measured. A different refusal stops
+without widening or replay.
+
 Successful private output retains complete validated verify/details results,
 exact provider times/policies, private fingerprints and source/plan/approval
 bindings. Public-facing status contains only sanitized outcome, request and

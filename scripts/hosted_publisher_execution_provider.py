@@ -109,6 +109,27 @@ class _ResponseSocket:
 
 
 class _StrictResponse(http.client.HTTPResponse):
+    def __init__(self, sock, *, discard_set_cookie=False):
+        super().__init__(sock)
+        self.discard_set_cookie = discard_set_cookie
+
+    def _duplicate_header(self, name):
+        if not self.discard_set_cookie:
+            raise UnknownOutcome("execution_duplicate_response_header")
+        # Closed metadata-only diagnostics: never expose arbitrary field names
+        # or any field value through the sanitized failure boundary.
+        category = {
+            b"content-length": "framing",
+            b"transfer-encoding": "framing",
+            b"content-type": "content",
+            b"content-encoding": "content",
+            b"www-authenticate": "auth",
+            b"proxy-authenticate": "auth",
+            b"authentication-info": "auth",
+            b"authorization": "auth",
+        }.get(name, "other")
+        raise UnknownOutcome("execution_duplicate_response_header_" + category)
+
     @staticmethod
     def _header(line):
         # Validate raw lines before the email-based stdlib parser can silently
@@ -134,17 +155,24 @@ class _StrictResponse(http.client.HTTPResponse):
             raise UnknownOutcome("execution_bodyless_status_refused")
         self.reason = line.decode("ascii").strip().split(" ", 2)[-1]
         self.version = 11 if line.startswith(b"HTTP/1.1 ") else 10
-        raw, names, total = [], set(), len(line)
+        raw, names, total, field_count = [], set(), len(line), 0
         while True:
             line = self.fp.readline(65_537)
             total += len(line)
-            if total > 65_536 or len(raw) >= 100:
+            if total > 65_536 or field_count >= 100:
                 raise UnknownOutcome("execution_header_limit")
             if line == b"\r\n":
                 break
             name, _ = self._header(line)
+            field_count += 1
+            # Proposed metadata-only compatibility: RFC 9110 section 5.3
+            # recognizes repeated Set-Cookie fields. Validate/count every raw
+            # line, then discard it; never parse, retain or resend cookies.
+            # Trailers deliberately keep their existing strict checks.
+            if self.discard_set_cookie and name == b"set-cookie":
+                continue
             if name in names:
-                raise UnknownOutcome("execution_duplicate_response_header")
+                self._duplicate_header(name)
             names.add(name)
             raw.append(line)
         self.headers = self.msg = http.client.parse_headers(io.BytesIO(b"".join(raw) + b"\r\n"))
@@ -198,11 +226,15 @@ class _StrictResponse(http.client.HTTPResponse):
         return int(line.split(b";", 1)[0], 16)
 
 
-def _pinned_https(request, address, clock, dispatch_guard=None):
+def _pinned_https(request, address, clock, dispatch_guard=None, *, discard_set_cookie=False):
     """Single numeric-address TLS connection; hostname verification remains on.
 
     No DNS, proxy lookup, redirect following or retry is available. All decrypted
     HTTP bytes (headers, body, chunks and trailers) share the wire ceiling.
+    The default refuses every duplicate response field. Proposed metadata-only
+    ``discard_set_cookie=True`` discards validated/budgeted Set-Cookie header
+    fields, including repetitions; all other duplicate/trailer checks remain.
+    No cookie jar, persistence or automatic cookie request behavior exists.
     """
     url = urlsplit(request.url)
     if (
@@ -214,6 +246,7 @@ def _pinned_https(request, address, clock, dispatch_guard=None):
         or type(request.max_response_bytes) is not int
         or not 0 < request.max_response_bytes <= 2_162_688
         or not isinstance(request.wire, bytes)
+        or type(discard_set_cookie) is not bool
     ):
         raise ProviderError("execution_request_limits_invalid")
     remaining = request.deadline - clock()
@@ -239,14 +272,16 @@ def _pinned_https(request, address, clock, dispatch_guard=None):
         connection.settimeout(fence_timeout())
         connection.sendall(request.wire)
         reader = _WireReader(connection, request, clock)
-        response = _StrictResponse(cast(socket.socket, _ResponseSocket(reader)))
+        response = _StrictResponse(
+            cast(socket.socket, _ResponseSocket(reader)), discard_set_cookie=discard_set_cookie
+        )
         try:
             response.begin()
             headers = {}
             for key, value in response.getheaders():
                 key = key.lower()
                 if key in headers:
-                    raise UnknownOutcome("execution_duplicate_response_header")
+                    response._duplicate_header(key.encode("ascii"))
                 headers[key] = value
             length, transfer = headers.get("content-length"), headers.get("transfer-encoding")
             if (
