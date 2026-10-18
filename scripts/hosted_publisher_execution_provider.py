@@ -116,7 +116,7 @@ class _StrictResponse(http.client.HTTPResponse):
     def _duplicate_header(self, name):
         if not self.discard_set_cookie:
             raise UnknownOutcome("execution_duplicate_response_header")
-        # Closed metadata-only diagnostics: never expose arbitrary field names
+        # Closed cookie-discard diagnostics: never expose arbitrary field names
         # or any field value through the sanitized failure boundary.
         category = {
             b"content-length": "framing",
@@ -165,7 +165,7 @@ class _StrictResponse(http.client.HTTPResponse):
                 break
             name, _ = self._header(line)
             field_count += 1
-            # Proposed metadata-only compatibility: RFC 9110 section 5.3
+            # Stateless cookie compatibility: RFC 9110 section 5.3
             # recognizes repeated Set-Cookie fields. Validate/count every raw
             # line, then discard it; never parse, retain or resend cookies.
             # Trailers deliberately keep their existing strict checks.
@@ -231,8 +231,9 @@ def _pinned_https(request, address, clock, dispatch_guard=None, *, discard_set_c
 
     No DNS, proxy lookup, redirect following or retry is available. All decrypted
     HTTP bytes (headers, body, chunks and trailers) share the wire ceiling.
-    The default refuses every duplicate response field. Proposed metadata-only
-    ``discard_set_cookie=True`` discards validated/budgeted Set-Cookie header
+    The default refuses every duplicate response field. The accepted metadata
+    opt-in and disabled proposed management candidate use
+    ``discard_set_cookie=True`` to discard validated/budgeted Set-Cookie header
     fields, including repetitions; all other duplicate/trailer checks remain.
     No cookie jar, persistence or automatic cookie request behavior exists.
     """
@@ -386,7 +387,18 @@ class ExecutionClientTransport:
 
 
 class _ManagementTransport:
-    def __init__(self, account, address, permit, clock):
+    """Strict management transport with a disabled offline policy candidate.
+
+    Only synthetic qualification selects ``proposed_discard_set_cookie=True``.
+    ExecutionBetaPublisherProvider always constructs the strict default; no
+    execution caller or CLI selects this proposed exception. Owner acceptance,
+    reviewed integration and fresh source-bound action authority remain required.
+    """
+
+    def __init__(self, account, address, permit, clock, *, proposed_discard_set_cookie=False):
+        if type(proposed_discard_set_cookie) is not bool:
+            raise ProviderError("execution_management_response_policy_invalid")
+        self._proposed_discard_set_cookie = proposed_discard_set_cookie
         _remaining(permit)
         self.account, self.address, self.permit, self.clock = (
             account,
@@ -439,7 +451,13 @@ class _ManagementTransport:
             deadline,
             head + body,
         )
-        response = _pinned_https(request, self.address, self.clock, self.provider._dispatch_guard)
+        response = _pinned_https(
+            request,
+            self.address,
+            self.clock,
+            self.provider._dispatch_guard,
+            discard_set_cookie=self._proposed_discard_set_cookie,
+        )
         if len(response.body) > response_bytes:
             raise ProviderError("execution_management_payload_limit")
         return response.status, response.headers, response.body
