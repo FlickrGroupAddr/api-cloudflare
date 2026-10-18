@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "ticket": "0163",
+  "date": "2026-10-18",
+  "kind": "historical_target_metadata_only",
+  "privateRetrieval": "0163/historical-targets-20261018/target-map.json under the operator's existing private-evidence root",
+  "mapSha2_256": "d3c0d4e03e986f59c3f5e8c1bb7d3a1c5dbd48449c6dbe3e0c82db5b4f589a00",
+  "sourceCapture": "0036/20261016T214740Z",
+  "exactHistoricalOrdinaryTargets": 5,
+  "retainedVersionCount": 1,
+  "currentProviderObserved": false,
+  "collectionAuthorized": false,
+  "materializationReady": false,
+  "providerExecuted": false,
+  "credentialsRead": false,
+  "limits": [
+    "Only named retained restoration and zone identity metadata were read.",
+    "Historical metadata supplies target references, not current availability or state.",
+    "Full baseline, paused state, isolated resources, receiver and effective collection authority remain unavailable."
+  ]
+}

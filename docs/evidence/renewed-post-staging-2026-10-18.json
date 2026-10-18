@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ticket": "0161",
+  "date": "2026-10-18",
+  "kind": "ungranted_historical_identity_staging",
+  "runId": "0a8b92d40ed1466fa7de82c1",
+  "configSha2_256": "d9c1537c78eea9fb1d779ba3bb416e2fe3c3c333832d05d2b6b74ac93462777f",
+  "ungrantedApprovalTemplateSha2_256": "52ee7fafb0336cca29f14ab192f266ba0e8140717c811fe4639af9669504cac4",
+  "manifestSha2_256": "72553026668ad0a518e0b72ebc5f4dae379d8ba13c670951ddc9b961eeef93f9",
+  "credentialPresent": false,
+  "credentialRead": false,
+  "currentProviderObserved": false,
+  "ownerConsent": false,
+  "nativeConsent": false,
+  "actionReady": false,
+  "productionQualified": false,
+  "privateRetrieval": "renewed-group-post/0a8b92d40ed1466fa7de82c1/private under the existing operator coordination root",
+  "remainingInputs": [
+    "fresh credential and effective scope/expiry/revocation evidence",
+    "absolute action window",
+    "exact later cloud/native action approval and new approved config/packet digests",
+    "fixture loading and reviewed real-command route observation"
+  ]
+}

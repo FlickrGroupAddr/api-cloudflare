@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "ticket": "0161",
+  "date": "2026-10-18",
+  "kind": "inspection_and_navigation_only",
+  "lightroomClassicVersion": "15.6",
+  "cameraRawVersion": "18.7",
+  "lightroomBuild": "202609251514-f839cde9",
+  "supportedSkyLaunches": 1,
+  "aboutOpenedAndClosed": true,
+  "helpPluginExtrasObserved": "none_defined",
+  "libraryFilePluginExtrasObserved": "none_defined",
+  "freshMainScreenshotCoordinateNavigationObserved": true,
+  "newControllerUsedForNativeInput": false,
+  "fixtureLoaded": false,
+  "fixtureInvoked": false,
+  "postCasesMeasured": 0,
+  "providerRequests": 0,
+  "credentialReads": 0,
+  "nativePostQualified": false,
+  "finalState": "library_idle_menus_closed_control_relinquished",
+  "limits": [
+    "No fixture command was present, so its selection route was not measured.",
+    "Manual supported Sky navigation does not qualify the new finite controller.",
+    "New fixture loading and execution retain their separate action-time gates."
+  ],
+  "computerUseKernelResetAfterHandback": true,
+  "blueBoundaryRemovalObserved": false
+}

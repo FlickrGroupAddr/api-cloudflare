@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "ungranted_renewed_post_attempt",
+  "binding": {
+    "schemaVersion": 1,
+    "runId": "0a8b92d40ed1466fa7de82c1",
+    "coordinationRoot": "C:\\Users\\TDO-XPS15-2024\\Documents\\ChatGPT\\FGA\\.coordination-runs\\renewed-group-post\\0a8b92d40ed1466fa7de82c1\\handshake",
+    "nativeRoot": "C:\\Temp\\FGA-group-post-v1",
+    "tokenFile": "C:\\Users\\TDO-XPS15-2024\\Documents\\ChatGPT\\FGA\\.coordination-runs\\renewed-group-post\\0a8b92d40ed1466fa7de82c1\\private\\operator-token.txt"
+  },
+  "sources": {
+    "docs/operations/renewed-group-post-attempt-2026-10-18.md": "91beea478439bef880996c8c8832f7f6fb14cfcacc90553bd867ebcf59753edd",
+    "probes/group-post-characterization/dispatch-manifest.json": "f00a330f03dd562a9203905a4c20903e4a542f94a8b0ba9e565a7c52f678ac1b",
+    "scripts/group_post_native_dispatch.mjs": "93f35d82ac7246b05a202e2e60a93840e01838cb18a7b7b4dd90537872a3d88d",
+    "scripts/prepare_renewed_group_post_attempt.py": "d9b10d1b1c7eead57ce715403df355958b5d887bd3d84b8bf416d50ab291f7b7",
+    "scripts/renewed_group_post_attempt.py": "118450cfeb54fd9794ee1076ceb1edc6cfab48b13dd2811fb3db2135e19e7486"
+  },
+  "productionQualified": false
+}

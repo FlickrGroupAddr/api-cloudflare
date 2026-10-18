@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-18",
+  "kind": "reviewed_source_only_batch",
+  "sourceCommit": "the Git commit containing this record",
+  "baseCommit": "094b3112644993f96d87fcede025888030225c6d",
+  "tickets": [
+    "0134",
+    "0161",
+    "0163",
+    "0164",
+    "0165"
+  ],
+  "pythonSyntheticTests": 95,
+  "nodeSyntheticTests": 64,
+  "independentSourceReview": "pass_after_corrections",
+  "frozenRuffLint": "pass",
+  "frozenRuffFormat": "pass",
+  "scopedPyright": "pass",
+  "pinnedNativeTypeScript": "pass",
+  "renewedPostManifestSha2_256": "72553026668ad0a518e0b72ebc5f4dae379d8ba13c670951ddc9b961eeef93f9",
+  "providerRequestsForSourceQualification": 0,
+  "credentialReadsForSourceQualification": 0,
+  "fixtureInvocations": 0,
+  "newNativeControllerActuallyInvoked": false,
+  "hostedProviderQualified": false,
+  "nativePostQualified": false,
+  "actualPrivateCompositionAssembled": false,
+  "liveActionAuthorized": false,
+  "sourceFiles": {
+    "AGENTS.md": {
+      "bytes": 26692,
+      "sha2_256": "1494259cbd3ae968cf0880ac3f7603988120c79df41d5435465618725b986855"
+    },
+    "docs/evidence/renewed-post-menu-inspection-2026-10-18.json": {
+      "bytes": 1064,
+      "sha2_256": "67d99f410df1f20b0ef0a2a46fab27355118a3ec60f24f0c30cc30dcb7d0de61"
+    },
+    "docs/evidence/renewed-post-staging-2026-10-18.json": {
+      "bytes": 1049,
+      "sha2_256": "150990babf845f17d5d98dde7aa00c0a790154ac6cc46909bcd197d6cfd814fe"
+    },
+    "docs/evidence/temporary-composition-target-metadata-2026-10-18.json": {
+      "bytes": 901,
+      "sha2_256": "6a927981b55c0a194180414c8380a6860505bcbe6f3e4e185fe1f79112db9d3f"
+    },
+    "docs/operations/hosted-publisher-execution-caller-2026-10-18.md": {
+      "bytes": 18746,
+      "sha2_256": "ef31cd3e5f276b27d5d6b3983c108c521054ec0788bb6ed2d7748f17756072dc"
+    },
+    "docs/operations/hosted-publisher-renewed-action-decision-2026-10-18.md": {
+      "bytes": 15410,
+      "sha2_256": "8d96e7a9f0537b9723afab657e091c6e151b7267a62d8fafb10e27b402fac8b8"
+    },
+    "docs/operations/lightroom-automation.md": {
+      "bytes": 6531,
+      "sha2_256": "1ea2ec41598b1153306af68c3562b98e339643729314964ef070b1c6c7209482"
+    },
+    "docs/operations/ready-queue-batch-result-2026-10-18.md": {
+      "bytes": 6018,
+      "sha2_256": "a8ab96863cfc091a96f1d1111d0d331d60d9a24cd8adc82ddb7eb49f1db91766"
+    },
+    "docs/operations/renewed-group-post-attempt-2026-10-18.md": {
+      "bytes": 12716,
+      "sha2_256": "91beea478439bef880996c8c8832f7f6fb14cfcacc90553bd867ebcf59753edd"
+    },
+    "docs/operations/temporary-composition-collection-decision-2026-10-18.md": {
+      "bytes": 14696,
+      "sha2_256": "96d9cd4444309f25bcf29a496c16d91fc450f00c9f300d3ca2b90e2be0582070"
+    },
+    "docs/planning/ready-for-work-triage-2026-10-18.md": {
+      "bytes": 25664,
+      "sha2_256": "2e5971a75e30c9902c42dec1ebc826b6443b5b8a42ea23698dac4ab2d5b548f8"
+    },
+    "probes/group-post-characterization/renewed-manifest.json": {
+      "bytes": 1187,
+      "sha2_256": "72553026668ad0a518e0b72ebc5f4dae379d8ba13c670951ddc9b961eeef93f9"
+    },
+    "scripts/group_post_native_dispatch.mjs": {
+      "bytes": 15994,
+      "sha2_256": "93f35d82ac7246b05a202e2e60a93840e01838cb18a7b7b4dd90537872a3d88d"
+    },
+    "scripts/hosted_publisher_execution.py": {
+      "bytes": 29313,
+      "sha2_256": "e3535c7244aa0f89a6f1774c53bb56661e5cb83b31fafd3daa287d69de9d7f79"
+    },
+    "scripts/hosted_publisher_execution_provider.py": {
+      "bytes": 20711,
+      "sha2_256": "2f83820be714beb7ccffb383442245021464986faab315deaf15689b2edb95af"
+    },
+    "scripts/prepare_hosted_publisher_execution.py": {
+      "bytes": 12804,
+      "sha2_256": "10afa4a82bed7a6667b9d9e79e803189fe1be31a596cf062d1c21965ee4ce53f"
+    },
+    "scripts/prepare_hosted_publisher_runtime.py": {
+      "bytes": 10103,
+      "sha2_256": "84b4f146ade8af36a694c5a9ea8abfc9241a26485f2f9ac337a02c7c287a1c66"
+    },
+    "scripts/prepare_renewed_group_post_attempt.py": {
+      "bytes": 6906,
+      "sha2_256": "d9b10d1b1c7eead57ce715403df355958b5d887bd3d84b8bf416d50ab291f7b7"
+    },
+    "scripts/prepare_temporary_composition_collection.py": {
+      "bytes": 15124,
+      "sha2_256": "68e0edb6aa19161d536ea1c150e6829f70c49f471f166d7b28fb8f79fd41b67b"
+    },
+    "scripts/renewed_group_post_attempt.py": {
+      "bytes": 7612,
+      "sha2_256": "118450cfeb54fd9794ee1076ceb1edc6cfab48b13dd2811fb3db2135e19e7486"
+    },
+    "scripts/temporary_composition_collection.schema.json": {
+      "bytes": 59988,
+      "sha2_256": "b739800136a8ba4ff16afd5ee7b29eed8ef12bc85ceb1c554e30f452bb770201"
+    },
+    "tests/group_post_native_dispatch.test.mjs": {
+      "bytes": 13506,
+      "sha2_256": "c917c08749b5041695da85a41fade59735c96327b135753363aa86a0225e4414"
+    },
+    "tests/test_hosted_publisher_execution.py": {
+      "bytes": 19309,
+      "sha2_256": "cd8394a5638c3a834b2957040c0fd6d81e7ec5e1a949b73d1ba877ee3fa51746"
+    },
+    "tests/test_hosted_publisher_execution_transport.py": {
+      "bytes": 14227,
+      "sha2_256": "e2b1a594b5e5ac007a75b5e44574cfd74cdb6fdf7126cd59f9e34fec2e98523d"
+    },
+    "tests/test_prepare_hosted_publisher_execution.py": {
+      "bytes": 14238,
+      "sha2_256": "c14981ac4b11b8a009b0f23c432c53c73c7f4f5643a18d83a39bfec630d4e284"
+    },
+    "tests/test_prepare_renewed_group_post_attempt.py": {
+      "bytes": 8856,
+      "sha2_256": "24a4312090a6c5c0cdbaaa3d9d6a14d9151312881c1a42b450c3c72bcfa8031c"
+    },
+    "tests/test_prepare_temporary_composition_collection.py": {
+      "bytes": 20432,
+      "sha2_256": "ca99edb5c328e27780cfd2ddeda02e8f100604fec2110586483ee5cb4defc5f8"
+    },
+    "tests/test_renewed_group_post_attempt.py": {
+      "bytes": 9472,
+      "sha2_256": "487e8dcd5654703d16112cd4247f791dc1f67a9fa2b7114923304aa2d8e8b232"
+    }
+  },
+  "privateReviewRetrieval": "work-batch-2026-10-18-triage under the operator workspace; review0134-packet.md, review0161-native.md, review0161-runtime.md, review0163-collection.md, review0164-audit.md, review0165-transport.md, review0165-runtime.md"
+}

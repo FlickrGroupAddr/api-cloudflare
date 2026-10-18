@@ -282,6 +282,17 @@ route. Observe after each action and keep screenshot payloads, catalog names,
 photo metadata and credentials out of tracked evidence. Launcher success does
 not replace each workflow's fixture, consent, and release qualification gates.
 
+Terry clarified on 2026-10-18 that the blue Computer Use boundary means
+"still busy" to him. When handing back the keyboard and mouse, explicitly end
+the supported Computer Use session; do not leave it active after a prose-only
+relinquishment. First finish or safely stop any in-flight native action and its
+owned cleanup. Use a documented session shutdown; when the supported surface
+offers only a Node REPL kernel reset, reset that owned session to release its
+controller context and report that exact result. Do not claim visual boundary
+removal without observation, use undocumented helper shutdown, or reset to
+bypass an intentional Escape stop. Do not restart native control while doing
+source-only work. See the automation runbook's handback procedure.
+
 ## Codex agent configuration
 
 Terry approved this task-based model and effort policy on 2026-10-15:

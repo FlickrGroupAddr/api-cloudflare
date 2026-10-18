@@ -1,0 +1,1567 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fga:temporary-composition-collection-request:1",
+  "title": "Offline temporary composition collection request",
+  "description": "Structural projection only. Executable prepare enforces exact canonical digest, current per-section provenance, source pins, target-grant equality, deadlines and existing builder contracts. No supplied assertion authenticates capture completeness or permission. 4000000 bytes maximum; JSON depth32; no floats.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "authority",
+    "inputs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "const": "temporary_composition_collection_request"
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionRef",
+        "approved",
+        "startsAt",
+        "expiresAt",
+        "credentialDelivery",
+        "credentialRevocation",
+        "privacy",
+        "grants"
+      ],
+      "properties": {
+        "decisionRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "startsAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "credentialDelivery": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "credentialRevocation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "secretValues",
+            "photoData",
+            "responseBodiesInLogs",
+            "publicAccountValues"
+          ],
+          "properties": {
+            "secretValues": {
+              "const": false
+            },
+            "photoData": {
+              "const": false
+            },
+            "responseBodiesInLogs": {
+              "const": false
+            },
+            "publicAccountValues": {
+              "const": false
+            }
+          }
+        },
+        "grants": {
+          "type": "array",
+          "maxItems": 18,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "readId",
+              "target",
+              "effect",
+              "permissionRef"
+            ],
+            "properties": {
+              "readId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "target": {
+                "type": "object"
+              },
+              "effect": {
+                "const": "read"
+              },
+              "permissionRef": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "baseline",
+        "additions",
+        "scope",
+        "fixture"
+      ],
+      "properties": {
+        "target": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": false
+                },
+                "value": {
+                  "type": "null"
+                },
+                "provenance": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": true
+                },
+                "value": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accountId",
+                    "scriptName"
+                  ],
+                  "properties": {
+                    "accountId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                    },
+                    "scriptName": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                    }
+                  }
+                },
+                "provenance": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sourceRef",
+                    "sourceType",
+                    "capturedAt",
+                    "target",
+                    "contentSha256",
+                    "independentlySourced",
+                    "completeness",
+                    "components"
+                  ],
+                  "properties": {
+                    "sourceRef": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "sourceType": {
+                      "enum": [
+                        "owner_export",
+                        "provider_read",
+                        "retained_fixture"
+                      ]
+                    },
+                    "capturedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "Z$"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accountId",
+                        "scriptName"
+                      ],
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        },
+                        "scriptName": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        }
+                      }
+                    },
+                    "contentSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "independentlySourced": {
+                      "const": true
+                    },
+                    "completeness": {
+                      "const": "complete"
+                    },
+                    "components": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [],
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "baseline": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": false
+                },
+                "value": {
+                  "type": "null"
+                },
+                "provenance": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": true
+                },
+                "value": {
+                  "type": "object",
+                  "description": "Must pass temporary_composition_delta.validate_baseline; independently sourced complete eleven sections and paused production envelope."
+                },
+                "provenance": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sourceRef",
+                    "sourceType",
+                    "capturedAt",
+                    "target",
+                    "contentSha256",
+                    "independentlySourced",
+                    "completeness",
+                    "components"
+                  ],
+                  "properties": {
+                    "sourceRef": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "sourceType": {
+                      "enum": [
+                        "owner_export",
+                        "provider_read",
+                        "retained_fixture"
+                      ]
+                    },
+                    "capturedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "Z$"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accountId",
+                        "scriptName"
+                      ],
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        },
+                        "scriptName": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        }
+                      }
+                    },
+                    "contentSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "independentlySourced": {
+                      "const": true
+                    },
+                    "completeness": {
+                      "const": "complete"
+                    },
+                    "components": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "configuration.assets",
+                        "configuration.attachment",
+                        "configuration.bindings",
+                        "configuration.capabilities",
+                        "configuration.classLifecycle",
+                        "configuration.domains",
+                        "configuration.effectiveEdge",
+                        "configuration.resources",
+                        "configuration.routes",
+                        "configuration.runtime",
+                        "configuration.secretReferences",
+                        "productionState",
+                        "deploymentWeights",
+                        "retainedVersion"
+                      ],
+                      "properties": {
+                        "configuration.assets": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.attachment": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.bindings": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.capabilities": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.classLifecycle": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.domains": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.effectiveEdge": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.resources": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.routes": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.runtime": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "configuration.secretReferences": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "productionState": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "deploymentWeights": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        },
+                        "retainedVersion": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "sourceRef",
+                            "sourceType",
+                            "capturedAt",
+                            "target",
+                            "contentSha256",
+                            "independentlySourced",
+                            "completeness"
+                          ],
+                          "properties": {
+                            "sourceRef": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "sourceType": {
+                              "enum": [
+                                "owner_export",
+                                "provider_read",
+                                "retained_fixture"
+                              ]
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "Z$"
+                            },
+                            "target": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "accountId",
+                                "scriptName"
+                              ],
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                },
+                                "scriptName": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                                }
+                              }
+                            },
+                            "contentSha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "independentlySourced": {
+                              "const": true
+                            },
+                            "completeness": {
+                              "const": "complete"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "additions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": false
+                },
+                "value": {
+                  "type": "null"
+                },
+                "provenance": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": true
+                },
+                "value": {
+                  "type": "object",
+                  "description": "Builder input, no computed moduleSha256 or scope. Exact three owned resources, four bindings and receiver required; validated by build_delta."
+                },
+                "provenance": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sourceRef",
+                    "sourceType",
+                    "capturedAt",
+                    "target",
+                    "contentSha256",
+                    "independentlySourced",
+                    "completeness",
+                    "components"
+                  ],
+                  "properties": {
+                    "sourceRef": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "sourceType": {
+                      "enum": [
+                        "owner_export",
+                        "provider_read",
+                        "retained_fixture"
+                      ]
+                    },
+                    "capturedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "Z$"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accountId",
+                        "scriptName"
+                      ],
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        },
+                        "scriptName": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        }
+                      }
+                    },
+                    "contentSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "independentlySourced": {
+                      "const": true
+                    },
+                    "completeness": {
+                      "const": "complete"
+                    },
+                    "components": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [],
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": false
+                },
+                "value": {
+                  "type": "null"
+                },
+                "provenance": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": true
+                },
+                "value": {
+                  "type": "object",
+                  "description": "Separate builder validate_scope input; exact run, startsAt, expiresAt, bindingKeys, canary. Lifetime 600000ms."
+                },
+                "provenance": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sourceRef",
+                    "sourceType",
+                    "capturedAt",
+                    "target",
+                    "contentSha256",
+                    "independentlySourced",
+                    "completeness",
+                    "components"
+                  ],
+                  "properties": {
+                    "sourceRef": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "sourceType": {
+                      "enum": [
+                        "owner_export",
+                        "provider_read",
+                        "retained_fixture"
+                      ]
+                    },
+                    "capturedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "Z$"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accountId",
+                        "scriptName"
+                      ],
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        },
+                        "scriptName": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        }
+                      }
+                    },
+                    "contentSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "independentlySourced": {
+                      "const": true
+                    },
+                    "completeness": {
+                      "const": "complete"
+                    },
+                    "components": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [],
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "fixture": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": false
+                },
+                "value": {
+                  "type": "null"
+                },
+                "provenance": {
+                  "type": "null"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "available",
+                "value",
+                "provenance"
+              ],
+              "properties": {
+                "available": {
+                  "const": true
+                },
+                "value": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateCommit",
+                    "capturedModuleSha256",
+                    "manifestSha256"
+                  ],
+                  "properties": {
+                    "candidateCommit": {
+                      "const": "b599ca828d2a645b686aca0354d6c8ee2c2a0250"
+                    },
+                    "capturedModuleSha256": {
+                      "const": "f1cef97fe6e1e62b5ff2b57f7e11516423974e756011750feb1aebe3abb13e6d"
+                    },
+                    "manifestSha256": {
+                      "const": "3d217655f6c2f92775e87e95bd521cc0a547776aa0124c07316e8b752b10a035"
+                    }
+                  }
+                },
+                "provenance": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sourceRef",
+                    "sourceType",
+                    "capturedAt",
+                    "target",
+                    "contentSha256",
+                    "independentlySourced",
+                    "completeness",
+                    "components"
+                  ],
+                  "properties": {
+                    "sourceRef": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "sourceType": {
+                      "enum": [
+                        "owner_export",
+                        "provider_read",
+                        "retained_fixture"
+                      ]
+                    },
+                    "capturedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "Z$"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accountId",
+                        "scriptName"
+                      ],
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        },
+                        "scriptName": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                        }
+                      }
+                    },
+                    "contentSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "independentlySourced": {
+                      "const": true
+                    },
+                    "completeness": {
+                      "const": "complete"
+                    },
+                    "components": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [],
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

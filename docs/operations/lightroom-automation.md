@@ -81,6 +81,23 @@ the outbox probe's guarded empty catalog, preserve production write gates, and
 keep plugin installation and other consent-sensitive actions within the
 computer-use skill's authorization rules.
 
+## Hand back desktop control
+
+Terry clarified on 2026-10-18 that a visible blue Computer Use boundary tells
+him the primary operator is still busy. Complete or safely stop the native work
+and any in-flight owner cleanup, then explicitly end the supported Computer Use
+session before announcing handback. A prose message alone is insufficient.
+
+The installed Sky API exposes no documented session-shutdown method. In the
+current supported tool surface, `mcp__node_repl.js_reset` resets the owned
+JavaScript kernel and clears its controller context. Use that supported reset
+for handback after all native work is terminal. Report the reset accurately;
+it is not an observed guarantee that the app has removed its blue boundary.
+Do not issue guessed Sky methods, kill helper processes, or restart the session
+for source-only work. Never use a reset to defeat a user Escape stop or unknown
+native operation. Later native work requires fresh applicable authority and a
+new observed window selection.
+
 ## Verification and handoff
 
 `node --test tests/lightroom_automation.test.mjs` covers reuse, cold start,
