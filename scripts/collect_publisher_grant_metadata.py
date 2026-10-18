@@ -344,7 +344,7 @@ def _validate_details(result, verified, now):
         if "request_ip" in condition:
             ip_rules = _closed(condition["request_ip"], set(), {"in", "not_in"})
             for rules in ip_rules.values():
-                if type(rules) is not list or not 0 < len(rules) <= 64:
+                if type(rules) is not list or not 0 <= len(rules) <= 64:
                     raise OperatorRefused("metadata_ip_condition_refused")
                 for network in rules:
                     _text(network, 128)

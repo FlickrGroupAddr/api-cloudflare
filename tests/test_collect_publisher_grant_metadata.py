@@ -334,6 +334,30 @@ class MetadataCollectionTests(unittest.TestCase):
                 self.assertEqual(retained_group["name"], group_name)
             self.reset_attempt()
 
+    def test_empty_provider_ip_lists_preserve_no_restriction_evidence_after_three_gets(self):
+        condition = {"request_ip": {"in": [], "not_in": []}}
+        self.responses[2]["result"]["condition"] = copy.deepcopy(condition)
+        result = self.run_collection()
+        self.assertEqual(result["requests"], 3)
+        self.assertEqual(len(self.calls), 3)
+        evidence = json.loads(Path(self.plan["evidence"]).read_bytes())
+        retained = evidence["responses"][metadata.ACTIONS[2]]["result"]
+        self.assertEqual(retained["condition"], condition)
+        self.assert_sanitized(evidence)
+
+    def test_provider_ip_conditions_reject_bad_cidr_nonlists_and_oversized_lists(self):
+        for rules in (["not-a-cidr"], "192.0.2.0/24", None, ["192.0.2.0/24"] * 65):
+            for key in ("in", "not_in"):
+                self.responses[2]["result"]["condition"] = {"request_ip": {key: rules}}
+                with (
+                    self.subTest(key=key, rules_type=type(rules).__name__),
+                    self.assertRaises(ValueError),
+                ):
+                    self.run_collection()
+                self.assertEqual(len(self.calls), 3)
+                self.assert_no_evidence()
+                self.reset_attempt()
+
     def test_provider_names_reject_controls_surrogates_and_unbounded_strings(self):
         for name in ("bad\nname", "bad\x00name", "bad\ud800name", "a" * 481, "\u2014" * 161):
             self.responses[2]["result"]["name"] = name

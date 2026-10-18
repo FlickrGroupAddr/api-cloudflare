@@ -342,3 +342,17 @@ still missing. No token was created/read, no API request was made and no hosted
 case or native action occurred. The empty protected delivery directory remains
 a preliminary ACL observation only; actual files must pass custody checks after
 separately approved provisioning. #0174 is a source handoff, not a read result.
+
+## Final metadata compatibility correction
+
+The final collector preserves explicit empty IP-condition lists without inferring
+their effective policy. Non-list, malformed CIDR and oversized values still
+refuse. All 24 synthetic tests passed; the parent and independent High reviewer
+also passed the two new regressions. Static checks remain clean. The earlier
+unapproved private plan is invalidated by this source change and retained unused;
+a fresh committed-source plan and window are required before actual approval.
+
+Terry subsequently supplied the reader's final summary screenshot: **All users /
+API Tokens:Read**, with October 18 for both dates. Terry reported both tokens
+waiting before Create Token. This supplies the missing reader summary observation,
+not token issuance, actual expiry evidence, credential access or read permission.
