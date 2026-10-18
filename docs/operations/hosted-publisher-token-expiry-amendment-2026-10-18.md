@@ -188,7 +188,7 @@ or details request is authorized or performed by this source handoff. Never
 broaden token permissions or substitute validity-start for issue time to fill
 the evidence gap.
 
-## Final source verification
+## Final source verification (before subsequent metadata approval)
 
 For #0173, all 13 new synthetic amendment tests and 66 existing operator,
 execution, preparer and provider regression tests passed. The first author
@@ -203,3 +203,54 @@ passed. Final accepted-document/preparation-scope review passed. These are local
 source/synthetic results only: no token creation/read, account API, hosted case,
 private namespace/DNS staging or native action occurred. The rejected staging
 directory was confirmed absent; that preparation still awaits explicit approval.
+
+## Subsequent approved private preparation
+
+Terry explicitly approved the pinned historical metadata read and five DNS
+resolution operations in decision `call_220ec44519d24316a4334ce1830a222d`.
+Those operations completed: four fresh intended Worker/D1 pairs were staged,
+all five endpoint roles resolved, and no credential or account API was accessed.
+The resolver received the derived hostnames under that approval. These are five
+resolution operations, not a claim about the resolver's DNS wire-query count.
+Historical account provenance remains historical; successful DNS is not an
+observed Worker deployment or current token policy.
+
+The initial runtime-draft assembly was separately stopped by automatic approval
+review over retained-artifact access/scope. A check of tracked public Git paths
+and the prior sanitized verification receipt established that all 113 artifact
+inputs are the public candidate source at `aca532af6d570125c5d8bbcbd6ac1b4a10ae74f7`;
+the 652,967-byte compiled bundle already matched published pins. No denied
+private read occurred in that check. The same assembly action was then allowed
+under Terry's earlier explicit "Prepare it with me now" request and approved
+metadata inputs. No alternative execution route or credential access was used.
+
+The actual private NO-GO runtime draft was created and byte-verified against
+source `3e64a2d13b845f46abf2b96aef5e8c4cd9342faf`. Fresh High private-draft review
+passed 26 targeted checks: 17 staged public source files, namespace relationships,
+recorded global numeric DNS selections, independent pins and the finite budgets.
+The proposed October 18 window is 13:00–13:30 EDT for dispatch and 15:00 EDT for
+cleanup; **it is not approved**. Do not use it after expiry or silently move its
+timestamps. Source acceptance, actual grant/credential/fingerprint evidence,
+exclusive owner control, stop binding, custody and separate run/cleanup authority
+remain unresolved. No resources were created, no endpoint was invoked and no
+token was issued or read.
+
+Private retrieval: under the operator's existing `private-evidence` root, use
+`0134/publisher-expiry-oct18-staging`. Its namespace/DNS draft, runtime packet,
+separately retained packet pins and private action sheet stay outside Git and
+must not be dumped to chat/logs. The staging directory's ACL preflight found
+additional allow rules outside the credential reader's trusted set; no credential
+may be delivered there without an approved protected child or other reviewed
+delivery location. File/parent custody remains unqualified; no ACL was changed.
+
+The smallest remaining grant-evidence decision is an owner-mediated exact
+metadata handoff from the existing console if its normal view/export actually
+exposes issue/expiry/full policy, or a separately authorized one-resource Token
+Details read with an API Tokens Read credential. No such ordinary console export
+was demonstrated; do not promise one or request a HAR/creation response containing
+secrets. Do not broaden the Workers/D1 test token, add API Tokens Write, use a
+global API key or treat `not_before`/a guessed creation interval as actual
+`issued_at`. A separate metadata reader would have broader user-token metadata
+capability than this caller's one permitted GET and needs an explicit owner
+choice plus a bounded reviewed preparation/action scope. Its token value would
+remain private and revocation would be separately accounted for.
