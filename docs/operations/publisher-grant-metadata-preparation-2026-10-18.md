@@ -176,11 +176,23 @@ caller window. Each response is bounded to 64 KiB wire bytes and the total to
 
 Successful private output retains complete validated verify/details results,
 exact provider times/policies, private fingerprints and source/plan/approval
-bindings. Public-facing status contains only sanitized outcome, request and wire-byte counts;
+bindings. Public-facing status contains only sanitized outcome, request and
+wire-byte counts and, on refusal, closed static stage/category/cause codes;
 provider bodies and raw failures stay out of logs. The output is **not** an
 execution-ready normalized grant, `metadata_verified` authorization flag,
 complete reader-policy proof or hosted-test pass. Later independent review must
 interpret the actual evidence and construct/review the actual runtime packet.
+
+Failure diagnostics use a closed vocabulary, never arbitrary exception text,
+class names, chains, tracebacks, request headers or provider bodies. The existing
+private journal records the safe refusal reason when writable; the raised
+sanitized refusal also carries bounded diagnostics and counts. Dispatch counts
+are attempts to call the transport, not proof of accepted HTTP requests. Wire-byte
+counts cover only fully returned and accounted responses; they do not measure
+partial failed transfers or TLS overhead. A failed receipt write can leave an
+intent rather than an unknown receipt, but the exclusive claim and journal still
+prevent replay. Preserve the original bounded diagnostic instead of replacing it
+with a receipt-write exception or treating missing diagnostics as success.
 
 ## Later permissions and handoff
 

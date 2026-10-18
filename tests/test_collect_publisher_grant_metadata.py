@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import http.client
 import io
 import json
 import socket
+import sqlite3
+import ssl
 import tempfile
+import traceback
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import closing, redirect_stderr, redirect_stdout
 from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Inexact, localcontext
@@ -196,6 +200,385 @@ class MetadataCollectionTests(unittest.TestCase):
         rendered = str(value)
         for secret in (TEST_TOKEN.decode(), READER_TOKEN.decode(), "provider-secret-error"):
             self.assertNotIn(secret, rendered)
+
+    def assert_failure_diagnostic(self, operation, *, stage, category, cause, requests):
+        output = io.StringIO()
+        with (
+            redirect_stdout(output),
+            redirect_stderr(output),
+            self.assertRaises(metadata.MetadataCollectionRefused) as caught,
+        ):
+            operation()
+        failure = caught.exception
+        expected = f"metadata_failed:{stage}:{category}:{cause}"
+        self.assertEqual(failure.diagnostic, expected)
+        self.assertEqual((failure.stage, failure.category, failure.cause), (stage, category, cause))
+        self.assertEqual(failure.requests, requests)
+        self.assertEqual(len(self.calls), requests)
+        self.assertLessEqual(len(expected), 120)
+        self.assertEqual(output.getvalue(), "")
+        self.assertIsNone(failure.__cause__)
+        self.assertIsNone(failure.__context__)
+        self.assert_sanitized(vars(failure))
+        self.assert_sanitized("".join(traceback.format_exception(failure)))
+        self.assert_no_evidence()
+        return failure
+
+    def assert_failed_journal(self, failure, *, requests):
+        path = Path(self.plan["journal"])
+        with closing(sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)) as connection:
+            rows = connection.execute(
+                "SELECT key,state,receipt FROM intents ORDER BY rowid"
+            ).fetchall()
+        retained = {key: (state, json.loads(receipt)) for key, state, receipt in rows}
+        self.assertEqual(retained["metadata:started"], ("unknown", {"reason": failure.diagnostic}))
+        for index in range(1, requests + 1):
+            key = f"metadata:request:{index}"
+            expected = (
+                ("unknown", {"reason": failure.diagnostic})
+                if index == requests
+                else ("complete", {"status": "response_retained_privately"})
+            )
+            self.assertEqual(retained[key], expected)
+        self.assertEqual(len(retained), requests + 1)
+        for name in ("claim", "journal", "journal.json.owner"):
+            candidate = self.root / name if name.endswith(".owner") else Path(self.plan[name])
+            self.assertTrue(candidate.exists())
+            self.assert_sanitized(candidate.read_bytes())
+        self.loads.clear()
+        with self.assertRaises(metadata.MetadataCollectionRefused):
+            self.run_collection()
+        self.assertEqual(self.loads, [])
+        self.assertEqual(len(self.calls), requests)
+        self.network.assert_not_called()
+        self.dns.assert_not_called()
+
+    def test_transport_failure_diagnostics_are_static_at_each_once_only_dispatch(self):
+        secret = "provider-secret-error " + TEST_TOKEN.decode() + " " + READER_TOKEN.decode()
+        errors = (
+            (ssl.SSLCertVerificationError(secret), "tls", "certificate_verification"),
+            (ssl.SSLError(secret), "tls", "handshake_or_protocol"),
+            (TimeoutError(secret), "timeout", "deadline_or_socket"),
+            (ConnectionRefusedError(secret), "network", "connection_refused"),
+            (ConnectionResetError(secret), "network", "connection_reset"),
+            (OSError(secret), "network", "io_error"),
+            (http.client.IncompleteRead(secret.encode()), "http", "protocol_or_incomplete"),
+            (
+                metadata.UnknownOutcome("execution_response_framing_missing"),
+                "refusal",
+                "execution_response_framing_missing",
+            ),
+            (
+                metadata.UnknownOutcome("execution_response_incomplete"),
+                "refusal",
+                "execution_response_incomplete",
+            ),
+            (RuntimeError(secret), "unexpected", "unclassified"),
+        )
+        for index in range(3):
+            original = self.responses[index]
+            for error, category, cause in errors:
+                with self.subTest(dispatch=index + 1, category=category, cause=cause):
+                    self.responses[index] = error
+                    failure = self.assert_failure_diagnostic(
+                        self.run_collection,
+                        stage=f"request{index + 1}_transport",
+                        category=category,
+                        cause=cause,
+                        requests=index + 1,
+                    )
+                    self.assertEqual(failure.response_wire_bytes, index * 2048)
+                    self.assert_failed_journal(failure, requests=index + 1)
+                    self.reset_attempt()
+            self.responses[index] = original
+
+    def test_provider_refusal_diagnostics_distinguish_status_framing_schema_and_time(self):
+        cases = (
+            (
+                finite.Response(403, {}, b"provider-secret-error " + TEST_TOKEN, 2048),
+                "metadata_provider_nonsuccess",
+            ),
+            (
+                finite.Response(200, {}, encoded(self.responses[0]), 2048),
+                "metadata_response_headers_or_private_material_refused",
+            ),
+            (
+                finite.Response(200, {"content-type": "application/json"}, b"{", 2048),
+                "metadata_json_refused",
+            ),
+            (
+                finite.Response(200, {"content-type": "application/json"}, encoded({}), 2048),
+                "metadata_closed_shape_required",
+            ),
+            (
+                finite.Response(
+                    200,
+                    {"content-type": "application/json"},
+                    encoded(envelope({**verify_result(TEST_ID), "status": "expired"})),
+                    2048,
+                ),
+                "metadata_active_verify_required",
+            ),
+            (finite.Response(200, {}, b"", 65537), "metadata_wire_accounting_refused"),
+        )
+        for response, cause in cases:
+            with self.subTest(cause=cause):
+
+                def refused(request, response=response):
+                    self.calls.append(request)
+                    return response
+
+                failure = self.assert_failure_diagnostic(
+                    lambda: self.run_collection(transport=refused),
+                    stage="request1_validate",
+                    category="refusal",
+                    cause=cause,
+                    requests=1,
+                )
+                self.assert_failed_journal(failure, requests=1)
+                self.reset_attempt()
+
+    def test_untrusted_refusal_messages_and_exception_formatters_cannot_enter_diagnostics(self):
+        secret = "provider-secret-error " + TEST_TOKEN.decode()
+
+        class HostileError(RuntimeError):
+            def __str__(self):
+                raise AssertionError("exception message must not be inspected")
+
+            def __repr__(self):
+                raise AssertionError("exception representation must not be inspected")
+
+        for error, category, cause in (
+            (metadata.OperatorRefused(secret), "refusal", "unrecognized"),
+            (
+                metadata.OperatorRefused("metadata_json_refused " + secret),
+                "refusal",
+                "unrecognized",
+            ),
+            (
+                metadata.OperatorRefused("metadata_failed:request1_transport:" + secret),
+                "refusal",
+                "unrecognized",
+            ),
+            (HostileError(secret), "unexpected", "unclassified"),
+        ):
+            with self.subTest(category=category, cause=cause):
+                self.responses[0] = error
+                failure = self.assert_failure_diagnostic(
+                    self.run_collection,
+                    stage="request1_transport",
+                    category=category,
+                    cause=cause,
+                    requests=1,
+                )
+                self.assert_failed_journal(failure, requests=1)
+                self.reset_attempt()
+
+    def test_credential_failure_has_private_diagnostic_without_any_dispatch(self):
+        def failed_loader(path, maximum):
+            self.load(path, maximum)
+            raise PermissionError("provider-secret-error " + READER_TOKEN.decode())
+
+        failure = self.assert_failure_diagnostic(
+            lambda: self.run_collection(credential_loader=failed_loader),
+            stage="credentials",
+            category="storage",
+            cause="permission_denied",
+            requests=0,
+        )
+        self.assert_failed_journal(failure, requests=0)
+
+    def test_expired_budget_diagnostics_distinguish_before_and_after_dispatch(self):
+        def delayed(path, maximum):
+            value = self.load(path, maximum)
+            self.tick += 1201
+            return value
+
+        failure = self.assert_failure_diagnostic(
+            lambda: self.run_collection(credential_loader=delayed),
+            stage="request1_fence",
+            category="refusal",
+            cause="metadata_remaining_budget_exhausted",
+            requests=0,
+        )
+        self.assert_failed_journal(failure, requests=0)
+        self.reset_attempt()
+        self.tick = 100.0
+
+        def expires(request):
+            response = self.transport(request)
+            self.tick += 1201
+            return response
+
+        failure = self.assert_failure_diagnostic(
+            lambda: self.run_collection(transport=expires),
+            stage="request1_validate",
+            category="refusal",
+            cause="metadata_remaining_budget_exhausted",
+            requests=1,
+        )
+        self.assert_failed_journal(failure, requests=1)
+
+    def test_authority_change_after_first_dispatch_stops_with_bounded_diagnostic(self):
+        def changes_authority(request):
+            response = self.transport(request)
+            self.human.write_bytes(b"changed synthetic human authority")
+            return response
+
+        failure = self.assert_failure_diagnostic(
+            lambda: self.run_collection(transport=changes_authority),
+            stage="request1_validate",
+            category="refusal",
+            cause="metadata_human_evidence_mismatch",
+            requests=1,
+        )
+        self.assert_failed_journal(failure, requests=1)
+
+    def test_nested_secret_exception_chains_are_not_retained_by_public_failure(self):
+        def chained(request):
+            self.calls.append(request)
+            try:
+                raise OSError("provider-secret-error " + READER_TOKEN.decode())
+            except OSError as inner:
+                raise TimeoutError("provider-secret-error " + TEST_TOKEN.decode()) from inner
+
+        failure = self.assert_failure_diagnostic(
+            lambda: self.run_collection(transport=chained),
+            stage="request1_transport",
+            category="timeout",
+            cause="deadline_or_socket",
+            requests=1,
+        )
+        self.assert_failed_journal(failure, requests=1)
+
+    def test_receipt_write_failure_keeps_original_diagnostic_and_spent_intents(self):
+        self.responses[0] = TimeoutError("provider-secret-error " + TEST_TOKEN.decode())
+        with patch.object(
+            metadata.DurableJournal,
+            "unknown",
+            side_effect=OSError("provider-secret-error " + READER_TOKEN.decode()),
+        ):
+            failure = self.assert_failure_diagnostic(
+                self.run_collection,
+                stage="request1_transport",
+                category="timeout",
+                cause="deadline_or_socket",
+                requests=1,
+            )
+        self.assertEqual(failure.response_wire_bytes, 0)
+        path = Path(self.plan["journal"])
+        with closing(sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)) as connection:
+            rows = connection.execute(
+                "SELECT key,state,receipt FROM intents ORDER BY rowid"
+            ).fetchall()
+        self.assertEqual(
+            rows, [("metadata:started", "intent", "{}"), ("metadata:request:1", "intent", "{}")]
+        )
+        self.assert_sanitized(path.read_bytes())
+        self.assertTrue(Path(self.plan["claim"]).exists())
+        self.loads.clear()
+        with self.assertRaises(metadata.MetadataCollectionRefused):
+            self.run_collection()
+        self.assertEqual(self.loads, [])
+        self.assertEqual(len(self.calls), 1)
+
+    def test_hostile_exception_type_hooks_are_never_invoked_at_failure_boundaries(self):
+        invoked = []
+        secret = "provider-secret-error " + TEST_TOKEN.decode()
+
+        class HostileClassAttribute(RuntimeError):
+            def __getattribute__(self, name):
+                if name == "__class__":
+                    invoked.append("class_attribute")
+                    raise RuntimeError(secret)
+                return super().__getattribute__(name)
+
+        class HostileMeta(type):
+            def __eq__(cls, other):
+                invoked.append("metaclass_equality")
+                raise RuntimeError(secret)
+
+            __hash__ = type.__hash__
+
+        class HostileTypeEquality(RuntimeError, metaclass=HostileMeta):
+            pass
+
+        for error_type in (HostileClassAttribute, HostileTypeEquality):
+            for boundary in ("inputs", "clock", "request1_transport"):
+                with self.subTest(error_type=error_type.__name__, boundary=boundary):
+
+                    def fail(error_type=error_type):
+                        raise error_type(secret)
+
+                    def failed_transport(request):
+                        self.calls.append(request)
+                        fail()
+
+                    def operation(boundary=boundary):
+                        return metadata.run(
+                            self.inputs,
+                            wall_clock=fail if boundary == "inputs" else lambda: self.now,
+                            monotonic=fail if boundary == "clock" else lambda: self.tick,
+                            transport=failed_transport,
+                            credential_loader=self.load,
+                        )
+
+                    requests = 1 if boundary == "request1_transport" else 0
+                    failure = self.assert_failure_diagnostic(
+                        operation,
+                        stage=boundary,
+                        category="unexpected",
+                        cause="unclassified",
+                        requests=requests,
+                    )
+                    self.assertEqual(invoked, [])
+                    if requests:
+                        self.assert_failed_journal(failure, requests=1)
+                    else:
+                        self.assertEqual(self.loads, [])
+                        for name in ("claim", "journal", "evidence"):
+                            self.assertFalse(Path(self.plan[name]).exists())
+                    self.reset_attempt()
+
+    def test_source_refusal_uses_exact_closed_cause_before_credentials(self):
+        literal = "Exact separately reviewed committed source required"
+        for message, category, cause in (
+            (literal, "refusal", "source_commit_refused"),
+            (
+                literal + " provider-secret-error " + TEST_TOKEN.decode(),
+                "unexpected",
+                "unclassified",
+            ),
+        ):
+            with (
+                self.subTest(category=category),
+                patch.object(metadata, "_validate_source", side_effect=ValueError(message)),
+            ):
+                self.assert_failure_diagnostic(
+                    self.run_collection,
+                    stage="inputs",
+                    category=category,
+                    cause=cause,
+                    requests=0,
+                )
+                self.assertEqual(self.loads, [])
+                self.assertFalse(Path(self.plan["claim"]).exists())
+                self.assertFalse(Path(self.plan["journal"]).exists())
+
+    def test_invalid_authority_diagnostic_precedes_claim_credentials_and_dispatch(self):
+        self.plan["discovery"] = "list_tokens"
+        self.refresh_inputs()
+        failure = self.assert_failure_diagnostic(
+            self.run_collection,
+            stage="inputs",
+            category="refusal",
+            cause="metadata_exact_plan_required",
+            requests=0,
+        )
+        self.assertEqual(failure.response_wire_bytes, 0)
+        self.assertEqual(self.loads, [])
+        for name in ("claim", "journal", "evidence"):
+            self.assertFalse(Path(self.plan[name]).exists())
 
     def test_exact_three_gets_bind_details_to_verified_test_id_and_separate_credentials(self):
         result = self.run_collection()

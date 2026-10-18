@@ -356,3 +356,74 @@ Terry subsequently supplied the reader's final summary screenshot: **All users /
 API Tokens:Read**, with October 18 for both dates. Terry reported both tokens
 waiting before Create Token. This supplies the missing reader summary observation,
 not token issuance, actual expiry evidence, credential access or read permission.
+
+## Actual metadata attempt — stopped without replay
+
+Terry approved one setup/read attempt against collector commit
+`11b86a302e818de90943437b19f957e5847135e9` and the private v2 plan in
+decision `call_550d3aae102b4fe3a581a068f9d77988`. The exact window was
+October 18, 2026, 13:23–13:43 EDT (17:23–17:43 UTC), with a maximum of three
+GETs. Separate decisions authorized protecting the owner-supplied combined
+delivery file and clarifying its two labels. Its original ACL was retained
+privately; the source was protected and retained. The first bounded local
+split refused the label format without copying. The clarified delivery then
+created the two exact distinct private credential files, which passed custody
+checks. Neither token nor its fingerprint was disclosed.
+
+The trusted parent retained the genuine decisions and delivery observation,
+validated the unchanged committed source/plan/window/custody, and invoked the
+collector once. The invocation stopped. Read-only inspection of the private
+journal found only these intent states:
+
+- `metadata:started`: unknown.
+- `metadata:request:1`: unknown.
+- No second or third request intent exists.
+- The private evidence tombstone remains zero bytes; no response evidence was retained.
+
+The first request's actual provider outcome and exact failure cause are not
+established. An unknown intent is not proof of an accepted HTTP request,
+authentication failure, transport failure or provider rejection. The collector
+discarded the specific failure category, preventing that distinction; repair
+its bounded private diagnostics before proposing a successor attempt. Do not
+weaken response validation or infer missing grant evidence from this failure.
+
+The invocation is spent. Preserve its claim, journal, authority records and
+empty evidence sink; never replay or reset them. No token listing, token-details
+request, resource creation, hosted test, native action or production mutation
+occurred under this attempt. No remote resources require cleanup. Metadata
+collection has not qualified actual grant timestamps, policy or hosted authority.
+
+Terry was asked to revoke both temporary tokens immediately after the stop.
+In response `call_9b9a573d4965404d857bee5d3978c670`, he directed retaining the
+same tokens for any successor attempt rather than creating replacements.
+Revocation remains unconfirmed and is deferred at his direction. Retention
+does not extend actual provider expiry, authorize an automatic retry or prove
+the grants valid. Local protection, file deletion and the caller cutoff do not
+revoke provider credentials. Any later metadata attempt requires a fresh
+reviewed source/packet/window and applicable owner approval, with the existing
+protected token files only while valid. #0175 owns the offline diagnostics
+repair before another attempt; the original invocation remains immutable.
+
+## Offline diagnostic repair — #0175
+
+The collector now retains a closed static failure stage/category/cause in the
+existing private journal when writable, and exposes safe diagnostics and
+attempted-dispatch/accounted-response-byte counts on its fixed refusal type.
+It excludes arbitrary exception text, class names and chains. Independent review
+found and corrected two exception-classification hooks before any successor
+account request. Original authority, admission, custody, response and no-replay
+gates remain unchanged; no raw response is added to failure logs.
+
+All 35 synthetic tests and five independent supplemental fault checks passed.
+The parent independently passed the two corrected classification probes;
+pinned Ruff, formatting, Pyright, native TypeScript, representation and link
+checks passed. Independent review verified bounded journal diagnostics and
+unchanged validation gates. These are offline source results, not a diagnosis
+of the original live failure or qualification of actual provider grants.
+
+A successor proposal may reuse the same protected token files per Terry's
+direction, with fresh source/plan/authority/evidence/claim/journal bindings and
+a fresh finite window. Preserve the spent original. Source repair supplies no
+additional provider-call or hosted-test permission; exact successor approval
+remains required. No additional credential read or account request occurred
+during this repair.

@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import calendar
 import hashlib
+import http.client
 import ipaddress
 import json
 import math
 import os
 import re
+import ssl
 import sys
 import time
 from dataclasses import dataclass
@@ -27,8 +29,9 @@ from scripts import prepare_hosted_publisher_execution as offline
 from scripts import prepare_hosted_publisher_runtime as packet
 from scripts.hosted_publisher_execution import _assert_private, _private_bytes
 from scripts.hosted_publisher_execution_provider import _address, _pinned_https
-from scripts.hosted_publisher_finite_client import Request, Response
+from scripts.hosted_publisher_finite_client import Request, Response, UnknownOutcome
 from scripts.hosted_publisher_operator import DurableJournal, OperatorRefused
+from scripts.hosted_publisher_provider import ProviderError
 
 SOURCE_FILES = tuple(
     sorted(set(packet.SOURCE_FILES) | {"scripts/collect_publisher_grant_metadata.py"})
@@ -47,6 +50,146 @@ _TIME_SCALE = 10**18
 _HASH = r"[0-9a-f]{64}"
 _ID = r"[0-9a-f]{32}"
 _TIME = re.compile(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,18})?Z\Z")
+
+# Exception messages are untrusted, including those raised by injected adapters.
+# Only these exact existing refusal codes may cross the diagnostic boundary.
+_DIAGNOSTIC_REFUSALS = frozenset(
+    """
+    metadata_closed_shape_required metadata_text_refused metadata_provider_text_refused
+    metadata_timestamp_refused metadata_clock_refused metadata_json_refused
+    metadata_document_changed metadata_running_source_mismatch
+    metadata_collector_uncommitted_or_changed metadata_source_digest_mismatch
+    metadata_reviewed_python_required metadata_absolute_path_required metadata_exact_plan_required
+    metadata_window_closed metadata_canonical_global_pin_required
+    metadata_independent_approval_required metadata_owner_provisioned_required
+    metadata_human_evidence_mismatch metadata_approval_expired_or_unrecorded
+    metadata_paths_must_be_distinct metadata_private_storage_outside_source_required
+    metadata_credential_custody_refused metadata_fresh_sinks_required metadata_policy_depth_refused
+    metadata_policy_width_refused metadata_policy_type_refused metadata_details_identity_mismatch
+    metadata_details_time_mismatch metadata_issue_expiry_refused metadata_details_time_refused
+    metadata_complete_policies_required metadata_policy_refused metadata_permission_groups_required
+    metadata_permission_meta_refused metadata_ip_condition_refused metadata_provider_nonsuccess
+    metadata_response_headers_or_private_material_refused metadata_private_material_refused
+    metadata_success_envelope_required metadata_messages_refused metadata_message_refused
+    metadata_active_verify_required metadata_monotonic_clock_refused
+    metadata_remaining_budget_exhausted metadata_authority_changed metadata_replay_forbidden
+    metadata_raw_ascii_credential_required metadata_distinct_credentials_required
+    metadata_verified_identity_required metadata_request_budget_exhausted
+    metadata_wire_accounting_refused metadata_late_response metadata_distinct_provider_ids_required
+    metadata_evidence_size_refused metadata_evidence_sink_changed
+    private_file_security_unavailable private_file_owner_or_acl_refused
+    private_file_acl_form_refused private_file_broad_access_refused private_input_not_regular
+    private_input_hardlink_refused private_input_permissions_refused private_input_size_refused
+    private_input_changed
+    invalid_plan_digest journal_link_refused journal_owner_busy journal_plan_mismatch
+    journal_closed journal_invalid_key journal_intent_bound journal_terminal_or_missing
+    journal_invalid_reason journal_metadata_depth journal_metadata_width
+    journal_private_material_refused journal_metadata_type journal_metadata_encoding
+    journal_metadata_size
+    execution_numeric_address_required execution_public_address_required
+    execution_request_limits_invalid execution_admission_deadline execution_dispatch_deadline
+    execution_response_deadline execution_response_wire_limit execution_response_stream_mode
+    execution_header_syntax_invalid execution_status_or_interim_refused
+    execution_bodyless_status_refused execution_header_limit execution_duplicate_response_header
+    execution_trailer_limit execution_trailer_field_refused execution_chunk_separator_invalid
+    execution_chunk_size_invalid execution_response_framing_or_redirect
+    execution_response_framing_missing execution_response_body_limit execution_response_incomplete
+    """.split()
+)
+_DIAGNOSTIC_BOUNDARY_REFUSALS = {
+    "Linked private input root or ancestor refused": "private_input_link_refused",
+    "Bounded execution packet file required": "source_file_bound_refused",
+    "Execution packet file changed during bounded read": "source_file_changed",
+    "Exact separately reviewed committed source required": "source_commit_refused",
+    "Only committed regular source is allowed": "source_regular_commit_required",
+    "Incomplete execution-source closure": "source_closure_incomplete",
+    "Execution source differs from reviewed commit": "source_commit_mismatch",
+}
+_DIAGNOSTIC_STAGES = frozenset(
+    {
+        "inputs",
+        "clock",
+        "claim",
+        "journal",
+        "evidence_create",
+        "credentials",
+        "address",
+        "evidence_write",
+        "collection_receipt",
+        "unknown",
+    }
+    | {
+        f"request{index}_{step}"
+        for index in (1, 2, 3)
+        for step in ("fence", "prepare", "transport", "validate", "receipt")
+    }
+)
+
+
+class MetadataCollectionRefused(OperatorRefused):
+    """Counts and closed diagnostics only; never retain the original exception."""
+
+    def __init__(self, stage, error, requests=0, response_wire_bytes=0):
+        self.stage = stage if stage in _DIAGNOSTIC_STAGES else "unknown"
+        self.category, self.cause = _failure_cause(error, self.stage)
+        self.diagnostic = f"metadata_failed:{self.stage}:{self.category}:{self.cause}"
+        self.requests = requests
+        self.response_wire_bytes = response_wire_bytes
+        super().__init__("metadata_collection_failed_no_replay_manual_revocation_required")
+
+
+def _failure_cause(error, stage):
+    error_type = type(error)
+    if error_type is ValueError:
+        args = error.args
+        if len(args) == 1 and type(args[0]) is str:
+            cause = _DIAGNOSTIC_BOUNDARY_REFUSALS.get(args[0])
+            if cause is not None:
+                return "refusal", cause
+    if any(error_type is kind for kind in (OperatorRefused, ProviderError, UnknownOutcome)):
+        args = error.args
+        if len(args) == 1 and type(args[0]) is str and args[0] in _DIAGNOSTIC_REFUSALS:
+            return "refusal", args[0]
+        return "refusal", "unrecognized"
+    if issubclass(error_type, ssl.SSLCertVerificationError):
+        return "tls", "certificate_verification"
+    if issubclass(error_type, ssl.SSLError):
+        return "tls", "handshake_or_protocol"
+    if issubclass(error_type, TimeoutError):
+        return "timeout", "deadline_or_socket"
+    for kind, cause in (
+        (ConnectionRefusedError, "connection_refused"),
+        (ConnectionResetError, "connection_reset"),
+        (ConnectionAbortedError, "connection_aborted"),
+        (BrokenPipeError, "broken_pipe"),
+    ):
+        if issubclass(error_type, kind):
+            return "network", cause
+    if issubclass(error_type, http.client.HTTPException):
+        return "http", "protocol_or_incomplete"
+    if issubclass(error_type, OSError):
+        if stage.endswith("_transport"):
+            return "network", "io_error"
+        for kind, cause in (
+            (PermissionError, "permission_denied"),
+            (FileNotFoundError, "not_found"),
+            (FileExistsError, "already_exists"),
+        ):
+            if issubclass(error_type, kind):
+                return "storage", cause
+        return "storage", "io_error"
+    if issubclass(error_type, (KeyboardInterrupt, SystemExit)):
+        return "interrupted", "process_interrupted"
+    return "unexpected", "unclassified"
+
+
+def _record_failure(journal, key, failure):
+    # Failure to write a terminal receipt must not erase the original bounded
+    # cause. The existing claim and intent remain spent, including on this path.
+    try:
+        journal.unknown(key, failure.diagnostic)
+    except BaseException:
+        pass
 
 
 @dataclass(frozen=True)
@@ -421,6 +564,28 @@ def _create_private(path, raw=b""):
         os.close(descriptor)
 
 
+def _run_context(inputs, wall_clock, monotonic):
+    stage = "inputs"
+    try:
+        plan, approval = validate_inputs(inputs, now=_now(wall_clock))
+        stage = "clock"
+        started = monotonic()
+        if type(started) not in (int, float) or not math.isfinite(started):
+            raise OperatorRefused("metadata_monotonic_clock_refused")
+        deadline = started + min(
+            MAX_WINDOW_SECONDS,
+            (
+                min(_timestamp(plan["expires_at"]), _timestamp(approval["expires_at"]))
+                - _now(wall_clock)
+            )
+            / _TIME_SCALE,
+        )
+        return plan, approval, started, deadline
+    except BaseException as error:
+        failure = MetadataCollectionRefused(stage, error)
+    raise failure from None
+
+
 def run(
     inputs,
     *,
@@ -432,18 +597,12 @@ def run(
     """Consume one fresh private claim and collect at most three GET responses.
 
     Return counts only. Exact provider evidence and fingerprints remain in the
-    approved private evidence file. Any failure spends the claim and journal;
-    the caller handles revocation and must never automatically replay this run.
+    approved private evidence file. Failures expose closed diagnostics and counts
+    only. Any failure after claiming spends the claim and journal; the caller
+    handles revocation and must never automatically replay this run.
     """
-    plan, approval = validate_inputs(inputs, now=_now(wall_clock))
-    started = monotonic()
-    if type(started) not in (int, float) or not math.isfinite(started):
-        raise OperatorRefused("metadata_monotonic_clock_refused")
-    deadline = started + min(
-        MAX_WINDOW_SECONDS,
-        (min(_timestamp(plan["expires_at"]), _timestamp(approval["expires_at"])) - _now(wall_clock))
-        / _TIME_SCALE,
-    )
+    plan, approval, started, deadline = _run_context(inputs, wall_clock, monotonic)
+    stage = "claim"
     credentials = []
     requests = response_bytes = 0
     evidence_path = Path(plan["evidence"])
@@ -472,7 +631,9 @@ def run(
 
     try:
         # Exclusive persistent claim is never removed, including on partial setup failure.
+        stage = "claim"
         _create_private(Path(plan["claim"]), (inputs.plan_digest + "\n").encode("ascii"))
+        stage = "journal"
         with DurableJournal(Path(plan["journal"]), inputs.plan_digest) as journal:
             _assert_private(Path(plan["journal"]))
             _assert_private(Path(plan["journal"] + ".owner"))
@@ -480,8 +641,10 @@ def run(
                 "metadata:started", {"planDigest": inputs.plan_digest}
             ):
                 raise OperatorRefused("metadata_replay_forbidden")
-            _create_private(evidence_path)
             try:
+                stage = "evidence_create"
+                _create_private(evidence_path)
+                stage = "credentials"
                 fence()
                 for role in ("test", "reader"):
                     raw = (credential_loader or _private_bytes)(
@@ -499,8 +662,10 @@ def run(
                     raise OperatorRefused("metadata_distinct_credentials_required")
                 responses = {}
                 verified = None
+                stage = "address"
                 address = _address(plan["api_address"])
                 for index, phase in enumerate(ACTIONS):
+                    stage = f"request{index + 1}_fence"
                     timeout = fence()
                     if index < 2:
                         path = VERIFY_PATH
@@ -512,6 +677,7 @@ def run(
                     if not journal.reserve(key, {"phase": phase}):
                         raise OperatorRefused("metadata_replay_forbidden")
                     try:
+                        stage = f"request{index + 1}_prepare"
                         timeout = min(timeout, fence())
                         headers = {
                             "Host": "api.cloudflare.com",
@@ -540,11 +706,13 @@ def run(
                             wire,
                         )
                         requests += 1
+                        stage = f"request{index + 1}_transport"
                         response = (
                             transport(request)
                             if transport is not None
                             else _pinned_https(request, address, monotonic, fence)
                         )
+                        stage = f"request{index + 1}_validate"
                         used = response.wire_bytes
                         if type(used) is not int or not len(response.body) <= used <= limit:
                             raise OperatorRefused("metadata_wire_accounting_refused")
@@ -568,10 +736,16 @@ def run(
                         if index < 2:
                             provider_expiries.append(_timestamp(checked["result"]["expires_on"]))
                         responses[phase] = checked
+                        stage = f"request{index + 1}_receipt"
                         journal.complete(key, {"status": "response_retained_privately"})
-                    except BaseException:
-                        journal.unknown(key, "metadata_request_interrupted_or_refused")
+                    except BaseException as error:
+                        _record_failure(
+                            journal,
+                            key,
+                            MetadataCollectionRefused(stage, error, requests, response_bytes),
+                        )
                         raise
+                stage = "evidence_write"
                 fence()
                 evidence = {
                     "schema_version": 1,
@@ -607,6 +781,7 @@ def run(
                     stream.flush()
                     os.fsync(stream.fileno())
                 _assert_private(evidence_path)
+                stage = "collection_receipt"
                 journal.complete(
                     "metadata:started",
                     {
@@ -620,16 +795,21 @@ def run(
                     "requests": requests,
                     "response_wire_bytes": response_bytes,
                 }
-            except BaseException:
-                journal.unknown("metadata:started", "metadata_collection_failed_no_replay")
+            except BaseException as error:
+                _record_failure(
+                    journal,
+                    "metadata:started",
+                    MetadataCollectionRefused(stage, error, requests, response_bytes),
+                )
                 raise
-    except BaseException:
-        raise OperatorRefused(
-            "metadata_collection_failed_no_replay_manual_revocation_required"
-        ) from None
+    except BaseException as error:
+        failure = MetadataCollectionRefused(stage, error, requests, response_bytes)
     finally:
         credentials.clear()
         fingerprints.clear()
+    # Raise outside the handler, so the sanitized exception does not retain the
+    # original exception (or its potentially private text) as __context__.
+    raise failure from None
 
 
 def main():
