@@ -427,7 +427,11 @@ class _IsolatedTransport:
         from scripts.hosted_publisher_execution_provider import _pinned_https
 
         self.authorize()
-        return _pinned_https(request, self.address, self.clock, self.authorize)
+        # Accepted management-only policy; all permit, wire and deadline gates
+        # remain in force. The generic primitive and probe client stay strict.
+        return _pinned_https(
+            request, self.address, self.clock, self.authorize, discard_set_cookie=True
+        )
 
 
 def collect_isolated(

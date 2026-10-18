@@ -232,7 +232,7 @@ def _pinned_https(request, address, clock, dispatch_guard=None, *, discard_set_c
     No DNS, proxy lookup, redirect following or retry is available. All decrypted
     HTTP bytes (headers, body, chunks and trailers) share the wire ceiling.
     The default refuses every duplicate response field. The accepted metadata
-    opt-in and disabled proposed management candidate use
+    and management callers explicitly select
     ``discard_set_cookie=True`` to discard validated/budgeted Set-Cookie header
     fields, including repetitions; all other duplicate/trailer checks remain.
     No cookie jar, persistence or automatic cookie request behavior exists.
@@ -387,18 +387,17 @@ class ExecutionClientTransport:
 
 
 class _ManagementTransport:
-    """Strict management transport with a disabled offline policy candidate.
+    """Exact-account management transport with explicit stateless cookie policy.
 
-    Only synthetic qualification selects ``proposed_discard_set_cookie=True``.
-    ExecutionBetaPublisherProvider always constructs the strict default; no
-    execution caller or CLI selects this proposed exception. Owner acceptance,
-    reviewed integration and fresh source-bound action authority remain required.
+    The execution provider selects the accepted management-only cookie discard.
+    The raw HTTPS primitive and probe client remain strict by default. Selection
+    changes no permit, identity, accounting, acknowledgement or no-replay gate.
     """
 
-    def __init__(self, account, address, permit, clock, *, proposed_discard_set_cookie=False):
-        if type(proposed_discard_set_cookie) is not bool:
+    def __init__(self, account, address, permit, clock, *, discard_set_cookie=False):
+        if type(discard_set_cookie) is not bool:
             raise ProviderError("execution_management_response_policy_invalid")
-        self._proposed_discard_set_cookie = proposed_discard_set_cookie
+        self._discard_set_cookie = discard_set_cookie
         _remaining(permit)
         self.account, self.address, self.permit, self.clock = (
             account,
@@ -456,7 +455,7 @@ class _ManagementTransport:
             self.address,
             self.clock,
             self.provider._dispatch_guard,
-            discard_set_cookie=self._proposed_discard_set_cookie,
+            discard_set_cookie=self._discard_set_cookie,
         )
         if len(response.body) > response_bytes:
             raise ProviderError("execution_management_payload_limit")
@@ -499,7 +498,9 @@ class ExecutionBetaPublisherProvider(BetaPublisherProvider):
         _authorize(permit)
         self._permit = permit
         self._dispatch_deadline: float | None = None
-        concrete = _ManagementTransport(account, management_address, permit, monotonic)
+        concrete = _ManagementTransport(
+            account, management_address, permit, monotonic, discard_set_cookie=True
+        )
 
         super().__init__(
             account,

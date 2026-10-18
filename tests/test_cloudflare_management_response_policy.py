@@ -1,4 +1,4 @@
-"""Offline raw-wire proof for the proposed management-only cookie discard policy."""
+"""Offline raw-wire proof for the accepted management-only cookie discard policy."""
 
 import http.client
 import ipaddress
@@ -168,12 +168,11 @@ if __name__ == "__main__":
 class ManagementPolicyCompositionTests(unittest.TestCase):
     sockets = staticmethod(sockets)
 
-    # This class's provider checks explicitly opt in through the private synthetic
-    # transport seam. No public constructor or runtime caller selects the proposal.
-    def adapter(self, *, proposed=True, before=None, after=None, clock=lambda: 100):
+    # Private seam tests retain explicit strict and cookie-discard selections.
+    def adapter(self, *, discard=True, before=None, after=None, clock=lambda: 100):
         permit = Mock(remaining_seconds=Mock(return_value=5.0))
         concrete = execution._ManagementTransport(
-            ACCOUNT, "1.1.1.1", permit, clock, proposed_discard_set_cookie=proposed
+            ACCOUNT, "1.1.1.1", permit, clock, discard_set_cookie=discard
         )
         instance = execution.ExecutionBetaPublisherProvider(
             ACCOUNT,
@@ -191,7 +190,7 @@ class ManagementPolicyCompositionTests(unittest.TestCase):
         concrete.provider = instance
         return instance
 
-    def test_candidate_cookie_response_has_no_cookie_in_next_management_request(self):
+    def test_management_cookie_response_has_no_cookie_in_next_management_request(self):
         body = envelope(IDENTITY)[2]
         adapter = self.adapter()
         with self.sockets(response(body, COOKIE * 2), response(body)) as (sockets, factory):
@@ -207,7 +206,7 @@ class ManagementPolicyCompositionTests(unittest.TestCase):
     def test_unselected_management_and_probe_client_remain_strict(self):
         from tests.test_hosted_publisher_execution_transport import ExecutionTransportTests
 
-        adapter = self.adapter(proposed=False)
+        adapter = self.adapter(discard=False)
         body = envelope(IDENTITY)[2]
         with self.sockets(response(body, COOKIE * 2)) as (_, factory):
             with self.assertRaises(provider.ProviderUnknown):
@@ -227,11 +226,11 @@ class ManagementPolicyCompositionTests(unittest.TestCase):
                 dispatch(request)
         self.assertEqual(factory.call_count, 1)
 
-    def test_candidate_rejects_non_boolean_selection_before_any_socket(self):
+    def test_management_rejects_non_boolean_selection_before_any_socket(self):
         with patch.object(execution.socket, "socket") as factory:
             for flag in (None, 1, "true"):
                 with self.subTest(flag=flag), self.assertRaises(provider.ProviderError):
-                    self.adapter(proposed=flag)  # pyright: ignore[reportArgumentType]
+                    self.adapter(discard=flag)  # pyright: ignore[reportArgumentType]
         factory.assert_not_called()
 
     def test_unknown_create_preserves_consumed_intent_and_never_infers_identity(self):
@@ -295,7 +294,7 @@ class ManagementPolicyCompositionTests(unittest.TestCase):
         self.assertEqual(factory.call_count, 1)
         self.assertEqual(adapter._databases, {})
 
-    def test_public_execution_provider_keeps_the_strict_management_default(self):
+    def test_public_execution_provider_selects_accepted_management_cookie_policy(self):
         permit = Mock(remaining_seconds=Mock(return_value=5.0))
         adapter = execution.ExecutionBetaPublisherProvider(
             ACCOUNT,
@@ -308,10 +307,7 @@ class ManagementPolicyCompositionTests(unittest.TestCase):
             monotonic=lambda: 100,
         )
         with self.sockets(response(envelope(IDENTITY)[2], COOKIE * 2)) as (_, factory):
-            with self.assertRaises(provider.ProviderUnknown):
-                adapter.inspect_database(IDENTITY, key="strict-public-constructor")
-            with self.assertRaises(provider.ProviderError):
-                adapter.inspect_database(IDENTITY, key="no-replay")
+            self.assertEqual(adapter.inspect_database(IDENTITY, key="accepted-public"), IDENTITY)
         self.assertEqual(factory.call_count, 1)
 
     def test_malformed_or_unsuccessful_body_cannot_supply_a_create_identity(self):
@@ -328,3 +324,97 @@ class ManagementPolicyCompositionTests(unittest.TestCase):
             self.assertEqual(factory.call_count, 1)
             self.assertIn(NAME, adapter._created_names)
             self.assertEqual(adapter._databases, {})
+
+
+class SnapshotManagementPolicyTests(unittest.TestCase):
+    sockets = staticmethod(sockets)
+
+    def fixture(self):
+        from tests.test_qualify_private_d1_snapshot import QualificationTests
+
+        fixture = QualificationTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        return fixture
+
+    @contextmanager
+    def raw_management(self, fixture, *, unknown_method=None):
+        from scripts import qualify_private_d1_snapshot as qualifier
+
+        original = execution._pinned_https
+        methods = []
+
+        def dispatch(request, address, clock, dispatch_guard=None, **kwargs):
+            self.assertIs(kwargs.get("discard_set_cookie"), True)
+            method = request.wire.split(b" ", 1)[0].decode()
+            methods.append(method)
+            supplied = fixture.transport(request)
+            headers = COOKIE * 2 + b"Content-Type: application/json\r\n"
+            if method == unknown_method:
+                headers += b"X-Synthetic: first\r\nX-Synthetic: second\r\n"
+            raw = response(supplied.body, headers, status=supplied.status)
+            with self.sockets(raw) as (_, factory):
+                result = original(request, address, clock, dispatch_guard, **kwargs)
+            self.assertEqual(factory.call_count, 1)
+            self.assertNotIn("set-cookie", result.headers)
+            return result
+
+        with (
+            patch.object(qualifier, "_pinned_https", side_effect=dispatch) as direct,
+            patch.object(execution, "_pinned_https", side_effect=dispatch) as isolated,
+        ):
+            yield methods, direct, isolated
+
+    def test_both_snapshot_management_callers_explicitly_select_policy_and_discard_cookies(self):
+        fixture = self.fixture()
+        with self.raw_management(fixture) as (methods, direct, isolated):
+            result = fixture.run_qualifier()
+        self.assertTrue(result["complete"])
+        self.assertFalse(result["cleanupVerified"])
+        self.assertFalse(result["productionQualified"])
+        self.assertGreater(direct.call_count, 0)
+        self.assertGreater(isolated.call_count, 0)
+        self.assertEqual(len(methods), 18)
+        self.assertEqual(methods[-2:], ["DELETE", "GET"])
+        for call in (*direct.call_args_list, *isolated.call_args_list):
+            self.assertNotIn(b"Cookie:", call.args[0].wire)
+            self.assertNotIn(b"synthetic-private-cookie", call.args[0].wire)
+
+    def test_snapshot_unknown_create_keeps_claim_and_forbids_retry_or_delete_inference(self):
+        from pathlib import Path
+
+        from scripts import qualify_private_d1_snapshot as qualifier
+
+        fixture = self.fixture()
+        with self.raw_management(fixture, unknown_method="POST") as (methods, _, _):
+            with self.assertRaises(qualifier.QualificationError):
+                fixture.run_qualifier()
+            with self.assertRaises(qualifier.QualificationError):
+                fixture.run_qualifier()
+        self.assertEqual(methods, ["POST"])
+        journal = Path(fixture.packet["journalPath"]).read_text()
+        self.assertIn("dispatch_intent", journal)
+        self.assertIn("retained_no_replay", journal)
+        self.assertNotIn("11111111-2222-3333-4444-555555555555", journal)
+        self.assertNotIn("synthetic-private-cookie", journal)
+
+    def test_snapshot_unknown_delete_preserves_exact_reference_and_never_replays(self):
+        from pathlib import Path
+
+        from scripts import qualify_private_d1_snapshot as qualifier
+
+        fixture = self.fixture()
+        with self.raw_management(fixture, unknown_method="DELETE") as (methods, _, _):
+            with self.assertRaises(qualifier.QualificationError):
+                fixture.run_qualifier()
+            count = len(methods)
+            with self.assertRaises(qualifier.QualificationError):
+                fixture.run_qualifier()
+            self.assertEqual(len(methods), count)
+        self.assertEqual(methods.count("DELETE"), 1)
+        self.assertNotIn("GET", methods)
+        journal = Path(fixture.packet["journalPath"]).read_text()
+        self.assertIn("11111111-2222-3333-4444-555555555555", journal)
+        self.assertIn("cleanup_unconfirmed_no_replay", journal)
+        self.assertNotIn("deleted_known_fresh_database", journal)
+        self.assertNotIn("synthetic-private-cookie", journal)

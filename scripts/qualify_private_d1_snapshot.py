@@ -240,7 +240,9 @@ def qualify(
                     response = (
                         transport(request)
                         if transport is not None
-                        else _pinned_https(request, address, clock, dispatch_guard=guard)
+                        else _pinned_https(
+                            request, address, clock, dispatch_guard=guard, discard_set_cookie=True
+                        )
                     )
                     guard()
                     require(
