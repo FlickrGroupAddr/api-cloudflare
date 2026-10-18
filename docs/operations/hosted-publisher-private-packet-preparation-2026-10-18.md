@@ -192,10 +192,15 @@ authorize creating the four new Workers.
 Configure the reviewed outbound source-IP restriction and finite token TTL;
 retain the exact policy summary before issuance. Cloudflare's
 [restriction guide](https://developers.cloudflare.com/fundamentals/api/how-to/restrict-tokens/)
-states that tokens otherwise have no expiry, dashboard date selections use
-00:00 UTC, and token verification does not apply source-IP filtering. If the
-dashboard cannot express the required expiry, resolve that exact limitation
-before issuance. The [API issuance guide](https://developers.cloudflare.com/fundamentals/api/how-to/create-via-api/)
+states that tokens otherwise have no expiry and token verification does not
+apply source-IP filtering. Its date-only note describes 00:00 UTC. The later
+observed October 18 picker explicitly offers EDT date-times; for this workflow
+use October 18 at 23:59 EDT on both forms, as recorded in the
+[picker correction](hosted-publisher-token-expiry-amendment-2026-10-18.md#current-form-values--expanded-picker-correction).
+Do not override an explicit displayed timezone/time with the earlier date-only
+inference. The actual provider timestamps still require later evidence. If the
+dashboard cannot express the reviewed expiry, resolve that limitation before
+issuance. The [API issuance guide](https://developers.cloudflare.com/fundamentals/api/how-to/create-via-api/)
 supports precise UTC times but needs separate token-creation authority; do not
 introduce a powerful parent token merely as a convenience.
 

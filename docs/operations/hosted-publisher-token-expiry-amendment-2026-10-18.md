@@ -13,6 +13,23 @@ It authorizes successor code and synthetic tests only. It grants no issuance,
 credential access, account request, cloud/native action or final run permission.
 Completed source cards and their historical artifact pins remain unchanged.
 
+## Current form values — expanded picker correction
+
+The later October 18 screenshot expands the dashboard picker and explicitly
+shows **Eastern Daylight Time**, a start of October 18 at 00:00 and an end of
+October 19 at 23:59. It also confirms the separate **User / API Tokens / Read**
+row. This is a date-time control, not the date-only behavior inferred from the
+generic documentation. The parent's earlier advice to move the end date to
+October 19 was wrong for this UI and was corrected before issuance.
+
+For **both** token forms, use **October 18, 2026 at 23:59 EDT**, Apply, then
+stop at summary. Do not carry the October 19 end-date inference below into this
+control. This displayed proposed expiry is within the accepted October 19
+00:00 EDT maximum; its actual provider expiry remains unverified until the
+later approved metadata read. No token creation or use was authorized by the
+screenshot. The metadata reader's broader token-metadata capability still needs
+the separate explicit setup/read decision.
+
 ## Problem and existing rule
 
 Terry confirmed the custom-token form still offers Workers Scripts/Edit and
@@ -165,17 +182,18 @@ does not cover reading those private identities and disclosing derived names to
 DNS. That separate preparation scope still needs explicit approval, alongside
 the earlier token-policy, provisioning and exact-run gates.
 
-## Calendar interpretation and later metadata collection
+## Earlier calendar inference (superseded for the expanded picker)
 
-The subsequent console summary confirmed the selected account and two Edit
+The earlier console summary confirmed the selected account and two Edit
 permissions, with October 18 for both start and end; it displayed no time or
 timezone. On October 18 the parent rechecked Cloudflare's
 [current TTL documentation](https://developers.cloudflare.com/fundamentals/api/how-to/restrict-tokens/):
 selected dates are documented as 00:00 UTC. By that documented rule an October
 18 end date has passed; October 19 maps to October 18 at 20:00 EDT, earlier than
 the accepted 04:00 UTC maximum. Terry was directed back to the form to correct
-the end date and stop at summary. This mapping is documentation-based, not an
-observation of a newly issued token's actual policy.
+the end date and stop at summary. That documentation-based mapping was subsequently contradicted by the expanded
+EDT date-time picker, as recorded above. It is retained as correction history,
+not current form guidance or an issued token's actual policy.
 
 The [Verify Token response](https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/verify/)
 can report `expires_on` and `not_before`; it does not establish every effective
@@ -254,3 +272,73 @@ global API key or treat `not_before`/a guessed creation interval as actual
 capability than this caller's one permitted GET and needs an explicit owner
 choice plus a bounded reviewed preparation/action scope. Its token value would
 remain private and revocation would be separately accounted for.
+
+## Selected metadata preparation direction — #0174
+
+Terry selected **"Prepare separate read-only metadata access (recommended)"**
+in decision `call_5bb323bec4d942e29308415256dce14b`. This resolves the preceding
+direction choice only. #0174 owns standalone collector source, synthetic tests
+and setup/read instructions; no credential creation, secret read, account API
+or hosted test is authorized by the choice. The test token retains exactly the
+two reviewed Workers/D1 Edit permissions. A separate current-user API Tokens
+Read credential would be used only under later explicit setup/read approval.
+
+The source route is at most three GETs: verify the chosen test credential,
+verify the metadata reader, and fetch exactly that test token's details using
+the ID acknowledged by its verification response. No token listing, additional
+Token Details read, management write, provider-resource operation, redirect,
+retry or DNS lookup belongs to this route. The reader verification does not
+prove its full permission policy; its owner-provisioning evidence and broader
+user-token metadata capability remain explicit in the later decision.
+
+The parent prepared a new **empty** `credential-delivery` child beneath the
+private staging directory. Its observed ACL has protected inheritance, the
+current operator as owner and no allow rules outside current user, SYSTEM and
+Administrators. Existing parent ACLs and files were preserved. No token file
+was created or read. This preliminary directory observation does not qualify
+future file ownership/access, race resistance, erasure or end-to-end custody.
+The parent staging directory remains unsuitable for credentials.
+
+Initially Terry was asked to keep the test-token summary open and prepare a
+separate current-user API Tokens Read form in a second tab, with an October 19
+end based on the date-only UTC inference. That end-date instruction is
+superseded by the expanded-picker correction above. The current instruction is
+to set both forms to October 18 at 23:59 EDT, Apply, continue to summary and stop
+before creation. The parent has not operated those controls or observed their
+completed application/final summaries. No issuance permission has been given.
+
+## Metadata source handoff — #0174
+
+The [separate read-only collector procedure](publisher-grant-metadata-preparation-2026-10-18.md)
+and its evidence-only source passed fresh independent High review. All 22
+synthetic scenarios passed, including a parent rerun, plus three independent
+supplemental fault checks. Ruff, format checks, Pyright and the pinned native
+TypeScript compiler passed. Parent findings about global Decimal precision and
+the planned em-dash token name were corrected before handoff: timestamp
+comparisons use exact integer attoseconds, and bounded printable provider
+Unicode/empty optional metadata are retained without relaxing path/ID syntax.
+
+The helper has no live CLI. A trusted parent must supply genuine separately
+retained owner authority, exact source/plan/sinks and the two owner-provisioned
+credential paths before its three-GET route can run. It returns counts only;
+actual full metadata and fingerprints remain private. No token listing, writes,
+normalized execution grant, implicit permission or API-method qualification is
+supplied. #0173 and its strict whole-second grant parser remain unchanged; if
+actual provider fractions cannot be represented there, preserve the evidence
+and resolve that separate integration gap before a hosted test.
+
+Preparation order: finish all source/document commits, then stage the private
+metadata plan against that exact committed HEAD with an actual twenty-minute
+window and independent private pins. Keep the source checkout frozen through
+the attempt: the collector checks current HEAD as well as all closure bytes.
+Even a documentation-only commit changes HEAD and requires fresh plan/review
+and genuine applicable approval; do not weaken the check or reuse old consent.
+No approval, human-evidence, credential, claim or spent-journal record may be
+fabricated merely to complete a pre-issuance draft. If its window passes,
+prepare a fresh unapproved packet before requesting an actual read.
+
+The separate reader's form summary and exact provisioning/read permission are
+still missing. No token was created/read, no API request was made and no hosted
+case or native action occurred. The empty protected delivery directory remains
+a preliminary ACL observation only; actual files must pass custody checks after
+separately approved provisioning. #0174 is a source handoff, not a read result.
