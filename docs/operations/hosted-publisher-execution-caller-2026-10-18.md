@@ -16,6 +16,16 @@ remains its historical source handoff; the
 records the earlier unresolved engineering gate. Parent integration must bind
 the new committed caller closure and review before renewing that packet.
 
+## Scoped October 18 provider-expiry successor
+
+Terry accepted the [one-attempt expiry amendment](hosted-publisher-token-expiry-amendment-2026-10-18.md).
+The #0173 successor adds its exact-plan-bound optional grant policy through the
+shared validator. Provider timing remains real metadata; all earlier caller,
+case, phase, adapter, cleanup and approval deadlines, counters, fingerprint,
+stop and journal checks below remain unchanged. Reprepare with the new committed
+source and fresh independent packet pins. This does not modify old #0165 packets
+or authorize token issuance, credential reads, account/DNS preparation or a run.
+
 ## Freeze the source and private action sheet
 
 Preserve the [immutable #0121 candidate](hosted-publisher-qualification-packet-2026-10-17.md),

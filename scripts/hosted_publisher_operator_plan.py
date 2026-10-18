@@ -298,27 +298,45 @@ def validate_operator_grant(plan: OperatorPlan, grant: dict[str, Any], now: date
     provider adapter must enforce the four exact intended names in this plan.
     This function never receives or reads the management credential itself.
     """
-    _closed(
-        grant,
-        {
-            "grant_id",
-            "account_id",
-            "permissions",
-            "issued_at",
-            "expires_at",
-            "revocation_owner",
-            "resource_scope",
-            "metadata_verified",
-        },
-    )
+    fields = {
+        "grant_id",
+        "account_id",
+        "permissions",
+        "issued_at",
+        "expires_at",
+        "revocation_owner",
+        "resource_scope",
+        "metadata_verified",
+    }
+    if type(grant) is dict and "expiry_policy" in grant:
+        fields.add("expiry_policy")
+    _closed(grant, fields)
+    issued, expiry = map(utc_time, (grant["issued_at"], grant["expires_at"]))
+    if "expiry_policy" in grant:
+        policy = _closed(grant["expiry_policy"], {"amendment_id", "decision_id", "plan_digest"})
+        # These exact bindings select accepted policy, not proof of human approval
+        # or provider metadata. Existing independent evidence/approval gates remain.
+        if (
+            policy
+            != {
+                "amendment_id": "hosted-publisher-token-expiry-amendment-2026-10-18",
+                "decision_id": "call_db0854bafa8748aca10153fc4d4a8a7b",
+                "plan_digest": plan.digest,
+            }
+            or plan.revocation_owner != "Terry Ott"
+            or (expiry - issued).total_seconds() > 86400
+            or expiry > utc_time("2026-10-19T04:00:00Z")
+        ):
+            raise ValueError("One-attempt provider expiry amendment is not exact and limited")
+    elif expiry > utc_time(plan.cleanup_deadline):
+        raise ValueError("Private operator grant is not exact, limited and current")
     if (
         grant["metadata_verified"] is not True
         or grant["account_id"] != plan.account_id
         or grant["permissions"] != ["D1:Edit", "Workers Scripts:Edit"]
         or grant["resource_scope"] != "exact-account-only"
         or grant["revocation_owner"] != plan.revocation_owner
-        or not utc_time(grant["issued_at"]) <= now < utc_time(grant["expires_at"])
-        or utc_time(grant["expires_at"]) > utc_time(plan.cleanup_deadline)
+        or not issued <= now < expiry
     ):
         raise ValueError("Private operator grant is not exact, limited and current")
     _text(grant["grant_id"], r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", "grant reference")

@@ -12,6 +12,20 @@ and accepted #0157 contract own execution and disposal semantics. Preserve the
 immutable [#0121 candidate](hosted-publisher-qualification-packet-2026-10-17.md)
 and sealed #0162/#0165 evidence. This guide does not amend those artifacts.
 
+## Later scoped token-expiry decision
+
+Terry accepted the [one-attempt expiry amendment](hosted-publisher-token-expiry-amendment-2026-10-18.md)
+on October 18. It separates actual provider-token expiry from finite caller
+authority, with a 24-hour-from-issue limit and a ceiling of October 19 00:00 EDT.
+Manual revocation after cleanup and the residual lifetime tradeoff are explicit.
+The #0173 successor source has independent review; the old packets retain their
+strict expiry-by-cleanup rule. Reprepare against the new committed source and
+bind the exact exception object before an actual decision; absent that object,
+the default remains strict.
+This decision is code/test authority only. Proposed expiry controls still need
+review before issuance, and actual grant evidence and exact run approval remain
+required. No longer caller, case, phase, adapter or cleanup deadline is accepted.
+
 ## Verified retained source and finite budget
 
 On 2026-10-18 the parent verified the retained #0121 candidate against its

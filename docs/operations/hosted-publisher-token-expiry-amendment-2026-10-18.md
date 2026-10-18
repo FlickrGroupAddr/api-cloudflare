@@ -1,7 +1,17 @@
 # Hosted publisher: separate provider-token expiry from caller authority
 
-Date: 2026-10-18. Ticket #0134. Status: **Proposed scoped test amendment;
-not accepted, implemented or action-authorizing**.
+Date: 2026-10-18. Ticket #0134. Status: **Accepted scoped test amendment; successor implementation #0173
+independently reviewed; no credential or execution authority**.
+
+## Owner acceptance
+
+On 2026-10-18 Terry answered **"Accept the scoped amendment (recommended)"**
+to the exact proposal at API commit `db1012d`. The decision reference is
+`call_db0854bafa8748aca10153fc4d4a8a7b`. This explicitly accepts the one-attempt
+longer-provider-lifetime tradeoff below while retaining all short caller limits.
+It authorizes successor code and synthetic tests only. It grants no issuance,
+credential access, account request, cloud/native action or final run permission.
+Completed source cards and their historical artifact pins remain unchanged.
 
 ## Problem and existing rule
 
@@ -10,7 +20,7 @@ D1/Edit for the selected account. He reports its Today selection as the local
 day through 23:59 EDT. This is owner-reported UI interpretation, not a collected
 provider grant receipt or verified UTC expiry. No token was created, read or used.
 
-The accepted source's
+The pre-amendment accepted source's
 [`validate_operator_grant`](../../scripts/hosted_publisher_operator_plan.py)
 rejects a provider grant whose `expires_at` exceeds the plan's
 `cleanup_deadline`. The plan permits at most four hours and the concrete provider
@@ -24,7 +34,7 @@ records the existing rule and unresolved expiry controls. The
 and [caller procedure](hosted-publisher-execution-caller-2026-10-18.md) otherwise
 retain their exact authority, resources, budgets, custody and cleanup conditions.
 
-## Proposed one-attempt amendment
+## Accepted one-attempt amendment
 
 For one newly reviewed disposable hosted-publisher qualification packet only:
 
@@ -64,7 +74,7 @@ grant's issue/expiry and effective permission evidence privately before use;
 unavailable or conflicting actual metadata keeps execution NO-GO. Neither the
 local caller deadline nor a fabricated timestamp can fill missing evidence.
 
-## Tradeoff requiring Terry's acceptance
+## Explicitly accepted lifetime tradeoff
 
 The provider token can remain usable outside the finite caller window until
 confirmed manual revocation or its actual provider expiry. The caller's local
@@ -74,8 +84,8 @@ for the remaining token lifetime, up to the ceiling above. Account-level create
 authority still reaches resources beyond the four intended synthetic pairs at
 the provider policy layer; the reviewed caller limits its own operations only.
 
-Recommended direction: accept this limited lifetime tradeoff and retain the
-short caller limits plus prompt manual revocation. The alternative is to retain
+Terry selected this limited lifetime tradeoff with the short caller limits and
+prompt manual revocation. The unselected alternative was to retain
 the current expiry-by-cleanup rule and use a provider grant with sufficiently
 precise earlier expiry, or schedule a later run whose approved window actually
 contains the existing grant expiry. No alternative token-creation authority is
@@ -83,8 +93,8 @@ approved by mentioning it.
 
 ## Implementation and action gates
 
-Acceptance would authorize the scoped successor source change and synthetic
-tests, not token issuance, credential reads, account access or execution. Keep
+Acceptance authorizes the scoped successor source change and synthetic tests
+under #0173, not token issuance, credential reads, account access or execution. Keep
 Completed #0155/#0162/#0165 and their original committed/private artifacts intact.
 A new implementation card/revision must own any current validator/caller changes;
 do not rewrite their old packets or silently use changed bytes under old pins.
@@ -95,13 +105,101 @@ provider expiry, stop/revocation and dispatch/cleanup boundary cases. Then pin
 the new committed source closure and prepare the actual private packet. Its
 grant evidence, custody, network, owners, windows and fingerprint remain required.
 Only the later concrete owner provisioning and exact-run decisions can authorize
-token creation/use and provider work. If this proposal is declined, the current
-validator continues to refuse the end-of-day token for a run now.
+token creation/use and provider work. Until independently reviewed successor source and an actual bound packet are
+ready, the old source continues to refuse an end-of-day token for a run now.
 
 ## Observation and verification boundary
 
 This proposal is based on the screenshot, Terry's expiry clarification and
 tracked source inspection. No account API, provider-time verification, credential,
 token, private record, cloud mutation or native input was used. Documentation
-checks and independent review must precede the owner decision. A source change
+checks and independent High review passed before the owner decision; the
+expiry-evidence gate was re-reviewed with no remaining findings. A source change
 or synthetic test cannot retroactively authenticate a grant's actual policy.
+
+## Reviewed successor interface — #0173
+
+The new revision changes only the shared `validate_operator_grant` policy and
+adds its regression module. No transport, preparer, candidate Worker, migration,
+caller deadline or historical packet is rebuilt or changed. All grant admission
+paths continue to use this validator. Existing source manifests already include
+the shared module; reprepare the runtime packet against the new committed source
+and independently retain its new digests before an actual decision. Old pins
+cannot bless changed source.
+
+Without `expiry_policy`, the existing `expires_at <= cleanup_deadline` rule
+remains. An exception grant must contain this exact additional closed object:
+
+```json
+{
+  "expiry_policy": {
+    "amendment_id": "hosted-publisher-token-expiry-amendment-2026-10-18",
+    "decision_id": "call_db0854bafa8748aca10153fc4d4a8a7b",
+    "plan_digest": "<the exact independently retained plan digest>"
+  }
+}
+```
+
+The real grant issue/expiry fields are unchanged. This branch requires the
+plan's named revoker to be `Terry Ott`, plus the accepted 24-hour and absolute
+UTC ceilings. A present but invalid/foreign/extra-field policy refuses; it does
+not fall back to a permissive path. Provider grant expiry still clamps remaining
+authorization, while earlier caller/case/cleanup/approval and adapter deadlines
+remain independent. Consent, credential fingerprint, source/packet/grant evidence,
+stop, cleanup authority and single-use journal checks remain required.
+
+The policy object selects a reviewed rule and binds supplied metadata. Its
+strings, the revoker name and a digest do not authenticate human identity,
+provider effectiveness or metadata provenance. Existing exact owner decisions
+and independently retained grant evidence establish those externally. The
+single-use claim/journal prevents the supported exact invocation's replay; this
+change does not establish universal single use across forged independent
+packets or operators. Only one actual packet/attempt is authorized by this
+scoped amendment.
+
+Source verification and independent High review use synthetic inputs only.
+No token, account request, endpoint qualification or actual private runtime
+packet exists from these checks. The attempted historical-metadata/DNS staging
+was rejected by automatic approval review before execution: code/tests approval
+does not cover reading those private identities and disclosing derived names to
+DNS. That separate preparation scope still needs explicit approval, alongside
+the earlier token-policy, provisioning and exact-run gates.
+
+## Calendar interpretation and later metadata collection
+
+The subsequent console summary confirmed the selected account and two Edit
+permissions, with October 18 for both start and end; it displayed no time or
+timezone. On October 18 the parent rechecked Cloudflare's
+[current TTL documentation](https://developers.cloudflare.com/fundamentals/api/how-to/restrict-tokens/):
+selected dates are documented as 00:00 UTC. By that documented rule an October
+18 end date has passed; October 19 maps to October 18 at 20:00 EDT, earlier than
+the accepted 04:00 UTC maximum. Terry was directed back to the form to correct
+the end date and stop at summary. This mapping is documentation-based, not an
+observation of a newly issued token's actual policy.
+
+The [Verify Token response](https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/verify/)
+can report `expires_on` and `not_before`; it does not establish every effective
+permission or actual issue time. `not_before` is a validity boundary, not an
+issue timestamp. The separate
+[Token Details response](https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/get/)
+documents `issued_on`, `expires_on` and policies, but using it would require its
+own independently reviewed authority and credential path. No token verification
+or details request is authorized or performed by this source handoff. Never
+broaden token permissions or substitute validity-start for issue time to fill
+the evidence gap.
+
+## Final source verification
+
+For #0173, all 13 new synthetic amendment tests and 66 existing operator,
+execution, preparer and provider regression tests passed. The first author
+invocation also named a nonexistent test module; the corrected 66-test command
+completed cleanly without source changes. The parent independently ran 29 new
+amendment/default-plan boundary tests. Fresh High source review passed, including
+seven independently executed boundary cases and inspection of the unchanged
+caller/cleanup/fingerprint/journal paths. No actionable findings remained.
+
+Ruff checks, format checks, Pyright and the pinned native TypeScript compiler
+passed. Final accepted-document/preparation-scope review passed. These are local
+source/synthetic results only: no token creation/read, account API, hosted case,
+private namespace/DNS staging or native action occurred. The rejected staging
+directory was confirmed absent; that preparation still awaits explicit approval.
