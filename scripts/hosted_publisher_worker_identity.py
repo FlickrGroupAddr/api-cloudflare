@@ -6,7 +6,8 @@ https://developers.cloudflare.com/api/resources/workers/subresources/beta/subres
 Only an acknowledged creation supplies identity. Unknown creation cannot be
 replayed or recovered by name. ID addressing is ordinary documented identity,
 not a conditional write or a guarantee about concurrent external modification.
-No versions, deployments, routes, discovery or token operations are implemented.
+Versions and deployments are supplied by the separate composition adapter.
+No routes, discovery or token operations are implemented here.
 The omitted/direct built-in transport refuses requests pending owner selection.
 Injected callables are trusted test code, not a network sandbox or authority gate.
 The existing provider owns HTTP byte/time budgets, hooks and unknown latching.
@@ -55,6 +56,7 @@ class BetaWorkerProvider:
         monotonic=time.monotonic,
         before_request=None,
         after_request=None,
+        shared_provider=None,
     ):
         self._status = None
         self._concrete = transport is None or transport is https_transport
@@ -65,7 +67,15 @@ class BetaWorkerProvider:
                 after_request(key, metadata)
 
         # Composition deliberately exposes none of the unrelated D1 methods.
-        self._provider = CloudflareProvider(
+        if shared_provider is not None and (
+            not isinstance(shared_provider, CloudflareProvider)
+            or shared_provider.account != account
+            or shared_provider._token != token
+            or shared_provider.worker_names != frozenset(worker_names)
+            or any(v is not None for v in (limits, transport, before_request, after_request))
+        ):
+            raise ProviderError("worker_shared_provider_invalid")
+        self._provider = shared_provider or CloudflareProvider(
             account,
             token,
             worker_names,
@@ -76,6 +86,8 @@ class BetaWorkerProvider:
             before_request=before_request,
             after_request=record_response,
         )
+        self._concrete = self._provider._concrete
+        self._shared = shared_provider is not None
         self._identities = {}
         self._created_names = set()
         self._lock = threading.Lock()
@@ -93,7 +105,10 @@ class BetaWorkerProvider:
 
     def _call(self, method, path, *, key, body=None):
         self._status = None
-        return self._provider._request(method, path, body, key=key)
+        result = self._provider._request(method, path, body, key=key)
+        if self._shared:
+            self._status = self._provider.last_status
+        return result
 
     def _unknown(self) -> Never:
         self._provider._closed = True
@@ -121,7 +136,7 @@ class BetaWorkerProvider:
             raise ProviderError("worker_outside_created_identity_scope")
         return "/workers/workers/" + identity["id"]
 
-    def _validate(self, result, name, expected=None, *, allow_enabled=False):
+    def _validate(self, result, name, expected=None, *, allow_enabled=False, allow_previews=False):
         if not isinstance(result, dict):
             self._unknown()
         identity = {k: result.get(k) for k in ("id", "name", "created_on")}
@@ -149,6 +164,7 @@ class BetaWorkerProvider:
             or not isinstance(result.get("observability"), dict)
             or result["observability"].get("enabled") is not False
             or not isinstance(result.get("subdomain"), dict)
+            or (not allow_previews and result["subdomain"].get("previews_enabled") is not False)
             or any(
                 not isinstance(result["subdomain"].get(k), bool)
                 or (not allow_enabled and result["subdomain"][k] is not v)
@@ -179,14 +195,45 @@ class BetaWorkerProvider:
             self._identities[identity["id"]] = identity.copy()
             return identity.copy()
 
-    def _read(self, identity, *, key, allow_enabled=False):
+    def restore_owned_identity(self, identity):
+        """Trust only an externally authenticated durable creation receipt.
+
+        This local registration permits cleanup, never name-based discovery.
+        """
+        if (
+            not isinstance(identity, dict)
+            or set(identity) != {"id", "name", "created_on"}
+            or identity.get("name") not in self._provider.worker_names
+            or not isinstance(identity.get("id"), str)
+            or not re.fullmatch(r"[a-f0-9]{32}", identity["id"])
+            or identity["id"] == "0" * 32
+        ):
+            raise ProviderError("worker_restore_identity_invalid")
+        try:
+            valid_date = (
+                isinstance(identity["created_on"], str)
+                and datetime.fromisoformat(identity["created_on"]).utcoffset() is not None
+            )
+        except ValueError:
+            valid_date = False
+        known = self._identities.get(identity["id"])
+        if not valid_date or (known is not None and known != identity):
+            raise ProviderError("worker_restore_identity_invalid")
+        self._identities[identity["id"]] = identity.copy()
+        self._created_names.add(identity["name"])
+
+    def _read(self, identity, *, key, allow_enabled=False, allow_previews=False):
         result = self._call("GET", self._path(identity), key=key)
         if result is None:
             if self._status != 404:
                 self._unknown()
             return None
         return self._validate(
-            result, identity["name"], identity, allow_enabled=allow_enabled
+            result,
+            identity["name"],
+            identity,
+            allow_enabled=allow_enabled,
+            allow_previews=allow_previews,
         ).copy()
 
     def inspect_worker(self, identity, *, key):
@@ -196,7 +243,10 @@ class BetaWorkerProvider:
     def disable_worker(self, identity, *, key):
         with self._operation():
             path = self._path(identity)
-            if self._read(identity, key=key + ":identity", allow_enabled=True) is None:
+            if (
+                self._read(identity, key=key + ":identity", allow_enabled=True, allow_previews=True)
+                is None
+            ):
                 return self._receipt(absent=True)
             result = self._call("PATCH", path, key=key, body=self._config(identity["name"]))
             self._validate(result, identity["name"], identity)

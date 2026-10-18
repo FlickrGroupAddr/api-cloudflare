@@ -1,6 +1,5 @@
 """Offline once-only operator tests using synthetic provider identities only."""
 
-import copy
 import hashlib
 import json
 import tempfile
@@ -14,7 +13,9 @@ from unittest.mock import patch
 from scripts import hosted_publisher_finite_client as finite_client
 from scripts import hosted_publisher_operator as operator
 from scripts import hosted_publisher_operator_plan as plan_module
+from scripts import hosted_publisher_worker_deployment as deployment
 from tests.test_hosted_publisher_finite_client import phase_body
+from tests.test_hosted_publisher_worker_deployment import StatefulTransport
 
 
 class DurableJournalTests(unittest.TestCase):
@@ -95,111 +96,6 @@ class DurableJournalTests(unittest.TestCase):
         self.assertNotIn(sentinel.encode(), self.path.read_bytes())
 
 
-class SyntheticProvider:
-    """Execute finite provider-method protocol with per-request journal hooks."""
-
-    before_request = None
-    after_request = None
-
-    def __init__(self, plan, fault=None, quiescent=True):
-        self.plan, self.fault, self.quiescent = plan, fault, quiescent
-        self.account = plan.account_id
-        self.worker_names = {c.worker_name for c in plan.cases}
-        self.database_names = {c.d1_name for c in plan.cases}
-        self.workers, self.databases, self.enabled = {}, {}, {}
-        self.calls = []
-
-    def __getattr__(self, name):
-        if name.startswith("_") or name == "unsupported_operations":
-            raise AttributeError(name)
-
-        def invoke(*args, key):
-            mutation = name in {
-                "create_database",
-                "migrate",
-                "upload_worker",
-                "set_endpoint",
-                "delete_worker",
-                "delete_database",
-            }
-            assert self.before_request is not None
-            is_worker = "worker" in name or "endpoint" in name or name == "inspect_module"
-            path = "/workers/scripts" if is_worker else "/d1/database"
-            self.before_request(
-                key,
-                mutation,
-                {"method": "POST" if mutation else "GET", "path": path, "requestBytes": 0},
-            )
-            self.calls.append((name, args))
-            if self.fault == "lost_create" and name == "create_database":
-                raise TimeoutError("SYNTHETIC-PRIVATE-RESPONSE")
-            result = self.execute(name, args)
-            assert self.after_request is not None
-            self.after_request(key, {"status": 200, "responseBytes": 2})
-            return result
-
-        invoke.__name__ = name
-        return invoke
-
-    def execute(self, name, args):
-        target = args[0]
-        if name == "inspect_worker":
-            projection = copy.deepcopy(self.workers.get(target))
-            if projection:
-                projection.pop("main_module", None)
-            if self.fault == "overlay_drift" and projection:
-                projection["bindings"][0]["id"] = "99999999-9999-4999-8999-999999999999"
-            if self.fault == "private_drift" and projection:
-                projection["bindings"].append(
-                    {
-                        "name": "UNEXPECTED",
-                        "type": "plain_text",
-                        "text": "SYNTHETIC-PRIVATE-RESPONSE",
-                    }
-                )
-            return projection
-        if name == "create_database":
-            number = len(self.databases) + 1
-            result = {
-                "uuid": f"{number:08}-1111-4111-8111-111111111111",
-                "name": target,
-                "created_at": self.plan.starts_at,
-            }
-            self.databases[result["uuid"]] = result
-            return result
-        if name == "inspect_database":
-            return self.databases.get(target["uuid"])
-        if name == "verify_empty_database":
-            return True
-        if name == "migrate":
-            return {"statements": 1}
-        if name == "upload_worker":
-            self.workers[target] = copy.deepcopy(args[3])
-            return {
-                "id": target,
-                "etag": "synthetic-version",
-                "moduleSha2_256": self.plan.pins["worker"],
-            }
-        if name == "inspect_module":
-            return {"moduleSha2_256": self.plan.pins["worker"], "etag": "synthetic-version"}
-        if name == "set_endpoint":
-            self.enabled[target] = args[1]
-            return {"enabled": args[1], "previews_enabled": False}
-        if name == "inspect_endpoint":
-            return {"enabled": self.enabled.get(target, False), "previews_enabled": False}
-        if name == "observe_pending":
-            return {"quiescent": self.quiescent, "database_uuid": target["uuid"]}
-        if name == "delete_worker":
-            if self.fault == "delete_failure":
-                raise TimeoutError("SYNTHETIC-PRIVATE-RESPONSE")
-            del self.workers[target]
-            return None
-        if name == "delete_database":
-            del self.databases[target["uuid"]]
-            return None
-        raise AssertionError(name)
-
-
 class HostedOperatorIntegrationTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="fga-operator-integration-")
@@ -213,9 +109,9 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
         cases = tuple(
             plan_module.CasePlan(
                 scenario,
-                f"synthetic-{index}",
-                f"synthetic_db_{index}",
-                f"https://synthetic-{index}.fixture.workers.dev",
+                f"fga-publisher-synthetic-{index}",
+                f"fga-publisher-db-{index}",
+                f"https://fga-publisher-synthetic-{index}.synthetic.workers.dev",
                 f"{index + 1:x}" * 64,
                 start,
                 expiry,
@@ -223,7 +119,7 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
             for index, scenario in enumerate(plan_module.SCENARIOS)
         )
         self.plan = plan_module.OperatorPlan(
-            1,
+            2,
             "a" * 32,
             "Synthetic Owner",
             "Synthetic Cleanup",
@@ -251,7 +147,12 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
             "owner": self.plan.cleanup_owner,
             "decision_id": "synthetic-cleanup",
             "expires_at": cleanup,
-            "actions": ["disable_access", "observe_pending", "delete_exact_pairs"],
+            "actions": [
+                "fence_dispatch",
+                "disable_access",
+                "delete_owned_worker",
+                "dispose_exact_synthetic_d1",
+            ],
         }
         files = []
         for index in range(1, 27):
@@ -283,7 +184,11 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
         # is read. Real immutable artifact rehashing is covered by the separate plan tests.
         self.plan = replace(
             self.plan,
-            pins={**self.plan.pins, "manifest": hashlib.sha256(manifest).hexdigest()},
+            pins={
+                **self.plan.pins,
+                "manifest": hashlib.sha256(manifest).hexdigest(),
+                "worker": hashlib.sha256(b"synthetic offline module").hexdigest(),
+            },
             source_files=current_files,
         )
         self.consent["plan_digest"] = self.authority["plan_digest"] = self.plan.digest
@@ -316,8 +221,17 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
             json.dumps(body).encode(),
         )
 
-    def make(self, fault=None, quiescent=True, stopped=False):
-        self.provider = SyntheticProvider(self.plan, fault, quiescent)
+    def make(self, fault=None, stopped=False, transport=None):
+        self.provider_transport = transport or StatefulTransport(fault)
+        self.provider = deployment.BetaPublisherProvider(
+            self.plan.account_id,
+            "synthetic-private-provider-token",
+            [c.worker_name for c in self.plan.cases],
+            [c.d1_name for c in self.plan.cases],
+            exclusive_owner=True,
+            transport=self.provider_transport,
+            monotonic=lambda: 100.0,
+        )
         self.private = plan_module.PrivateInputs(dict.fromkeys(plan_module.SCENARIOS, "d" * 64))
         return operator.HostedPublisherOperator(
             self.plan,
@@ -341,65 +255,246 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
         with patch.object(plan_module, "validate_artifact"):
             return instance.run()
 
-    def test_four_distinct_pairs_all_phases_then_exact_cleanup(self):
+    def test_open_journal_cannot_adopt_changed_plan_owner_and_matching_new_consent(self):
+        self.plan = replace(self.plan, owner="Different Synthetic Owner")
+        self.consent = {**self.consent, "owner": self.plan.owner, "plan_digest": self.plan.digest}
+        self.authority = {**self.authority, "plan_digest": self.plan.digest}
+        for action in ("run", "cleanup"):
+            with self.subTest(action=action), self.assertRaises(operator.OperatorRefused):
+                instance = self.make()
+                if action == "run":
+                    self.run_synthetic(instance)
+                else:
+                    instance.cleanup_only(self.authority)
+            self.assertEqual(self.provider_transport.calls, [])
+            self.assertIsNone(self.provider.before_request)
+            self.assertIsNone(self.provider.after_request)
+        self.assertEqual(self.requests, [])
+
+    def test_swapped_open_journal_refuses_run_and_cleanup_before_requests(self):
+        other = operator.DurableJournal(self.root / "different-plan.sqlite", "f" * 64)
+        self.addCleanup(other.close)
+        for action in ("run", "cleanup"):
+            instance = self.make()
+            instance.journal = other
+            with self.subTest(action=action), self.assertRaises(operator.OperatorRefused):
+                if action == "run":
+                    self.run_synthetic(instance)
+                else:
+                    instance.cleanup_only(self.authority)
+            self.assertEqual(self.provider_transport.calls, [])
+        self.assertEqual(self.requests, [])
+        self.assertEqual(other.snapshot(), {})
+
+    def test_four_pairs_actual_provider_lifecycle_then_ordered_disposal(self):
         instance = self.make()
         result = self.run_synthetic(instance)
         self.assertEqual(result["status"], "phases_complete_cleanup_pending")
         self.assertEqual(len(self.requests), 28)
-        self.assertEqual(len(self.provider.databases), 4)
-        self.assertEqual(len(self.provider.workers), 4)
-        self.assertTrue(all(not state for state in self.provider.enabled.values()))
-        # Recovery reconstructs exact identities from durable receipts, including when
-        # a replacement owner has no in-memory ledger from provisioning.
+        self.assertEqual(len(self.provider_transport.databases), 4)
+        self.assertEqual(len(self.provider_transport.workers), 4)
+        self.assertTrue(
+            all(not w["subdomain"]["enabled"] for w in self.provider_transport.workers.values())
+        )
         instance._ledger.clear()
         cleanup = instance.cleanup_only(self.authority)
-        self.assertEqual(cleanup["status"], "complete")
-        self.assertEqual(self.provider.databases, {})
-        self.assertEqual(self.provider.workers, {})
+        self.assertEqual(cleanup["status"], "resources_disposed")
+        self.assertEqual(cleanup["querySettlement"], "unproved")
+        self.assertEqual(cleanup["qualification"], "not_established")
+        self.assertEqual(self.provider_transport.databases, {})
+        self.assertEqual(self.provider_transport.workers, {})
         self.assertEqual(cleanup["revocation"], "external_owner_required")
-        self.assertNotIn("d" * 64, json.dumps({"run": result, "journal": self.journal.snapshot()}))
+        calls = self.provider_transport.calls
+        worker_deletes = [
+            i for i, (m, p, _) in enumerate(calls) if m == "DELETE" and "/workers/workers/" in p
+        ]
+        database_deletes = [
+            i for i, (m, p, _) in enumerate(calls) if m == "DELETE" and "/d1/database/" in p
+        ]
+        self.assertEqual(len(worker_deletes), 4)
+        self.assertEqual(len(database_deletes), 4)
+        for worker_delete, db_delete in zip(worker_deletes, database_deletes, strict=True):
+            self.assertLess(worker_delete, db_delete)
+            worker_path = calls[worker_delete][1]
+            self.assertIn(("GET", worker_path, None), calls[worker_delete + 1 : db_delete])
+        self.assertFalse(any("force" in p.lower() or "unsafe" in p.lower() for _, p, _ in calls))
+        self.assertLessEqual(self.provider.calls, self.plan.budgets.provider_calls)
         with self.assertRaises(operator.OperatorRefused):
             instance.cleanup_only(self.authority)
+        self.assertNotIn("d" * 64, json.dumps(self.journal.snapshot()))
 
     def test_lost_create_has_no_retry_or_phase_and_retains_unknown(self):
         instance = self.make(fault="lost_create")
         self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
-        self.assertEqual(sum(name == "create_database" for name, _ in self.provider.calls), 1)
+        self.assertEqual(len(self.provider_transport.calls), 1)
         self.assertEqual(self.requests, [])
         self.assertEqual(self.journal.snapshot()["operation:happy:create"]["state"], "unknown")
+        cleanup = instance.cleanup_only(self.authority)
+        self.assertEqual(cleanup["status"], "pending")
+        self.assertEqual(len(self.provider_transport.calls), 1)
         with self.assertRaises(operator.OperatorRefused):
             self.run_synthetic(instance)
         self.assertNotIn("SYNTHETIC-PRIVATE-RESPONSE", json.dumps(self.journal.snapshot()))
 
-    def test_overlay_drift_prevents_enable_and_client_dispatch(self):
-        instance = self.make(fault="overlay_drift")
+    def test_private_binding_drift_prevents_enable_and_client_dispatch(self):
+        instance = self.make(fault="private_drift")
         self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
         self.assertEqual(self.requests, [])
         self.assertFalse(
-            any(name == "set_endpoint" and args[1] for name, args in self.provider.calls)
+            any(
+                m == "PATCH" and b["subdomain"]["enabled"]
+                for m, _, b in self.provider_transport.calls
+            )
         )
+        self.assertNotIn("SYNTHETIC-PRIVATE-RESPONSE", json.dumps(self.journal.snapshot()))
 
     def test_stop_fence_prevents_initial_provider_request(self):
         instance = self.make(stopped=True)
         self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
-        self.assertEqual(self.provider.calls, [])
+        self.assertEqual(self.provider_transport.calls, [])
         self.assertEqual(self.requests, [])
 
-    def test_cleanup_pending_observation_never_deletes(self):
-        instance = self.make(quiescent=False)
-        self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
-        result = instance.cleanup_only(self.authority)
-        self.assertEqual(result["status"], "pending")
-        self.assertEqual(len(self.provider.databases), 4)
-        self.assertFalse(any(name.startswith("delete_") for name, _ in self.provider.calls))
+    def test_unknown_sql_outcome_survives_accepted_fixture_disposal(self):
+        instance = self.make()
+        original = instance.client_transport
 
-    def test_cleanup_failure_is_pending_with_exact_resources_retained(self):
-        instance = self.make(fault="delete_failure")
+        def lose_last_phase(request):
+            response = original(request)
+            if request.headers["X-Probe-Scenario"] == "title_lost" and request.url.endswith(
+                "/finish"
+            ):
+                return finite_client.Response(503, {}, b"synthetic private response")
+            return response
+
+        instance.client_transport = lose_last_phase
+        self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        unknown_before = {
+            key for key, event in self.journal.snapshot().items() if event["state"] == "unknown"
+        }
+        self.assertTrue(unknown_before)
+        cleanup = instance.cleanup_only(self.authority)
+        self.assertEqual(cleanup["status"], "disposed_with_unknown_outcomes")
+        self.assertEqual(cleanup["querySettlement"], "unproved")
+        self.assertTrue(
+            all(self.journal.snapshot()[key]["state"] == "unknown" for key in unknown_before)
+        )
+        self.assertEqual(self.provider_transport.databases, {})
+        self.assertEqual(len(self.requests), 28)
+        self.assertFalse(any("observe_pending" in p for _, p, _ in self.provider_transport.calls))
+
+    def test_unknown_worker_delete_retains_d1_and_is_not_replayed(self):
+        instance = self.make()
         self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
-        result = instance.cleanup_only(self.authority)
-        self.assertEqual(result["status"], "pending")
-        self.assertEqual(len(self.provider.databases), 4)
-        self.assertEqual(len(self.provider.workers), 4)
+        self.provider_transport.fault = "lost_worker_delete"
+        self.assertEqual(instance.cleanup_only(self.authority)["status"], "pending")
+        self.assertEqual(len(self.provider_transport.databases), 4)
+        self.assertFalse(
+            any(m == "DELETE" and "/d1/" in p for m, p, _ in self.provider_transport.calls)
+        )
+        old_transport = self.provider_transport
+        old_transport.fault = None
+        instance = self.make(transport=old_transport)
+        instance.cleanup_only({**self.authority, "decision_id": "separate-observation"})
+        self.assertEqual(
+            sum(
+                m == "DELETE" and "/workers/workers/" in p
+                for m, p, _ in self.provider_transport.calls
+            ),
+            4,
+        )
+        self.assertEqual(
+            self.journal.snapshot()["operation:dispose:happy:worker"]["state"], "unknown"
+        )
+
+    def test_unknown_d1_delete_does_not_become_verified_cleanup(self):
+        instance = self.make()
+        self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
+        self.provider_transport.fault = "lost_d1_delete"
+        cleanup = instance.cleanup_only(self.authority)
+        self.assertEqual(cleanup["status"], "pending")
+        self.assertEqual(
+            self.journal.snapshot()["operation:dispose:happy:database"]["state"], "unknown"
+        )
+        self.assertEqual(
+            sum(m == "DELETE" and "/d1/" in p for m, p, _ in self.provider_transport.calls), 1
+        )
+        old_transport = self.provider_transport
+        old_transport.fault = None
+        instance = self.make(transport=old_transport)
+        instance.cleanup_only({**self.authority, "decision_id": "separate-observation"})
+        self.assertEqual(
+            sum(
+                m == "DELETE" and p == "/d1/database/00000001-1111-4111-8111-111111111111"
+                for m, p, _ in self.provider_transport.calls
+            ),
+            1,
+        )
+
+    def test_unknown_disable_retains_all_resources(self):
+        instance = self.make()
+        self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
+        self.provider_transport.fault = "lost_disable"
+        cleanup = instance.cleanup_only(self.authority)
+        self.assertEqual(cleanup["status"], "pending")
+        self.assertFalse(any(m == "DELETE" for m, _, _ in self.provider_transport.calls))
+        self.assertEqual(len(self.provider_transport.databases), 4)
+
+    def test_worker_delete_ack_without_absence_retains_d1(self):
+        instance = self.make()
+        self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
+        self.provider_transport.fault = "worker_absence_unverified"
+        self.assertEqual(instance.cleanup_only(self.authority)["status"], "pending")
+        self.assertTrue(
+            any(m == "DELETE" and "/workers/" in p for m, p, _ in self.provider_transport.calls)
+        )
+        self.assertFalse(
+            any(m == "DELETE" and "/d1/" in p for m, p, _ in self.provider_transport.calls)
+        )
+
+    def test_d1_delete_ack_without_absence_is_pending(self):
+        instance = self.make()
+        self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
+        self.provider_transport.fault = "database_absence_unverified"
+        self.assertEqual(instance.cleanup_only(self.authority)["status"], "pending")
+        self.assertEqual(len(self.provider_transport.databases), 4)
+        self.assertEqual(
+            self.journal.snapshot()["operation:dispose:happy:database"]["state"], "complete"
+        )
+        self.assertEqual(
+            self.journal.snapshot()["operation:dispose:happy:worker"]["state"], "complete"
+        )
+
+    def test_grant_expiry_during_durable_provider_reserve_prevents_transport(self):
+        instance = self.make()
+        self.grant["expires_at"] = "2026-10-17T12:02:00Z"
+        original = self.journal.reserve
+
+        def reserve(key, payload):
+            result = original(key, payload)
+            if key.startswith("provider:"):
+                self.wall += 60
+            return result
+
+        with patch.object(self.journal, "reserve", side_effect=reserve):
+            self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        self.assertEqual(self.provider_transport.calls, [])
+        self.assertEqual(self.requests, [])
+        self.assertTrue(any(key.startswith("provider:") for key in self.journal.snapshot()))
+
+    def test_grant_expiry_fences_every_provider_and_phase_request(self):
+        instance = self.make()
+        self.grant["expires_at"] = "2026-10-17T12:02:00Z"
+        original = self.provider_transport.execute
+
+        def advance(method, path, body):
+            result = original(method, path, body)
+            self.wall += 60
+            return result
+
+        self.provider_transport.execute = advance
+        self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        self.assertEqual(len(self.provider_transport.calls), 1)
+        self.assertEqual(self.requests, [])
 
     def test_absent_or_expired_grant_refuses_before_any_request(self):
         instance = self.make()
@@ -407,13 +502,20 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
             instance.operator_grant = grant
             with self.subTest(grant=bool(grant)), self.assertRaises(ValueError):
                 self.run_synthetic(instance)
-        self.assertEqual(self.provider.calls, [])
+        self.assertEqual(self.provider_transport.calls, [])
         self.assertEqual(self.requests, [])
+
+    def test_cleanup_requires_original_synthetic_exclusive_consent(self):
+        instance = self.make()
+        instance.consent = {}
+        with self.assertRaises(ValueError):
+            instance.cleanup_only(self.authority)
+        self.assertEqual(self.provider_transport.calls, [])
 
     def test_cleanup_needs_separate_exact_authority(self):
         instance = self.make()
         self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
-        calls = len(self.provider.calls)
+        calls = len(self.provider_transport.calls)
         for change in (
             {"granted": False},
             {"plan_digest": "f" * 64},
@@ -422,26 +524,18 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
         ):
             with self.subTest(change=tuple(change)), self.assertRaises(operator.OperatorRefused):
                 instance.cleanup_only({**self.authority, **change})
-        self.assertEqual(len(self.provider.calls), calls)
+        self.assertEqual(len(self.provider_transport.calls), calls)
 
     def test_migration_changed_after_fixture_validation_is_not_submitted(self):
         instance = self.make()
-        migration = next((self.root / "migrations").glob("*.sql"))
-        migration.write_bytes(b"SELECT 2;")
+        next((self.root / "migrations").glob("*.sql")).write_bytes(b"SELECT 2;")
         self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
-        self.assertFalse(any(name == "migrate" for name, _ in self.provider.calls))
-        self.assertEqual(self.requests, [])
-
-    def test_private_text_in_drifted_settings_is_never_persisted(self):
-        instance = self.make(fault="private_drift")
-        result = self.run_synthetic(instance)
-        self.assertEqual(result["status"], "unknown")
-        self.assertTrue(any(name == "upload_worker" for name, _ in self.provider.calls))
-        self.assertEqual(
-            self.journal.snapshot()["operation:happy:deployed:settings"]["state"], "complete"
+        self.assertFalse(
+            any(
+                m == "POST" and p.endswith("/query") and b["sql"] == "SELECT 2;"
+                for m, p, b in self.provider_transport.calls
+            )
         )
-        self.assertNotIn("SYNTHETIC-PRIVATE-RESPONSE", json.dumps(self.journal.snapshot()))
-        self.assertNotIn(b"SYNTHETIC-PRIVATE-RESPONSE", (self.root / "run.sqlite").read_bytes())
         self.assertEqual(self.requests, [])
 
     def test_cleanup_before_run_permanently_fences_provisioning(self):
@@ -449,7 +543,7 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
         self.assertEqual(instance.cleanup_only(self.authority)["status"], "pending")
         with self.assertRaises(operator.OperatorRefused):
             self.run_synthetic(instance)
-        self.assertEqual(self.provider.calls, [])
+        self.assertEqual(self.provider_transport.calls, [])
 
     def test_plan_phase_seconds_limits_every_client_request(self):
         self.plan = replace(self.plan, budgets=replace(self.plan.budgets, phase_seconds=2))
@@ -465,12 +559,11 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
     def test_current_input_drift_blocks_cleanup_before_provider_request(self):
         instance = self.make()
         self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
-        path = self.root / next(iter(self.plan.source_files))
-        path.write_bytes(b"changed synthetic reviewed operator")
-        calls = len(self.provider.calls)
+        (self.root / next(iter(self.plan.source_files))).write_bytes(b"changed source")
+        calls = len(self.provider_transport.calls)
         with self.assertRaises(ValueError):
             instance.cleanup_only(self.authority)
-        self.assertEqual(len(self.provider.calls), calls)
+        self.assertEqual(len(self.provider_transport.calls), calls)
 
 
 if __name__ == "__main__":

@@ -7,15 +7,22 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import patch
 
+from scripts.temporary_composition_delta import build_delta
 from scripts.temporary_composition_lifecycle import (
+    COMPOSITION_OPERATIONS,
     OPERATIONS,
     LifecycleJournal,
+    SyntheticCompositionProvider,
     SyntheticProvider,
+    build_composition_plan,
     build_plan,
     rehearse,
+    rehearse_composition,
     validate_plan,
 )
+from tests.test_temporary_composition_delta import composition_inputs
 
 RUN = "a" * 32
 START = 1_000
@@ -356,6 +363,31 @@ class TemporaryCompositionLifecycleTests(unittest.TestCase):
                 self.assertTrue(provider.stop_requested)
                 self.assertIs(result["stopObserved"], True)
 
+    def test_unknown_temporary_observation_never_guesses_safe_restore(self):
+        for fault in ("unknown", "exception", "malformed"):
+            with self.subTest(fault=fault):
+                plan, journal, provider, result = self.run_model({"read_temporary": fault})
+                self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+                self.assertIn("read_temporary", result["pendingOperations"])
+                self.assertEqual(provider.calls[-1], "read_temporary")
+                self.assertNotIn("disable_temporary", provider.calls)
+                self.assertNotIn("restore_retained", provider.calls)
+                self.assertEqual(
+                    provider.snapshot()["snapshot"]["activeVersion"], plan["temporaryVersion"]
+                )
+                self.assertIsNotNone(provider.snapshot()["receiver"])
+                self.assertEqual(
+                    [name for name, _ in journal.records() if name.startswith("reconcile_")],
+                    ["reconcile_1", "reconcile_2"],
+                )
+
+    def test_refused_restore_cannot_delete_receiver_or_guess_original_version(self):
+        plan, _, provider, result = self.run_model({"restore_retained": "refused"})
+        self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+        self.assertEqual(provider.snapshot()["snapshot"]["activeVersion"], plan["temporaryVersion"])
+        self.assertNotIn("delete_receiver", provider.calls)
+        self.assertIsNotNone(provider.snapshot()["receiver"])
+
     def test_invalid_clock_stop_and_provider_inputs_refuse_without_effect(self):
         plan = build_plan(RUN, START)
         for clock in (True, START - 1, float("nan"), float("inf")):
@@ -382,6 +414,254 @@ class TemporaryCompositionLifecycleTests(unittest.TestCase):
         changed["retained"]["weights"] = {"foreign": 100}
         with self.assertRaises(ValueError):
             SyntheticProvider(changed)
+
+
+class CompleteCompositionLifecycleTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="full-baseline-lifecycle-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.sequence = 0
+
+    def make_model(self, faults=None, tick_ms=0):
+        self.sequence += 1
+        baseline, additions = composition_inputs()
+        plan = build_composition_plan(build_delta(baseline, additions), START)
+        path = self.root / f"attempt-{self.sequence}.sqlite"
+        journal = LifecycleJournal(path, plan)
+        self.addCleanup(journal.close)
+        provider = SyntheticCompositionProvider(plan, faults, tick_ms=tick_ms)
+        return plan, path, journal, provider
+
+    def test_complete_baseline_round_trip_and_reverse_owned_resource_cleanup(self):
+        plan, _, journal, provider = self.make_model()
+        baseline = copy.deepcopy(plan["delta"]["baseline"])
+        result = rehearse_composition(plan, journal, provider)
+        self.assertEqual(result["cleanup"], "confirmed_offline")
+        self.assertEqual(provider.calls, list(COMPOSITION_OPERATIONS))
+        final = provider.snapshot()
+        self.assertEqual(final["snapshot"], baseline)
+        self.assertEqual(final["ownedResources"], [])
+        self.assertIs(final["admission"]["enabled"], False)
+        self.assertEqual(result["retainedTemporaryVersion"], "temporary-version")
+        self.assertEqual(final["uploadedVersion"]["version"], "temporary-version")
+        self.assertLess(
+            provider.calls.index("read_disabled"), provider.calls.index("restore_retained")
+        )
+        self.assertLess(
+            provider.calls.index("read_restored"), provider.calls.index("delete_resource_2")
+        )
+        self.assertEqual(
+            [call for call in provider.calls if call.startswith("delete_resource_")],
+            ["delete_resource_2", "delete_resource_1", "delete_resource_0"],
+        )
+        for field in PROOF_FIELDS:
+            self.assertIs(result[field], False)
+        self.assertFalse(result["pendingOperations"])
+
+    def test_unknown_effects_latch_without_guessed_rollback_or_replay(self):
+        for operation in COMPOSITION_OPERATIONS:
+            for fault in ("unknown", "exception", "malformed"):
+                with self.subTest(operation=operation, fault=fault):
+                    plan, path, journal, provider = self.make_model({operation: fault})
+                    result = rehearse_composition(plan, journal, provider)
+                    self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+                    self.assertIn(operation, result["pendingOperations"])
+                    self.assertEqual(provider.calls[-3:], [operation, "reconcile_1", "reconcile_2"])
+                    self.assertEqual(len(provider.calls), len(set(provider.calls)))
+                    self.assertLessEqual(result["operationsAttempted"], 25)
+                    records = journal.records()
+                    journal.close()
+                    reopened = LifecycleJournal(path, plan)
+                    self.addCleanup(reopened.close)
+                    fresh_provider = SyntheticCompositionProvider(plan)
+                    with self.assertRaisesRegex(ValueError, "already_attempted"):
+                        rehearse_composition(plan, reopened, fresh_provider)
+                    self.assertFalse(fresh_provider.calls)
+                    self.assertEqual(reopened.records(), records)
+                    if operation == "upload_version":
+                        self.assertEqual(result["temporaryVersionDisposition"], "unknown")
+                        self.assertIsNotNone(provider.snapshot()["uploadedVersion"])
+                    if operation.startswith("create_resource_"):
+                        self.assertIn(operation, result["unacknowledgedCreationOperations"])
+                    if operation.startswith("delete_resource_"):
+                        self.assertTrue(result["ownedResourcesRequiringReconciliation"])
+                    if operation == "apply_temporary":
+                        self.assertEqual(
+                            provider.snapshot()["snapshot"], plan["delta"]["temporary"]
+                        )
+                        self.assertNotIn("restore_retained", provider.calls)
+                    if operation == "restore_retained":
+                        self.assertEqual(provider.snapshot()["snapshot"], plan["delta"]["baseline"])
+                        self.assertEqual(len(provider.snapshot()["ownedResources"]), 3)
+
+    def test_failed_reconciliation_never_clears_unknown_apply_or_adds_mutations(self):
+        for fault in ("unknown", "exception", "malformed", "refused"):
+            plan, _, journal, provider = self.make_model(
+                {"apply_temporary": "unknown", "reconcile_1": fault, "reconcile_2": fault}
+            )
+            result = rehearse_composition(plan, journal, provider)
+            self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+            self.assertIn("apply_temporary", result["pendingOperations"])
+            self.assertEqual(provider.calls[-3:], ["apply_temporary", "reconcile_1", "reconcile_2"])
+            self.assertNotIn("restore_retained", provider.calls)
+            self.assertLessEqual(len(journal.records()), plan["operationCap"])
+
+    def test_known_drift_requires_independent_full_state_match_before_restore_or_delete(self):
+        for fault in (
+            "configuration_drift",
+            "module_drift",
+            "ownership_drift",
+            "typed_data_drift",
+            "secret_drift",
+            "weights_drift",
+        ):
+            for operation in ("read_resource_2", "read_disabled", "read_restored"):
+                with self.subTest(operation=operation, fault=fault):
+                    plan, _, journal, provider = self.make_model({operation: fault})
+                    result = rehearse_composition(plan, journal, provider)
+                    self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+                    self.assertFalse(
+                        any(call.startswith("delete_resource_") for call in provider.calls)
+                    )
+                    if operation == "read_disabled":
+                        self.assertNotIn("restore_retained", provider.calls)
+                    self.assertEqual(len(provider.snapshot()["ownedResources"]), 3)
+
+    def test_stop_after_each_work_stage_never_applies_and_cleans_only_confirmed_owned_state(self):
+        for operation in (
+            "create_resource_0",
+            "read_resource_1",
+            "initialize_synthetic",
+            "read_version",
+        ):
+            with self.subTest(operation=operation):
+                plan, _, journal, provider = self.make_model({operation: "stop"})
+                result = rehearse_composition(plan, journal, provider)
+                self.assertTrue(result["stopObserved"])
+                self.assertNotIn("apply_temporary", provider.calls)
+                self.assertEqual(result["cleanup"], "confirmed_offline")
+                self.assertEqual(provider.snapshot()["snapshot"], plan["delta"]["baseline"])
+                self.assertEqual(provider.snapshot()["ownedResources"], [])
+
+    def test_stop_after_apply_restores_exact_original_but_unknown_stop_never_restores(self):
+        plan, _, journal, provider = self.make_model({"apply_temporary": "stop"})
+        result = rehearse_composition(plan, journal, provider)
+        self.assertTrue(result["stopObserved"])
+        self.assertEqual(result["cleanup"], "confirmed_offline")
+        self.assertEqual(provider.snapshot()["snapshot"], plan["delta"]["baseline"])
+        for fault in ("refused", "unknown"):
+            plan, _, journal, provider = self.make_model({"disable_temporary": fault})
+            result = rehearse_composition(plan, journal, provider)
+            self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+            self.assertNotIn("restore_retained", provider.calls)
+            self.assertFalse(any(call.startswith("delete_resource_") for call in provider.calls))
+
+    def test_deadlines_do_not_extend_or_replay_expired_plan(self):
+        options_list: list[dict[str, Any]] = [{"stop_requested": True}, {"now_ms": START + 600_000}]
+        for options in options_list:
+            plan, path, journal, provider = self.make_model()
+            result = rehearse_composition(plan, journal, provider, **options)
+            self.assertEqual(result["cleanup"], "not_applied")
+            self.assertFalse(provider.calls)
+            journal.close()
+            reopened = LifecycleJournal(path, plan)
+            self.addCleanup(reopened.close)
+            with self.assertRaisesRegex(ValueError, "already_attempted"):
+                rehearse_composition(plan, reopened, SyntheticCompositionProvider(plan))
+        plan, _, journal, provider = self.make_model(tick_ms=120_000)
+        result = rehearse_composition(plan, journal, provider)
+        self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+        self.assertEqual(result["reason"], "outer_expired")
+        self.assertLessEqual(provider.elapsed_ms, plan["outerExpiresMs"] - START)
+        self.assertNotIn("apply_temporary", provider.calls)
+
+    def test_foreign_or_lost_journal_owner_refuses_before_provider_effects(self):
+        for replacement in (None, "synthetic-foreign-owner"):
+            with self.subTest(replacement=replacement):
+                plan, _, journal, provider = self.make_model()
+                journal.marker.unlink()
+                if replacement is not None:
+                    journal.marker.write_text(replacement, encoding="utf-8")
+                with self.assertRaises((ValueError, FileExistsError)):
+                    rehearse_composition(plan, journal, provider)
+                self.assertFalse(provider.calls)
+                journal.close()
+                if replacement is not None:
+                    self.assertEqual(journal.marker.read_text(encoding="utf-8"), replacement)
+
+    def test_quota_reinitialization_cannot_reset_usage_and_disable_preserves_observations(self):
+        plan, _, journal, provider = self.make_model({"initialize_synthetic": "unknown"})
+        result = rehearse_composition(plan, journal, provider)
+        self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+        provider._state["quotaScope"].update(
+            fga=3, receiver=2, arrivals=1, authorizationPresent=True, canaryMatch=True
+        )
+        original = copy.deepcopy(provider.snapshot()["quotaScope"])
+        response = provider._call("initialize_synthetic", {"run": plan["run"], "startsAt": START})
+        self.assertEqual(response["outcome"], "refused")
+        self.assertEqual(provider.snapshot()["quotaScope"], original)
+        response = provider._call("disable_temporary", {"run": plan["run"]})
+        self.assertEqual(response["outcome"], "accepted")
+        original["enabled"] = False
+        self.assertEqual(provider.snapshot()["quotaScope"], original)
+
+    def test_version_restore_cannot_repair_or_hide_production_data_drift(self):
+        plan, _, _, provider = self.make_model()
+        provider._state["snapshot"]["productionState"]["rows"].append(["unexpected-row", 2])
+        before = copy.deepcopy(provider.snapshot()["snapshot"]["productionState"])
+        response = provider._call("restore_retained", plan["delta"]["restore"])
+        self.assertEqual(response["outcome"], "accepted")
+        self.assertEqual(provider.snapshot()["snapshot"]["productionState"], before)
+        self.assertNotEqual(provider.snapshot()["snapshot"], plan["delta"]["baseline"])
+
+    def test_unreviewed_provider_state_is_not_inherited_as_expected_baseline(self):
+        plan, _, journal, provider = self.make_model()
+        provider._state["unreviewed"] = True
+        result = rehearse_composition(plan, journal, provider)
+        self.assertEqual(result["cleanup"], "cleanup_unconfirmed")
+        self.assertEqual(provider.calls, ["read_baseline"])
+        self.assertEqual(provider.snapshot()["ownedResources"], [])
+
+    def test_owner_replacement_between_observation_and_apply_prevents_next_dispatch(self):
+        plan, _, journal, provider = self.make_model()
+        dispatch = provider._call
+
+        def replace_owner(operation, request):
+            result = dispatch(operation, request)
+            if operation == "read_version":
+                journal.marker.write_text("synthetic-replacement-owner", encoding="utf-8")
+            return result
+
+        with patch.object(provider, "_call", side_effect=replace_owner):
+            with self.assertRaises(ValueError):
+                rehearse_composition(plan, journal, provider)
+        self.assertEqual(provider.calls[-1], "read_version")
+        self.assertNotIn("apply_temporary", provider.calls)
+        self.assertEqual(provider.snapshot()["snapshot"], plan["delta"]["baseline"])
+        journal.close()
+        self.assertEqual(journal.marker.read_text(encoding="utf-8"), "synthetic-replacement-owner")
+
+    def test_lifecycle_cannot_move_embedded_worker_window_to_a_new_start(self):
+        baseline, additions = composition_inputs()
+        delta = build_delta(baseline, additions)
+        with self.assertRaises(ValueError):
+            build_composition_plan(delta, START + 1)
+
+    def test_closure_tamper_and_journal_plan_mismatch_refuse_before_effects(self):
+        plan, path, journal, provider = self.make_model()
+        tampered = copy.deepcopy(plan)
+        tampered["delta"]["temporary"]["configuration"]["attachment"]["logpush"] = True
+        with self.assertRaises(ValueError):
+            rehearse_composition(tampered, journal, provider)
+        self.assertFalse(provider.calls)
+        self.assertFalse(journal.records())
+        journal.close()
+        baseline, additions = composition_inputs()
+        baseline["configuration"]["assets"]["directory"] = "different-assets"
+        other = build_composition_plan(build_delta(baseline, additions), START)
+        with self.assertRaisesRegex(ValueError, "plan_mismatch"):
+            LifecycleJournal(path, other)
 
 
 if __name__ == "__main__":

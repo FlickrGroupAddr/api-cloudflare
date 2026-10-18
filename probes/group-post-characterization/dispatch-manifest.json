@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "offline_post_dispatch_preparation",
+  "binding": {
+    "schemaVersion": 1,
+    "runId": "88603c8c3262426397a5bb67",
+    "coordinationRoot": "C:\\Users\\TDO-XPS15-2024\\Documents\\ChatGPT\\FGA\\.coordination-runs\\group-post-dispatch\\88603c8c3262426397a5bb67\\handshake",
+    "nativeRoot": "C:\\Temp\\FGA-group-post-v1",
+    "tokenFile": "C:\\Users\\TDO-XPS15-2024\\Documents\\ChatGPT\\FGA\\.coordination-runs\\group-post-dispatch\\88603c8c3262426397a5bb67\\private\\operator-token.txt"
+  },
+  "sources": {
+    "clients/lightroom/FGA-LrC15.lrplugin/ExistingPhotoClient.lua": "2fcd68afae4f933ce83e25aa4cf8c734971f25a5ae12855c23c6f3f68bcfdc54",
+    "clients/lightroom/FGA-LrC15.lrplugin/GroupSubmissionClient.lua": "1df4891ffb42a018af0f5b49ebe425bbcefe80cb017798c3c039d43387e3c21e",
+    "clients/lightroom/FGA-LrC15.lrplugin/dkjson.lua": "197cb50834c642f84b4cf99fe724932c50e6d9c92faec7ad89aa25e91df4d481",
+    "docs/operations/group-post-dispatch-packet-2026-10-18.md": "58ea6136a0c676b21e6255d4d64bc5e749e7e849841536359b02653425807543",
+    "docs/operations/group-post-dispatch-rehearsal-2026-10-18.md": "1fd1e45ee433db12774acc06f140f1d67a6bb24d09bf4a071ef6bb8075e81048",
+    "probes/group-post-characterization/manifest.json": "87e52649df09518ed372e5482ca3c61be7c3ac4f7e8c6bd07c7cdc09206805ed",
+    "probes/group-post-characterization/schema.sql": "2da3a8c4c98089fc00c7c131e28a92606688fa634bc4c06b886e547ef506beca",
+    "probes/group-post-characterization/worker.mjs": "c45200f7270cd9040b78847bc5a7b2dca41cb025ef3b778d632fca5c2d441a8f",
+    "probes/lightroom/FGA-GroupPost-v1.lrplugin/Info.lua": "ad5d64bda98511dea58fc27bfacf5578847d868e4e2fe6761907c89dcae29e71",
+    "probes/lightroom/FGA-GroupPost-v1.lrplugin/Post.lua": "e2dd1d5ba89f2ef0b79ff86faf4069060ca5173696665cfb70f2e29df49a5bcf",
+    "probes/lightroom/FGA-GroupPost-v1.lrplugin/Run.lua": "3515521a76feb5877da993e876b688c13297ca3c891a62b10dda67547fcc7742",
+    "scripts/group_post_characterization.py": "9825188a171b15b939978a13cd6e7ec0735cc4ad6088446012786ebf130dbea4",
+    "scripts/group_post_dispatch.mjs": "66724cbba0db6cf2aa3c31ef7d7feb7312eca4ec474682dae18c282b705ab360",
+    "scripts/group_post_dispatch.py": "cf0723b08456bca3eacc92897d82ba011b4c3bf3742a6e144801f9024e2389ca",
+    "scripts/prepare_group_post_dispatch.py": "826e6da0952c28c8328e93f60c0be194d0ffbed49e09af5d9ff2417d24c2e2bb"
+  },
+  "productionQualified": false
+}

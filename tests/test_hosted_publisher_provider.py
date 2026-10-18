@@ -107,6 +107,40 @@ class HostedPublisherProviderTests(unittest.TestCase):
                 emitted = str(caught.exception) + stdout.getvalue() + stderr.getvalue()
                 self.assertNotIn(TOKEN, emitted)
 
+    def test_durable_before_hook_crossing_lifetime_never_dispatches_transport(self):
+        clock = Mock(return_value=0.0)
+
+        def slow_journal_hook(*_):
+            clock.return_value = 1.0
+
+        instance, transport = self.adapter(
+            envelope(IDENTITY),
+            monotonic=clock,
+            before_request=slow_journal_hook,
+            limits=replace(provider.Limits(), total_seconds=1),
+        )
+        with self.assertRaises(provider.ProviderError):
+            instance.create_database(NAME, key="expires-during-journal")
+        transport.assert_not_called()
+        with self.assertRaises(provider.ProviderError):
+            instance.inspect_database(IDENTITY, key="after-expiry")
+        transport.assert_not_called()
+
+    def test_post_hook_remaining_lifetime_controls_transport_timeout(self):
+        clock = Mock(return_value=0.0)
+
+        def slow_journal_hook(*_):
+            clock.return_value = 0.75
+
+        instance, transport = self.adapter(
+            envelope(IDENTITY),
+            monotonic=clock,
+            before_request=slow_journal_hook,
+            limits=replace(provider.Limits(), total_seconds=1),
+        )
+        instance.create_database(NAME, key="admitted-after-journal")
+        self.assertLessEqual(transport.call_args.args[4], 0.25)
+
     def test_call_key_and_cumulative_budgets_reject_before_transport(self):
         for limits, key in (
             (replace(provider.Limits(), calls=1), "second"),
@@ -270,7 +304,7 @@ class HostedPublisherProviderTests(unittest.TestCase):
         self.assertEqual(p.calls, 0)
 
     def test_invalid_token_and_oversized_request_headers_never_dispatch(self):
-        for token in ("a" * 4097, "é", "contains space", "line\nfeed", "\x7f"):
+        for token in ("a" * 4097, "ÃƒÂ©", "contains space", "line\nfeed", "\x7f"):
             with self.subTest(token_length=len(token)), self.assertRaises(provider.ProviderError):
                 provider.CloudflareProvider(ACCOUNT, token, [NAME], [NAME], transport=Mock())
         connection = Mock()

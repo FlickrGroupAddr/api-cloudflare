@@ -121,6 +121,7 @@ class DurableJournal:
                     raise OperatorRefused("journal_plan_mismatch")
                 if not rows:
                     self._db.execute("INSERT INTO meta VALUES (?)", (plan_digest,))
+            self._bound_digest = plan_digest
             self._closed = False
         except BaseException:
             if self._db is not None:
@@ -130,6 +131,11 @@ class DurableJournal:
             with _OWNERS_LOCK:
                 _OWNERS.discard(self._name)
             raise
+
+    @property
+    def bound_digest(self) -> str:
+        """Immutable constructor-verified plan identity of this open journal."""
+        return self._bound_digest
 
     def _connection(self) -> sqlite3.Connection:
         if self._closed or self._db is None:
@@ -223,8 +229,8 @@ class CaseJournal:
 class HostedPublisherOperator:
     """One invocation, four exact fresh pairs, no phase or lifecycle replay.
 
-    Real provider inability to prove pending D1 work is terminal `pending`, not
-    inferred quiescence. Cleanup is a separate authority boundary below. An
+    Synthetic fixture disposal preserves unproved SQL outcomes. Cleanup is a
+    separate exact authority boundary below. An
     expired operation grant never silently extends to stop/provider mutations.
     """
 
@@ -245,6 +251,8 @@ class HostedPublisherOperator:
         monotonic: Callable[[], float] = time.monotonic,
         stop_check: Callable[[], bool] = lambda: False,
     ):
+        if journal.bound_digest != plan.digest:
+            raise OperatorRefused("journal_plan_mismatch")
         self.plan, self.consent, self.provider = plan, consent, provider
         self._plan_digest = plan.digest
         self.operator_grant = operator_grant if type(operator_grant) is dict else {}
@@ -294,11 +302,16 @@ class HostedPublisherOperator:
     def _now(self) -> datetime:
         return datetime.fromtimestamp(self.wall_clock(), UTC)
 
+    def _assert_binding(self) -> None:
+        if self.plan.digest != self._plan_digest:
+            raise OperatorRefused("plan_changed_after_binding")
+        if self.journal.bound_digest != self._plan_digest:
+            raise OperatorRefused("journal_plan_mismatch")
+
     def _window(self, *, cleanup: bool = False) -> None:
         from scripts.hosted_publisher_operator_plan import utc_time
 
-        if self.plan.digest != self._plan_digest:
-            raise OperatorRefused("plan_changed_after_binding")
+        self._assert_binding()
         end = self.plan.cleanup_deadline if cleanup else self.plan.expires_at
         if not utc_time(self.plan.starts_at) <= self._now() < utc_time(end):
             raise OperatorRefused("authority_window_closed")
@@ -325,10 +338,12 @@ class HostedPublisherOperator:
         if (
             type(metadata) is not dict
             or set(metadata) != {"method", "path", "requestBytes"}
-            or metadata["method"] not in {"GET", "POST", "PUT", "DELETE"}
+            or metadata["method"] not in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             or type(metadata["path"]) is not str
             or not re.fullmatch(
-                r"/(?:d1/database|workers/scripts)(?:/[a-zA-Z0-9_/-]{1,160})?", metadata["path"]
+                r"/(?:d1/database|workers/scripts|workers/workers|workers/subdomain)"
+                r"(?:/[a-zA-Z0-9_/-]{1,160})?(?:\?(?:include=modules|deploy=false|page=1&per_page=1))?",
+                metadata["path"],
             )
             or type(metadata["requestBytes"]) is not int
             or not 0 <= metadata["requestBytes"] <= 2_097_152
@@ -357,6 +372,10 @@ class HostedPublisherOperator:
         self._request_bytes += metadata["requestBytes"]
         self._response_bytes += PROVIDER_SINGLE_RESPONSE_BYTES
         self._active_request = "provider:" + key
+        self._window(cleanup=getattr(self, "_cleanup_mode", False))
+        validate_operator_grant(self.plan, self.operator_grant, self._now())
+        if getattr(self, "_cleanup_mode", False) and self._now() >= self._cleanup_expires_at:
+            raise OperatorRefused("cleanup_authority_expired")
 
     def _after_request(self, key: str, receipt: dict[str, Any]) -> None:
         if (
@@ -397,24 +416,57 @@ class HostedPublisherOperator:
                     or result["uuid"] == "00000000-0000-0000-0000-000000000000"
                 ):
                     raise OperatorRefused("create_receipt_identity_unknown")
-                utc_time(result["created_at"])
+                case = next(c for c in self.plan.cases if c.d1_name == result["name"])
+                if (
+                    not utc_time(self.plan.starts_at)
+                    <= utc_time(result["created_at"])
+                    < utc_time(case.expires_at)
+                ):
+                    raise OperatorRefused("database_creation_time_unknown")
                 receipt = {"result": result}
-            elif method.__name__ == "upload_worker":
+            elif method.__name__ == "create_worker":
+                from scripts.hosted_publisher_operator_plan import utc_time
+
                 if (
                     type(result) is not dict
-                    or set(result) != {"id", "etag", "moduleSha2_256"}
-                    or result["id"] not in {c.worker_name for c in self.plan.cases}
-                    or result["moduleSha2_256"] != self.plan.pins["worker"]
-                    or type(result["etag"]) is not str
-                    or not 0 < len(result["etag"]) <= 512
+                    or set(result) != {"id", "name", "created_on"}
+                    or result["name"] not in {c.worker_name for c in self.plan.cases}
+                    or not isinstance(result["id"], str)
+                    or not re.fullmatch(r"[a-f0-9]{32}", result["id"])
+                    or result["id"] == "0" * 32
+                    or not isinstance(result["created_on"], str)
                 ):
-                    raise OperatorRefused("upload_receipt_identity_unknown")
-                result = {
-                    "id": result["id"],
-                    "moduleSha2_256": result["moduleSha2_256"],
-                    "etagSha2_256": hashlib.sha256(result["etag"].encode()).hexdigest(),
-                }
+                    raise OperatorRefused("worker_create_identity_unknown")
+                created = datetime.fromisoformat(result["created_on"])
+                case = next(c for c in self.plan.cases if c.worker_name == result["name"])
+                if not utc_time(self.plan.starts_at) <= created < utc_time(case.expires_at):
+                    raise OperatorRefused("worker_creation_time_unknown")
                 receipt = {"result": result}
+            elif method.__name__ in {"create_version", "deploy_version"}:
+                fields = (
+                    {"id", "workerId", "moduleSha2_256"}
+                    if method.__name__ == "create_version"
+                    else {"id", "workerId", "versionId", "created_on"}
+                )
+                if type(result) is not dict or set(result) != fields:
+                    raise OperatorRefused("deployment_receipt_unknown")
+                if result["workerId"] != args[0]["id"]:
+                    raise OperatorRefused("deployment_worker_identity_drift")
+                for field in fields - {"moduleSha2_256", "created_on"}:
+                    if not isinstance(result[field], str) or not re.fullmatch(
+                        r"[a-f0-9-]{32,36}", result[field]
+                    ):
+                        raise OperatorRefused("deployment_identity_unknown")
+                if method.__name__ == "create_version":
+                    if result["moduleSha2_256"] != self.plan.pins["worker"]:
+                        raise OperatorRefused("version_module_drift")
+                elif result["versionId"] != args[1]["id"]:
+                    raise OperatorRefused("deployment_version_drift")
+                receipt = {"result": result}
+            elif method.__name__ in {"delete_worker", "delete_database"}:
+                if type(result) is not dict or result.get("deletionAcknowledged") is not True:
+                    raise OperatorRefused("deletion_acknowledgement_unknown")
+                receipt = {"result": {"deletionAcknowledged": True}}
             self.journal.complete("operation:" + key, receipt)
             return result
         except Exception:
@@ -425,30 +477,34 @@ class HostedPublisherOperator:
             raise OperatorRefused("operation_outcome_unknown") from None
 
     def _check_deployment(self, case: Any, entry: dict[str, Any], prefix: str) -> None:
-        from scripts.hosted_publisher_operator_plan import validate_deployed_projection
-
-        settings = self._call(
-            self.provider.inspect_worker, case.worker_name, key=prefix + ":settings"
+        version = self._call(
+            self.provider.inspect_version,
+            entry["worker"],
+            entry["version"],
+            key=prefix + ":version",
         )
-        expected_settings = {k: v for k, v in entry["projection"].items() if k != "main_module"}
-        validate_deployed_projection(expected_settings, settings)
-        module = self._call(
-            self.provider.inspect_module,
-            case.worker_name,
-            self.plan.pins["worker"],
-            key=prefix + ":module",
+        if version != entry["version"]:
+            raise OperatorRefused("version_readback_drift")
+        deployment = self._call(
+            self.provider.inspect_deployment,
+            entry["worker"],
+            entry["version"],
+            entry["deployment"],
+            key=prefix + ":deployment",
         )
-        if module.get("moduleSha2_256") != self.plan.pins["worker"]:
-            raise OperatorRefused("deployed_module_drift")
-        if (
-            type(module.get("etag")) is not str
-            or not module["etag"]
-            or hashlib.sha256(module["etag"].encode()).hexdigest()
-            != entry["version"]["etagSha2_256"]
-        ):
-            raise OperatorRefused("deployed_version_drift")
+        if deployment != entry["deployment"]:
+            raise OperatorRefused("deployment_readback_drift")
+        endpoint = self._call(
+            self.provider.assert_endpoint,
+            entry["worker"],
+            case.endpoint,
+            key=prefix + ":origin",
+        )
+        if endpoint is not True:
+            raise OperatorRefused("endpoint_origin_drift")
 
     def run(self) -> dict[str, Any]:
+        self._assert_binding()
         if not self._execution_lock.acquire(blocking=False):
             raise OperatorRefused("operator_concurrent_execution")
         try:
@@ -500,10 +556,8 @@ class HostedPublisherOperator:
         validate_operator_grant(self.plan, self.operator_grant, self._now())
         validate_current_inputs(self.plan, self.current_root)
         validate_artifact(self.source_root, self.bundle_path)
-        if "atomic_create_only_worker_upload" in getattr(
-            self.provider, "unsupported_operations", ()
-        ):
-            raise OperatorRefused("provider_atomic_worker_creation_unsupported")
+        if getattr(self.provider, "selected_strategy", None) != "beta-synthetic-disposal-v1":
+            raise OperatorRefused("selected_beta_provider_required")
         if not self.journal.reserve("operator:run", {"planDigest": self.plan.digest}):
             raise OperatorRefused("operator_run_already_reserved")
         result: dict[str, Any] = {
@@ -511,6 +565,7 @@ class HostedPublisherOperator:
             "cases": [],
             "cleanup": "not_attempted",
             "revocation": "external_owner_required",
+            "querySettlement": "unproved",
         }
         try:
             bundle = self.bundle_path.read_bytes()
@@ -528,19 +583,12 @@ class HostedPublisherOperator:
             for case in self.plan.cases:
                 self._fence()
                 key = case.scenario
-                if (
-                    self._call(
-                        self.provider.inspect_worker, case.worker_name, key=key + ":worker-absent"
-                    )
-                    is not None
-                ):
-                    raise OperatorRefused("worker_already_exists")
                 identity = self._call(
                     self.provider.create_database, case.d1_name, key=key + ":create"
                 )
                 entry = {
                     "database": identity,
-                    "worker": case.worker_name,
+                    "worker": None,
                     "uploaded": False,
                     "scenario": case.scenario,
                     "d1Submitted": False,
@@ -557,6 +605,9 @@ class HostedPublisherOperator:
                 )
                 if empty is not True:
                     raise OperatorRefused("database_not_empty")
+                entry["worker"] = self._call(
+                    self.provider.create_worker, case.worker_name, key=key + ":worker-create"
+                )
                 receipts.append(
                     CreationReceipt(
                         case.scenario,
@@ -608,20 +659,28 @@ class HostedPublisherOperator:
                 projection = deployment_projection(self.plan, case, entry["database"]["uuid"])
                 entry["projection"] = projection
                 entry["version"] = self._call(
-                    self.provider.upload_worker,
-                    case.worker_name,
+                    self.provider.create_version,
+                    entry["worker"],
                     bundle,
                     self.plan.pins["worker"],
                     projection,
                     self.private_inputs.token(key),
-                    key=key + ":upload",
+                    key=key + ":version",
+                )
+                entry["deployment"] = self._call(
+                    self.provider.deploy_version,
+                    entry["worker"],
+                    entry["version"],
+                    key=key + ":deploy",
                 )
                 entry["uploaded"] = True
                 self._check_deployment(case, entry, key + ":deployed")
+                self.journal.reserve("binding:" + key, {"databaseUuid": entry["database"]["uuid"]})
+                self.journal.complete("binding:" + key, {"verified": True})
                 self._fence()
-                self._call(self.provider.set_endpoint, case.worker_name, True, key=key + ":enable")
+                self._call(self.provider.enable_worker, entry["worker"], key=key + ":enable")
                 if self._call(
-                    self.provider.inspect_endpoint, case.worker_name, key=key + ":enabled"
+                    self.provider.inspect_endpoint, entry["worker"], key=key + ":enabled"
                 ) != {"enabled": True, "previews_enabled": False}:
                     raise OperatorRefused("endpoint_enable_drift")
                 identity = ClientIdentity(
@@ -662,7 +721,7 @@ class HostedPublisherOperator:
             # explicitly unresolved; no same-name mutation guesses its identity.
             for case in self.plan.cases:
                 entry = self._ledger.get(case.scenario)
-                if entry and entry["uploaded"] and not entry.get("accessDisabled"):
+                if entry and entry["worker"] and not entry.get("accessDisabled"):
                     try:
                         self._stop_case(case, entry)
                     except Exception:
@@ -675,6 +734,12 @@ class HostedPublisherOperator:
         result["providerResponseByteCapacity"] = self._response_bytes
         result["sqlCapacityCalls"] = self._sql_calls
         result["sqlCapacityStatements"] = self._sql_statements
+        result["unresolvedIntents"] = [
+            key
+            for key, event in self.journal.snapshot().items()
+            if event["state"] in {"intent", "unknown"}
+        ]
+        result["cleanupOwner"] = self.plan.cleanup_owner
         return result
 
     def _charge_sql(self, key: str, calls: int, statements: int) -> None:
@@ -694,20 +759,21 @@ class HostedPublisherOperator:
         self._window()
         self._stopping = True
         try:
-            self._call(self.provider.set_endpoint, case.worker_name, False, key=key + ":disable")
+            self._call(self.provider.disable_worker, entry["worker"], key=key + ":disable")
             observed = self._call(
-                self.provider.inspect_endpoint, case.worker_name, key=key + ":disabled"
+                self.provider.inspect_endpoint, entry["worker"], key=key + ":disabled"
             )
         finally:
             self._stopping = False
         entry["accessDisabled"] = observed == {"enabled": False, "previews_enabled": False}
         # Endpoint disable readback neither cancels an executing phase nor proves
-        # provider/D1 drain. The concrete provider reports this seam unsupported.
-        entry["quiescence"] = "unknown_pending_d1_observation"
+        # provider/D1 drain. The accepted disposal rule preserves that uncertainty.
+        entry["querySettlement"] = "unproved"
         if not entry["accessDisabled"]:
             raise OperatorRefused("access_stop_unknown")
 
     def cleanup_only(self, authority: dict[str, Any]) -> dict[str, Any]:
+        self._assert_binding()
         if not self._execution_lock.acquire(blocking=False):
             raise OperatorRefused("operator_concurrent_execution")
         try:
@@ -717,15 +783,16 @@ class HostedPublisherOperator:
             self._execution_lock.release()
 
     def _cleanup_once(self, authority: dict[str, Any]) -> dict[str, Any]:
-        """Separate exact authority; real unsupported drain yields pending only.
+        """Dispose exact synthetic fixtures without claiming SQL settlement.
 
-        Resources are recovered from the durable completed create/upload operations,
-        never from broad account discovery, prefix selection or a caller's ledger.
-        A fresh operator can use this path after a crash without resuming `run`.
+        Ownership comes only from durable acknowledged creation. Dispatch remains
+        fenced forever. Delete intents are global across cleanup attempts, so a
+        lost deletion is never retried under a newly named authority.
         """
         from scripts.hosted_publisher_operator_plan import (
             deployment_projection,
             utc_time,
+            validate_consent,
             validate_current_inputs,
             validate_operator_grant,
         )
@@ -746,7 +813,13 @@ class HostedPublisherOperator:
             or authority["granted"] is not True
             or authority["plan_digest"] != self.plan.digest
             or authority["owner"] != self.plan.cleanup_owner
-            or authority["actions"] != ["disable_access", "observe_pending", "delete_exact_pairs"]
+            or authority["actions"]
+            != [
+                "fence_dispatch",
+                "disable_access",
+                "delete_owned_worker",
+                "dispose_exact_synthetic_d1",
+            ]
             or not isinstance(authority["decision_id"], str)
             or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", authority["decision_id"])
             or not self._now()
@@ -755,6 +828,9 @@ class HostedPublisherOperator:
         ):
             raise OperatorRefused("separate_cleanup_authority_required")
         self._window(cleanup=True)
+        # Revalidate the original exact synthetic/exclusive-writer scope without
+        # treating its elapsed dispatch window as a new cleanup grant.
+        validate_consent(self.plan, self.consent, utc_time(self.plan.starts_at))
         validate_current_inputs(self.plan, self.current_root)
         validate_operator_grant(self.plan, self.operator_grant, self._now())
         self._stopped = True
@@ -768,75 +844,137 @@ class HostedPublisherOperator:
         results = []
         snapshot = self.journal.snapshot()
         for case in self.plan.cases:
-            create = snapshot.get("operation:" + case.scenario + ":create")
-            upload = snapshot.get("operation:" + case.scenario + ":upload")
+            key = case.scenario
+            create = snapshot.get("operation:" + key + ":create")
+            worker_create = snapshot.get("operation:" + key + ":worker-create")
+            version = snapshot.get("operation:" + key + ":version")
+            deployment = snapshot.get("operation:" + key + ":deploy")
+            binding = snapshot.get("binding:" + key)
             if not create or create["state"] != "complete":
-                results.append({"scenario": case.scenario, "status": "identity_unknown"})
+                results.append({"scenario": key, "status": "identity_unknown"})
+                continue
+            if not worker_create or worker_create["state"] != "complete":
+                results.append({"scenario": key, "status": "worker_identity_unknown"})
                 continue
             identity = create["receipt"]["result"]
-            if not upload or upload["state"] != "complete":
-                results.append({"scenario": case.scenario, "status": "worker_identity_unknown"})
-                continue
+            worker = worker_create["receipt"]["result"]
+            prefix = attempt + ":" + key
             entry = {
                 "database": identity,
-                "version": upload["receipt"]["result"],
+                "worker": worker,
                 "projection": deployment_projection(self.plan, case, identity["uuid"]),
             }
-            prefix = attempt + ":" + case.scenario
+            verified_binding = (
+                binding is not None
+                and binding["state"] == "complete"
+                and binding["payload"] == {"databaseUuid": identity["uuid"]}
+                and binding["receipt"] == {"verified": True}
+                and version is not None
+                and version["state"] == "complete"
+                and deployment is not None
+                and deployment["state"] == "complete"
+            )
+            if verified_binding:
+                assert version is not None and deployment is not None
+                entry["version"] = version["receipt"]["result"]
+                entry["deployment"] = deployment["receipt"]["result"]
             try:
-                self._check_deployment(case, entry, prefix)
+                self.provider.restore_owned_resources(
+                    identity,
+                    worker,
+                    version=entry.get("version"),
+                    projection=entry["projection"],
+                    deployment=entry.get("deployment"),
+                )
+                prior_worker_delete = snapshot.get("operation:dispose:" + key + ":worker")
+                prior_db_delete = snapshot.get("operation:dispose:" + key + ":database")
+                # Unknown deletion is residual even if a later observation sees
+                # absence. A separate reviewed observation may report that fact,
+                # but cannot silently convert its acknowledgement or replay it.
+                if prior_worker_delete and prior_worker_delete["state"] != "complete":
+                    results.append({"scenario": key, "status": "worker_deletion_unknown"})
+                    continue
+                if not prior_worker_delete:
+                    if verified_binding:
+                        self._check_deployment(case, entry, prefix)
+                    self._call(self.provider.disable_worker, worker, key=prefix + ":disable")
+                    disabled = self._call(
+                        self.provider.inspect_endpoint, worker, key=prefix + ":disabled"
+                    )
+                    if disabled != {"enabled": False, "previews_enabled": False}:
+                        raise OperatorRefused("cleanup_access_unknown")
+                    deletion = self._call(
+                        self.provider.delete_worker, worker, key="dispose:" + key + ":worker"
+                    )
+                    if (
+                        not isinstance(deletion, dict)
+                        or deletion.get("deletionAcknowledged") is not True
+                    ):
+                        raise OperatorRefused("worker_deletion_not_acknowledged")
                 if (
-                    self._call(self.provider.inspect_database, identity, key=prefix + ":database")
-                    != identity
+                    self._call(self.provider.inspect_worker, worker, key=prefix + ":worker-absence")
+                    is not None
                 ):
-                    raise OperatorRefused("cleanup_database_drift")
-                self._call(
-                    self.provider.set_endpoint, case.worker_name, False, key=prefix + ":disable"
-                )
-                disabled = self._call(
-                    self.provider.inspect_endpoint, case.worker_name, key=prefix + ":disabled"
-                )
-                if disabled != {"enabled": False, "previews_enabled": False}:
-                    raise OperatorRefused("cleanup_access_unknown")
-                # No boolean or self-asserted receipt supplied by the caller can
-                # stand in for provider operation observation. Real adapter lacks it.
-                observe = getattr(self.provider, "observe_pending", None)
-                if observe is None:
-                    results.append({"scenario": case.scenario, "status": "pending_d1_observation"})
+                    raise OperatorRefused("worker_absence_unknown")
+                if not verified_binding:
+                    results.append({"scenario": key, "status": "worker_removed_binding_unverified"})
                     continue
-                observation = self._call(observe, identity, key=prefix + ":pending")
-                if observation != {"quiescent": True, "database_uuid": identity["uuid"]}:
-                    results.append({"scenario": case.scenario, "status": "pending_d1_observation"})
+                if prior_db_delete and prior_db_delete["state"] != "complete":
+                    results.append({"scenario": key, "status": "database_deletion_unknown"})
                     continue
-                self._call(
-                    self.provider.delete_worker,
-                    case.worker_name,
-                    {k: v for k, v in entry["projection"].items() if k != "main_module"},
-                    key=prefix + ":delete-worker",
-                )
-                self._call(self.provider.delete_database, identity, key=prefix + ":delete-database")
+                if not prior_db_delete:
+                    deletion = self._call(
+                        self.provider.delete_database, identity, key="dispose:" + key + ":database"
+                    )
+                    if (
+                        not isinstance(deletion, dict)
+                        or deletion.get("deletionAcknowledged") is not True
+                    ):
+                        raise OperatorRefused("database_deletion_not_acknowledged")
                 if (
                     self._call(
-                        self.provider.inspect_worker,
-                        case.worker_name,
-                        key=prefix + ":worker-absence",
-                    )
-                    is not None
-                    or self._call(
                         self.provider.inspect_database, identity, key=prefix + ":database-absence"
                     )
                     is not None
                 ):
-                    raise OperatorRefused("cleanup_absence_unknown")
-                results.append({"scenario": case.scenario, "status": "absent"})
+                    raise OperatorRefused("database_absence_unknown")
+                results.append({"scenario": key, "status": "absent", "querySettlement": "unproved"})
             except Exception:
-                results.append({"scenario": case.scenario, "status": "cleanup_unknown"})
+                results.append({"scenario": key, "status": "cleanup_unknown"})
                 break
         self.journal.complete(attempt, {"results": results})
+        unknown = any(
+            event["state"] in {"intent", "unknown"}
+            for key, event in self.journal.snapshot().items()
+            if key != attempt
+        )
+        disposed = len(results) == 4 and all(item["status"] == "absent" for item in results)
         return {
-            "status": "complete"
-            if len(results) == 4 and all(item["status"] == "absent" for item in results)
+            "status": ("disposed_with_unknown_outcomes" if unknown else "resources_disposed")
+            if disposed
             else "pending",
             "cases": results,
+            "querySettlement": "unproved",
+            "qualification": "not_established",
+            "resources": {
+                case.scenario: {
+                    "database": snapshot.get("operation:" + case.scenario + ":create", {})
+                    .get("receipt", {})
+                    .get("result"),
+                    "worker": snapshot.get("operation:" + case.scenario + ":worker-create", {})
+                    .get("receipt", {})
+                    .get("result"),
+                }
+                for case in self.plan.cases
+            },
+            "unresolvedIntents": [
+                key
+                for key, event in self.journal.snapshot().items()
+                if event["state"] in {"intent", "unknown"}
+            ],
+            "providerCalls": self._calls,
+            "providerMutations": self._mutations,
+            "cleanupOwner": self.plan.cleanup_owner,
+            "revocationOwner": self.plan.revocation_owner,
             "revocation": "external_owner_required",
         }

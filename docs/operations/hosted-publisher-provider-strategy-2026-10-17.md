@@ -1,5 +1,27 @@
 # Hosted publisher provider strategy — 2026-10-17
 
+## Acceptance annotation — 2026-10-18
+
+Terry selected **Accept #0157 as proposed (Recommended)** for the exact canonical
+proposal at e9552f2eeb16a98fbcac536685dd32b9f39928b2. The
+[current accepted scoped contract](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/proposals/hosted-operator-provider-strategy-2026-10-17.md)
+controls the Beta identity direction, exclusive finite operator assumption and
+exact six-condition synthetic-fixture D1-disposal tradeoff. The
+[dated acceptance record](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/project-log/2026-10-18-hosted-provider-strategy-acceptance.md)
+preserves provenance.
+
+The 2026-10-17 strategy below remains a historical engineering snapshot:
+statements that owner acceptance or Beta direction is pending are superseded
+only by that scoped acceptance. Its implementation observations are dated,
+not a current qualification claim. Acceptance grants no provider/account action,
+token access, deployment, native operation, cleanup execution or production
+permission. Unknown SQL settlement remains unknown; all six conditions and
+finite limits survive. The immutable #0121 candidate remains unchanged.
+Implementation, independent review and a later exact action decision are
+separate gates; no provider/API qualification is supplied.
+
+## Original strategy — 2026-10-17
+
 Status: **Proposed offline strategy; no hosted action authorized.** Ticket #0157
 narrows the #0155 provider gaps without changing the sealed #0121 candidate.
 The recommendation is immutable Worker identity plus an explicit owner decision

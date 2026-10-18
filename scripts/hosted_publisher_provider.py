@@ -63,6 +63,83 @@ def _uuid(value):
     )
 
 
+def validate_worker_projection(module, sha2, metadata, access_token):
+    """Validate exact closed immutable candidate configuration without I/O."""
+    if not isinstance(module, bytes) or _digest(module) != sha2:
+        raise ProviderError("module_digest_invalid")
+    expected_keys = {
+        "main_module",
+        "compatibility_date",
+        "compatibility_flags",
+        "bindings",
+        "observability",
+        "logpush",
+    }
+    if (
+        not isinstance(metadata, dict)
+        or set(metadata) != expected_keys
+        or metadata["main_module"] != "worker.js"
+        or metadata["compatibility_date"] != "2026-10-16"
+        or metadata["compatibility_flags"] != ["nodejs_compat"]
+        or metadata["observability"] != {"enabled": False}
+        or metadata["logpush"] is not False
+    ):
+        raise ProviderError("worker_metadata_invalid")
+    bindings = metadata["bindings"]
+    allowed = {
+        "DB",
+        "PROBE_ENABLED",
+        "PROBE_SCOPE",
+        "PROBE_ACCESS_TOKEN",
+        "PROBE_ARTIFACT_SHA2_256",
+        "PROBE_RESOURCE_ID",
+        "PROBE_RUN_ID",
+        "PROBE_EXPIRES_AT",
+        "PROBE_SCENARIO",
+    }
+    if not isinstance(bindings, list) or len(bindings) != len(allowed):
+        raise ProviderError("worker_bindings_invalid")
+    values = {b.get("name"): b for b in bindings if isinstance(b, dict)}
+    if (
+        set(values) != allowed
+        or not isinstance(access_token, str)
+        or not re.fullmatch(r"[a-f0-9]{64}", access_token)
+    ):
+        raise ProviderError("worker_bindings_invalid")
+    db = values["DB"]
+    if set(db) != {"name", "type", "id"} or db["type"] != "d1" or not _uuid(db["id"]):
+        raise ProviderError("worker_database_binding_invalid")
+    for var, binding in values.items():
+        if var == "DB":
+            continue
+        if var == "PROBE_ACCESS_TOKEN":
+            if binding != {"name": var, "type": "secret_text"}:
+                raise ProviderError("worker_secret_binding_invalid")
+        elif (
+            set(binding) != {"name", "type", "text"}
+            or binding["type"] != "plain_text"
+            or not isinstance(binding["text"], str)
+        ):
+            raise ProviderError("worker_binding_invalid")
+    texts = {n: b.get("text") for n, b in values.items()}
+    if (
+        texts["PROBE_SCOPE"] != "publisher-disposable-v1"
+        or texts["PROBE_ENABLED"] != "1"
+        or texts["PROBE_RESOURCE_ID"] != db["id"]
+        or not re.fullmatch(r"[a-f0-9]{64}", texts["PROBE_ARTIFACT_SHA2_256"] or "")
+        or texts["PROBE_SCENARIO"] not in {"happy", "create_lost", "attachment_lost", "title_lost"}
+        or not re.fullmatch(r"[a-f0-9]{64}", texts["PROBE_RUN_ID"] or "")
+    ):
+        raise ProviderError("worker_projection_invalid")
+    return {
+        **metadata,
+        "bindings": [
+            {**b, "text": access_token} if b["name"] == "PROBE_ACCESS_TOKEN" else b.copy()
+            for b in bindings
+        ],
+    }
+
+
 class _WireReader(io.RawIOBase):
     """Cap decrypted HTTP message bytes, including headers/chunks/trailers."""
 
@@ -255,6 +332,7 @@ class CloudflareProvider:
         self.before_request, self.after_request = before_request, after_request
         self.calls = self.request_bytes = self.response_bytes = 0
         self._closed = False
+        self.last_status = None
         self._keys = set()
         self._databases = {}
         self._created_names = set()
@@ -290,6 +368,7 @@ class CloudflareProvider:
             self._lock.release()
 
     def _request_locked(self, method, path, body, *, key, media, raw):
+        self.last_status = None
         data = body if isinstance(body, bytes) else None if body is None else _json(body)
         size = len(data or b"")
         remaining = self.limits.total_seconds - (self._clock() - self._started)
@@ -313,15 +392,27 @@ class CloudflareProvider:
         meta = {"method": method, "path": path, "requestBytes": size}
         if self.before_request is not None:
             self.before_request(key, mutation, meta)
+        # Durable hooks can block on FULL-sync storage. Their time consumes the
+        # same finite lifetime; a pre-hook allowance cannot admit late mutation.
+        admitted_at = self._clock()
+        remaining = self.limits.total_seconds - (admitted_at - self._started)
+        if remaining <= 0:
+            self._closed = True
+            raise ProviderError("provider_admission_deadline")
         self._keys.add(key)
         self.calls += 1
         self.request_bytes += size
         output = queue.Queue(maxsize=1)
-        timeout = min(self.limits.socket_seconds, self.limits.request_seconds, remaining)
         deadline = min(self.limits.request_seconds, remaining)
+        admission_deadline = admitted_at + deadline
 
         def invoke():
             try:
+                allowance = admission_deadline - self._clock()
+                if allowance <= 0:
+                    output.put((False, None))
+                    return
+                timeout = min(self.limits.socket_seconds, allowance)
                 output.put(
                     (
                         True,
@@ -349,6 +440,7 @@ class CloudflareProvider:
             if not okay or self._clock() - self._started >= self.limits.total_seconds:
                 raise ProviderUnknown("provider_outcome_unknown")
             status, headers, payload = result
+            self.last_status = status
             if (
                 not isinstance(payload, bytes)
                 or len(payload) > response_allowance
@@ -426,82 +518,10 @@ class CloudflareProvider:
         if self._concrete:
             raise ProviderError("atomic_create_only_worker_upload_unsupported")
         path = self._worker(name)
-        if not isinstance(module, bytes) or _digest(module) != sha2:
-            raise ProviderError("module_digest_invalid")
-        expected_keys = {
-            "main_module",
-            "compatibility_date",
-            "compatibility_flags",
-            "bindings",
-            "observability",
-            "logpush",
-        }
-        if (
-            not isinstance(metadata, dict)
-            or set(metadata) != expected_keys
-            or metadata["main_module"] != "worker.js"
-            or metadata["compatibility_date"] != "2026-10-16"
-            or metadata["compatibility_flags"] != ["nodejs_compat"]
-            or metadata["observability"] != {"enabled": False}
-            or metadata["logpush"] is not False
-        ):
-            raise ProviderError("worker_metadata_invalid")
-        bindings = metadata["bindings"]
-        allowed = {
-            "DB",
-            "PROBE_ENABLED",
-            "PROBE_SCOPE",
-            "PROBE_ACCESS_TOKEN",
-            "PROBE_ARTIFACT_SHA2_256",
-            "PROBE_RESOURCE_ID",
-            "PROBE_RUN_ID",
-            "PROBE_EXPIRES_AT",
-            "PROBE_SCENARIO",
-        }
-        if not isinstance(bindings, list) or len(bindings) != len(allowed):
-            raise ProviderError("worker_bindings_invalid")
-        values = {b.get("name"): b for b in bindings if isinstance(b, dict)}
-        if (
-            set(values) != allowed
-            or not isinstance(access_token, str)
-            or not re.fullmatch(r"[a-f0-9]{64}", access_token)
-        ):
-            raise ProviderError("worker_bindings_invalid")
-        db = values["DB"]
-        if set(db) != {"name", "type", "id"} or db["type"] != "d1" or not _uuid(db["id"]):
-            raise ProviderError("worker_database_binding_invalid")
-        if db["id"] not in self._databases:
+        private = validate_worker_projection(module, sha2, metadata, access_token)
+        db_id = next(b["id"] for b in metadata["bindings"] if b["name"] == "DB")
+        if db_id not in self._databases:
             raise ProviderError("worker_database_not_created")
-        for var, binding in values.items():
-            if var == "DB":
-                continue
-            if var == "PROBE_ACCESS_TOKEN":
-                if binding != {"name": var, "type": "secret_text"}:
-                    raise ProviderError("worker_secret_binding_invalid")
-            elif (
-                set(binding) != {"name", "type", "text"}
-                or binding["type"] != "plain_text"
-                or not isinstance(binding["text"], str)
-            ):
-                raise ProviderError("worker_binding_invalid")
-        texts = {n: b.get("text") for n, b in values.items()}
-        if (
-            texts["PROBE_SCOPE"] != "publisher-disposable-v1"
-            or texts["PROBE_ENABLED"] != "1"
-            or texts["PROBE_RESOURCE_ID"] != db["id"]
-            or not re.fullmatch(r"[a-f0-9]{64}", texts["PROBE_ARTIFACT_SHA2_256"] or "")
-            or texts["PROBE_SCENARIO"]
-            not in {"happy", "create_lost", "attachment_lost", "title_lost"}
-            or not re.fullmatch(r"[a-f0-9]{64}", texts["PROBE_RUN_ID"] or "")
-        ):
-            raise ProviderError("worker_projection_invalid")
-        private = {
-            **metadata,
-            "bindings": [
-                {**b, "text": access_token} if b["name"] == "PROBE_ACCESS_TOKEN" else b.copy()
-                for b in bindings
-            ],
-        }
         boundary = "fga_publisher_" + sha2
         parts = []
         for filename, mime, data in (

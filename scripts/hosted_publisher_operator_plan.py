@@ -37,6 +37,8 @@ REQUIRED_OPERATOR_FILES = (
     "scripts/hosted_publisher_operator_plan.py",
     "scripts/hosted_publisher_operator.py",
     "scripts/hosted_publisher_provider.py",
+    "scripts/hosted_publisher_worker_identity.py",
+    "scripts/hosted_publisher_worker_deployment.py",
     "scripts/hosted_publisher_finite_client.py",
     "scripts/prepare_hosted_publisher_qualification.py",
     "probes/publisher-qualification/wrangler.jsonc",
@@ -64,8 +66,11 @@ OWNER_ACTIONS = (
     "enable_exact_endpoints",
     "seven_phases_once",
     "disable_access",
-    "observe_pending",
-    "delete_exact_pairs",
+    "exclusive_operator",
+    "synthetic_fixture_only",
+    "fence_dispatch",
+    "delete_owned_worker",
+    "dispose_exact_synthetic_d1",
     "revoke_operator_grant",
 )
 
@@ -171,7 +176,7 @@ def load_plan(raw: bytes) -> OperatorPlan:
         raise ValueError("Plan exceeds private input size limit")
     value = json.loads(raw, object_pairs_hook=_no_duplicates)
     data = _closed(value, set(OperatorPlan.__dataclass_fields__))
-    if type(data["schema_version"]) is not int or data["schema_version"] != 1:
+    if type(data["schema_version"]) is not int or data["schema_version"] != 2:
         raise ValueError("Unsupported plan schema")
     if type(data["cases"]) is not list or len(data["cases"]) != 4:
         raise ValueError("Exactly four isolated cases required")
@@ -183,6 +188,8 @@ def load_plan(raw: bytes) -> OperatorPlan:
 
 
 def validate_plan(plan: OperatorPlan, now: datetime | None = None) -> None:
+    if type(plan.schema_version) is not int or plan.schema_version != 2:
+        raise ValueError("Selected Beta operator schema required")
     _text(plan.account_id, r"[0-9a-f]{32}", "exact account ID")
     if plan.account_id == "0" * 32:
         raise ValueError("Placeholder account identity refused")

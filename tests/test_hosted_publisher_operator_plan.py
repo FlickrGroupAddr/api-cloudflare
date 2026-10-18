@@ -16,7 +16,7 @@ from scripts import prepare_hosted_publisher_qualification as packet
 
 def fixture():
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "account_id": "a" * 32,
         "owner": "Synthetic Owner",
         "cleanup_owner": "Synthetic Cleanup",
@@ -62,6 +62,12 @@ def receipts(value):
 
 
 class HostedPublisherOperatorPlanTests(unittest.TestCase):
+    def test_superseded_plan_schema_is_not_accepted_as_current_authority(self):
+        value = fixture()
+        value["schema_version"] = 1
+        with self.assertRaises(ValueError):
+            loaded(value)
+
     def test_plan_maps_are_immutable_and_detached_from_constructor_aliases(self):
         value = loaded()
         pins, sources = dict(value.pins), dict(value.source_files)
@@ -155,6 +161,8 @@ class HostedPublisherOperatorPlanTests(unittest.TestCase):
             ("permissions", [*grant["permissions"], "Account:Edit"]),
             ("expires_at", "2026-10-17T13:00:01Z"),
             ("metadata_verified", False),
+            ("issued_at", "2026-10-17T12:01:01Z"),
+            ("expires_at", "2026-10-17T12:01:00Z"),
             ("revocation_owner", "Other Owner"),
         ):
             with self.subTest(field=key), self.assertRaises(ValueError):
