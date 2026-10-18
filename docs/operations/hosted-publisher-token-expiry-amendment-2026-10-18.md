@@ -498,3 +498,38 @@ the actual repeated field or prove token validity. Same-token successor plan
 preparation may follow; fresh exact policy/run approval is still required.
 No additional credential content, account request or native input was used
 for this source repair.
+
+## Accepted metadata-only policy and successful v4 collection
+
+Terry explicitly accepted the reviewed metadata-only cookie response policy
+and one same-token v4 attempt in decision
+`call_78dcb78ad9e0423eb8d5ab2fce7add11`. The exact source was
+`f6d77437f4e9c1b0d459e3b3790f5c49ead5097a`; the permitted window was
+October 18, 2026, 14:11–14:31 EDT. This scoped acceptance does not change hosted
+management's strict default or authorize its resource operations.
+
+The sole invocation completed all three GETs and retained validated evidence
+privately: publisher verify, reader verify and details for only the publisher ID
+returned by the first verify. Returned accounting was three requests and 4,739
+HTTP wire bytes. Read-only journal inspection confirmed exactly four complete
+entries (started plus the three request intents) and a nonempty evidence file.
+Both earlier spent invocations and their records were untouched.
+
+No new token was created, the combined source was not read, no ACL was changed
+and no DNS, listing, mutation, resource, hosted test or native action occurred.
+Raw metadata and fingerprints remain private. Existing tokens remain protected
+under Terry's retention direction; this neither extends provider expiry nor
+confirms revocation. Source acceptance, successful collection and later private
+grant interpretation are separate facts. A completed collection is not a
+provider-method qualification or new permission for POST, deployment or native
+execution. The actual earlier repeated header remains unidentified.
+
+Fresh independent High review of the permitted private evidence found no
+material defect. Source/plan/approval/human bindings, active distinct roles,
+test-details consistency, expected account/capability scope, accepted lifetime
+and expiry limits all passed. Actual critical timestamps are whole-second UTC
+and fit the existing grant parser unchanged; no precision workaround is needed
+for this evidence. The protected assessment retains the details without public
+disclosure. Reader full policy remains limited to owner provisioning/verify,
+revocation is unconfirmed, and policy evidence does not prove every provider
+method or extend the hosted amendment to the separate native POST task.
