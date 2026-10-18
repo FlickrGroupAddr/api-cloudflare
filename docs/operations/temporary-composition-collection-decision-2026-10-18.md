@@ -2,8 +2,10 @@
 
 Date: 2026-10-18. Ticket #0163. Status: **proposed collection scope; actual private inputs unavailable; NO-GO for provider/native execution**.
 
-The next reviewable action is an owner-mediated, read-only export of the exact
-configuration and provenance identified below. This document grants no account
+The original proposal below recommended an owner-mediated, read-only export.
+Terry later selected Bot-operated collection and private full-snapshot development;
+the dated update below and linked current handoff supersede that delivery
+recommendation. Configuration and provenance requirements remain applicable. This document grants no account
 access. No provider collection, credential inspection, private assembly or provider
 request occurred in preparing it. A successful offline receipt cannot establish
 that supplied inputs describe current provider state.
@@ -27,6 +29,18 @@ relationships and selected source-byte provenance only. Exact identities remain
 private. This is not a current or full baseline, collection authority, retained
 availability proof or private assembly receipt; actual credential/provider/native
 actions remain zero.
+
+## October 18 delivery and privacy decisions
+
+Terry selected Bot-operated bounded metadata collection and then private full
+database snapshots processed only by bounded code, including authentication/
+session cells, with no raw disclosure in chat, logs or Git. These are development
+and qualification directions, not actual account/capture/run approval. The
+earlier manual-export recommendation below is retained as proposal history.
+See the [current materialization handoff](temporary-composition-materialization-handoff-2026-10-18.md)
+for source deliverables, selected/unselected proof directions and remaining gates.
+The metadata collector retains its original safe subset; this decision does not
+silently broaden that collector or permit Worker secret-value reads.
 
 ## Exact private data and target roles
 
@@ -58,9 +72,9 @@ those digests in the additions input. Full input provenance is external to those
 validators. Empty dictionaries/lists are legitimate only with explicit source
 evidence establishing emptiness, never as missing-data defaults.
 
-## Effective minimal read authority
+## Original proposed read authority (delivery recommendation superseded)
 
-Recommended route: Terry exports the reviewed exact evidence into a private
+The original recommended route was that Terry exports the reviewed exact evidence into a private
 local handoff directory. Delegated provider grants and delegated credential reads
 are **zero**. The offline preparer receives only explicitly named files and the
 separately retained request digest. Terry's owner-mediated export still needs an
@@ -182,10 +196,11 @@ or availability receipt for private bytes. A reviewable plan leaves
 `materializationReady` false. It is a consistency preflight, not authorization,
 collection execution, a private assembly receipt or actual provenance review.
 
-## Next explicit operator input
+## Current next operator input
 
-Terry's next decision is whether to use the bounded owner-mediated export above.
-For that decision to become executable, supply the exact private role-to-target
+The delivery choice is resolved: use the bounded Bot-operated collection source,
+with private full-snapshot development under its separate qualification gates.
+Before an actual collection becomes executable, supply the exact private role-to-target
 map, approved absolute UTC window, finite read ledger, delivery directory and
 collector/revoker identities (or explicit no-credential export disposition).
 Then supply all five independently sourced input categories: target, baseline,
@@ -201,5 +216,5 @@ those gates. Five-phase exact-route conformance, client/helper qualification,
 real restoration/changed-secret behavior, finite native program feasibility and
 separate live action authority remain open under the assembled offline packet.
 
-This is a concrete collection decision handoff. It is not approval to deploy,
+The current handoff is the linked October 18 materialization update. It is not approval to deploy,
 initialize a client, adopt a helper, inspect credentials or execute the attempt.

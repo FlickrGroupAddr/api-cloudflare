@@ -1,5 +1,35 @@
 # Hosted publisher renewed action decision — 2026-10-18
 
+## Current disposition — 2026-10-18, after source acceptance
+
+**NO-GO for the actual private run.** Terry accepted #0165 as Completed; its
+source-acceptance gate is resolved. The parent also verified the unchanged
+retained #0121 source/module pins and all 26 migration bytes, as recorded in
+the [private packet preparation procedure](hosted-publisher-private-packet-preparation-2026-10-18.md).
+The reviewed preparation recipe and its 40 synthetic checks provide a concrete
+dependency order and finite budget; they create no private action packet.
+
+The next unresolved inputs are the exact owner/account/resource choices and
+UTC window, effective grant evidence and separately authorized provisioning,
+private custody/fingerprint and revocation/stop ownership, independently sourced
+network pins, and actual exact-plan consent. #0134 is no longer waiting for
+#0165 acceptance. No provider, credential or native action is authorized.
+
+Preapproval binds intended names, account, module/projection rules and creation
+operations. The authorized sequence binds acknowledged D1 and Worker identities,
+then applies migrations, derives the enabled projection and binds its version,
+then binds deployment/readback before phase dispatch. Each identity is bound
+before operations that depend on it; none may be fabricated for the pre-run
+sheet. The preparation procedure controls this assembly sequence.
+The actual packet and final human run decision remain outstanding; #0122 remains
+unexecuted and every production capability/qualification gate remains closed.
+
+## Earlier renewal snapshot — preserved history
+
+The following snapshot records the earlier source-pending state. Its #0165
+acceptance dependency and pre-run returned-identity/projection wording are
+superseded by the dated disposition above; its original pins and history remain.
+
 Status: **NO-GO; #0165 source acceptance and actual private packet pending; no action decision requested.**
 Ticket #0134 has no applicable exact-run approval. The accepted #0157 strategy
 and completed #0162 offline integration do not authorize provider execution.
