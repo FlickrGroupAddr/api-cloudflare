@@ -235,7 +235,11 @@ pin. The parent separately passed the thirteen new preparation tests. No
 material finding remains in the offline packet. Source acceptance and these
 local checks do not supply final custody/window decisions, actual provider
 measurements or live authorization. The later accepted narrow conditions and
-private draft preparation passed a fresh independent High handoff review. It verified retained bindings and exact metadata, source/recipe pins, false consent, deliberately unset execution inputs, draft ACLs and privacy boundaries. The management-response prerequisite above was corrected and rechecked; no material finding remains. No live or credential-content access occurred.
+private draft preparation passed a fresh independent High handoff review. It
+verified retained bindings and exact metadata, source/recipe pins, false consent,
+deliberately unset execution inputs, draft ACLs and privacy boundaries. The
+management-response prerequisite was corrected and rechecked; no material
+finding remains. No live or credential-content access occurred.
 ### Management transport prerequisite
 
 The accepted cookie-discard policy applies only to metadata collection. The
