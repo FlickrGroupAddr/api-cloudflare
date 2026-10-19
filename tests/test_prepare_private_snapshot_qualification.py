@@ -13,7 +13,6 @@ from unittest.mock import patch
 
 from scripts import prepare_private_snapshot_qualification as p
 from scripts import qualify_private_d1_snapshot as q
-from scripts.private_d1_snapshot_reader import SOURCE_FILES
 from scripts.temporary_composition_metadata_collector import canonical, digest
 
 
@@ -33,14 +32,16 @@ class PrivateSnapshotPreparationTests(unittest.TestCase):
     def synthetic_root(self):
         root = self.base / "source"
         (root / "scripts").mkdir(parents=True)
-        for name in (*SOURCE_FILES, "prepare_private_snapshot_qualification.py"):
+        for name in (*p.QUALIFIER_SOURCE_FILES, "prepare_private_snapshot_qualification.py"):
             (root / "scripts" / name).write_bytes((p.ROOT / "scripts" / name).read_bytes())
         return root
 
     def test_source_pins_bind_actual_bytes_and_qualifier_template_is_compatible(self):
         result = self.prepare()
         pins = self.document("source-pins.json")
-        self.assertEqual(set(pins), {*SOURCE_FILES, "prepare_private_snapshot_qualification.py"})
+        self.assertEqual(
+            set(pins), {*p.QUALIFIER_SOURCE_FILES, "prepare_private_snapshot_qualification.py"}
+        )
         for name, value in pins.items():
             self.assertEqual(
                 value, hashlib.sha256((p.ROOT / "scripts" / name).read_bytes()).hexdigest()
@@ -68,7 +69,9 @@ class PrivateSnapshotPreparationTests(unittest.TestCase):
     def test_preparation_reads_only_public_sources_and_its_own_stage(self):
         root = self.synthetic_root()
         (root / "private-account.json").write_text("synthetic-account-decoy", encoding="utf-8")
-        allowed = {root / "scripts" / name for name in (*SOURCE_FILES, Path(p.__file__).name)}
+        allowed = {
+            root / "scripts" / name for name in (*p.QUALIFIER_SOURCE_FILES, Path(p.__file__).name)
+        }
         original_open = Path.open
         reads = []
 
@@ -160,9 +163,11 @@ class PrivateSnapshotPreparationTests(unittest.TestCase):
                 "runId": "a" * 32,
                 "accountId": "b" * 32,
                 "endpointAddress": "1.1.1.1",
-                "startsAt": now.isoformat(),
-                "expiresAt": (now + timedelta(minutes=20)).isoformat(),
-                "providerTokenExpiresAt": (now + timedelta(hours=1)).isoformat(),
+                "startsAt": now.isoformat().replace("+00:00", "Z"),
+                "expiresAt": (now + timedelta(minutes=20)).isoformat().replace("+00:00", "Z"),
+                "providerTokenExpiresAt": (now + timedelta(hours=1))
+                .isoformat()
+                .replace("+00:00", "Z"),
                 "credentialBinding": "c" * 64,
                 "grantEvidenceSha256": "d" * 64,
                 "privateCustodySha256": "e" * 64,
@@ -260,6 +265,49 @@ class PrivateSnapshotPreparationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             p.prepare(self.stage, root=root)
         self.assertFalse(self.stage.exists())
+
+    def test_fresh_staged_packet_admits_current_qualifier_and_rejects_helper_drift(self):
+        self.prepare()
+        packet = self.document("packet-template.json")
+        now = datetime(2026, 10, 19, tzinfo=UTC)
+        packet.update(
+            {
+                "runId": "a" * 32,
+                "accountId": "b" * 32,
+                "endpointAddress": "1.1.1.1",
+                "startsAt": now.isoformat().replace("+00:00", "Z"),
+                "expiresAt": (now + timedelta(minutes=20)).isoformat().replace("+00:00", "Z"),
+                "providerTokenExpiresAt": (now + timedelta(hours=1))
+                .isoformat()
+                .replace("+00:00", "Z"),
+                "credentialBinding": "c" * 64,
+                "grantEvidenceSha256": "d" * 64,
+                "privateCustodySha256": "e" * 64,
+                "journalPath": str(self.base / "journal"),
+                "outputPath": str(self.base / "output"),
+                "readerJournalPath": str(self.base / "reader"),
+            }
+        )
+        consent = {
+            "approved": True,
+            "decisionRef": "synthetic admission only",
+            "packetSha256": digest(packet),
+        }
+        self.assertEqual(len(self.document("source-pins.json")), 15)
+        self.assertEqual(len(packet["sourceSha256"]), 14)
+        address, end = q._prepare(packet, digest(packet), consent, now)
+        self.assertEqual(str(address), "1.1.1.1")
+        self.assertEqual(end, now + timedelta(minutes=20))
+        for name in q.EVIDENCE_SOURCE_FILES:
+            changed = copy.deepcopy(packet)
+            changed["sourceSha256"][name] = "0" * 64
+            changed_consent = {**consent, "packetSha256": digest(changed)}
+            with (
+                self.subTest(source=name),
+                self.assertRaisesRegex(q.QualificationError, "^qualification_source_pin$"),
+            ):
+                q._prepare(changed, digest(changed), changed_consent, now)
+        self.assertFalse((self.base / "journal").exists())
 
 
 if __name__ == "__main__":

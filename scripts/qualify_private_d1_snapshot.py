@@ -9,10 +9,12 @@ No Workers, existing database IDs, resource lookup, retries or resumed cleanup.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import os
 import re
 import time
+from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -27,7 +29,11 @@ from scripts.temporary_composition_metadata_collector import (
     digest,
 )
 
+EVIDENCE_SOURCE_FILES = ("hosted_publisher_execution.py", "hosted_publisher_operator_plan.py")
 MAX_REQUESTS = 26
+MAX_EVIDENCE_BODY_BYTES = 262144
+MAX_EVIDENCE_RAW_BYTES = 7536640
+MAX_EVIDENCE_FILE_BYTES = 11 * 1024 * 1024
 SEED_SQL = (
     "CREATE TABLE probe AS SELECT NULL AS v UNION ALL SELECT -9223372036854775808 "
     "UNION ALL SELECT 9223372036854775807 UNION ALL SELECT '' "
@@ -50,7 +56,107 @@ def source_sha256():
 
     result = reader_sources()
     result[Path(__file__).name] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    for name in EVIDENCE_SOURCE_FILES:
+        result[name] = hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
     return result
+
+
+class _ResponseEvidence:
+    """Explicit private diagnostic sink; no headers, request bodies or exception text."""
+
+    def __init__(self, path, packet, stack):
+        from scripts.hosted_publisher_execution import _assert_private
+        from scripts.hosted_publisher_operator_plan import _refuse_links
+
+        self.path = Path(path)
+        require(
+            self.path.is_absolute()
+            and str(self.path.resolve()) == str(self.path)
+            and self.path
+            not in {
+                Path(packet[key]) for key in ("journalPath", "outputPath", "readerJournalPath")
+            },
+            "qualification_evidence_path",
+        )
+        _refuse_links(self.path)
+        _assert_private(self.path.parent, directory=True)
+        self.handle = stack.enter_context(self.path.open("xb"))
+        _assert_private(self.path)
+        self.identity = os.fstat(self.handle.fileno())
+        current = self.path.stat()
+        require(
+            (current.st_dev, current.st_ino) == (self.identity.st_dev, self.identity.st_ino)
+            and self.identity.st_size == 0,
+            "qualification_evidence_changed",
+        )
+        self.records = self.raw_bytes = self.file_bytes = 0
+
+    def capture(self, response, *, ordinal, phase, token, packet_sha256):
+        from scripts.hosted_publisher_execution import _assert_private
+
+        _assert_private(self.path)
+        current = self.path.stat()
+        opened = os.fstat(self.handle.fileno())
+        require(
+            (current.st_dev, current.st_ino)
+            == (opened.st_dev, opened.st_ino)
+            == (self.identity.st_dev, self.identity.st_ino)
+            and opened.st_size == self.file_bytes,
+            "qualification_evidence_changed",
+        )
+        require(
+            isinstance(response, Response)
+            and type(response.status) is int
+            and 100 <= response.status <= 599
+            and type(response.body) is bytes
+            and len(response.body) <= MAX_EVIDENCE_BODY_BYTES,
+            "qualification_evidence_response_bound",
+        )
+        body = response.body
+        # Normalize JSON solely for echo refusal, before semantic acceptance.
+        # Non-JSON errors remain capturable unless Unicode escape spelling is
+        # ambiguous. Residual nested escapes refuse rather than add a new codec.
+        normalized = b""
+        try:
+            normalized = canonical(_json(body))
+        except Exception:
+            require(b"\\u" not in body.lower(), "qualification_evidence_secret_echo")
+        require(
+            len(normalized) <= 6 * MAX_EVIDENCE_BODY_BYTES + 2
+            and b"\\\\u" not in normalized.lower()
+            and all(
+                token.encode("ascii") not in candidate
+                and not any(
+                    marker in candidate.lower()
+                    for marker in (b"authorization", b"set-cookie", b"cookie", b"bearer")
+                )
+                for candidate in (body, normalized)
+            ),
+            "qualification_evidence_secret_echo",
+        )
+        record = canonical(
+            {
+                "schemaVersion": 1,
+                "packetSha256": packet_sha256,
+                "ordinal": ordinal,
+                "phase": phase,
+                "status": response.status,
+                "bodyBytes": len(body),
+                "bodyBase64": base64.b64encode(body).decode("ascii"),
+            }
+        )
+        require(
+            self.records < MAX_REQUESTS
+            and self.raw_bytes + len(body) <= MAX_EVIDENCE_RAW_BYTES
+            and self.file_bytes + len(record) <= MAX_EVIDENCE_FILE_BYTES,
+            "qualification_evidence_aggregate_bound",
+        )
+        self.handle.write(record)
+        self.handle.flush()
+        os.fsync(self.handle.fileno())
+        self.records += 1
+        self.raw_bytes += len(body)
+        self.file_bytes += len(record)
 
 
 class _FreshDatabasePermit:
@@ -147,6 +253,7 @@ def qualify(
     now=lambda: datetime.now(UTC),
     clock=time.monotonic,
     transport=None,
+    evidence_path=None,
 ):
     """Run once. Injected transport is synthetic test code, never qualification.
 
@@ -178,7 +285,15 @@ def qualify(
                 "qualification_fence",
             )
 
-        with Path(journal_path).open("xb") as log:
+        with ExitStack() as stack:
+            # Create/prove the optional exclusive private sink before reading credentials.
+            guard()
+            evidence = (
+                _ResponseEvidence(evidence_path, packet, stack)
+                if evidence_path is not None
+                else None
+            )
+            log = stack.enter_context(Path(journal_path).open("xb"))
 
             def record(state):
                 log.write(
@@ -245,6 +360,21 @@ def qualify(
                         )
                     )
                     guard()
+                    if evidence is not None:
+                        evidence.capture(
+                            response,
+                            ordinal=count,
+                            phase=(
+                                "absence"
+                                if absence
+                                else "sql"
+                                if path.endswith("/query")
+                                else method.lower()
+                            ),
+                            token=token,
+                            packet_sha256=expected_packet_sha256,
+                        )
+                        guard()
                     require(
                         isinstance(response, Response)
                         and response.status == (404 if absence else 200)

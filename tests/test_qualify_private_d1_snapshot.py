@@ -225,6 +225,284 @@ class QualificationTests(unittest.TestCase):
         self.assertIn('"databaseId":null', journal)
         self.assertIn("retained_no_replay", journal)
 
+    def evidence_run(self, transport=None, **kwargs):
+        # Synthetic tests bypass OS-specific ACLs only; production uses the existing checks.
+        with patch("scripts.hosted_publisher_execution._assert_private"):
+            return self.run_qualifier(
+                transport=transport or self.transport,
+                evidence_path=Path(self.temp.name).resolve() / "response-evidence.jsonl",
+                **kwargs,
+            )
+
+    def evidence_records(self):
+        return [
+            _json(line)
+            for line in (Path(self.temp.name).resolve() / "response-evidence.jsonl")
+            .read_bytes()
+            .splitlines()
+        ]
+
+    def test_optional_evidence_preserves_successful_outbound_sequence(self):
+        result = self.evidence_run()
+        self.assertEqual(result["requests"], 18)
+        self.assertEqual(self.methods, ["POST"] * 16 + ["DELETE", "GET"])
+        records = self.evidence_records()
+        self.assertEqual(len(records), 11)  # Separate isolated reader retains its own journal.
+        self.assertEqual(records[-1]["status"], 404)
+        self.assertEqual(records[-1]["ordinal"], 18)
+        self.assertNotIn(self.token, str(records))
+
+    def test_seed_status_and_schema_failures_captured_before_validation(self):
+        import base64
+
+        for failure in (
+            Response(503, {}, b"provider unavailable", 100),
+            Response(200, {"content-type": "application/json"}, b"{}", 100),
+        ):
+            with self.subTest(status=failure.status):
+
+                def fail_seed(request, failure=failure):
+                    if request.url.endswith("/query"):
+                        self.methods.append("POST")
+                        return failure
+                    return self.transport(request)
+
+                with self.assertRaises(q.QualificationError):
+                    self.evidence_run(transport=fail_seed)
+                records = self.evidence_records()
+                self.assertEqual(len(records), 2)
+                self.assertEqual(records[-1]["status"], failure.status)
+                self.assertEqual(base64.b64decode(records[-1]["bodyBase64"]), failure.body)
+                self.assertEqual(self.methods, ["POST", "POST"])
+                Path(self.packet["journalPath"]).unlink()
+                (Path(self.temp.name).resolve() / "response-evidence.jsonl").unlink()
+                self.methods.clear()
+
+    def test_evidence_refusal_before_credential_or_dispatch(self):
+        called = []
+        sink = Path(self.temp.name).resolve() / "existing"
+        sink.write_bytes(b"unchanged")
+        with (
+            patch("scripts.hosted_publisher_execution._assert_private"),
+            self.assertRaises(q.QualificationError),
+        ):
+            q.qualify(
+                self.packet,
+                digest(self.packet),
+                self.consent,
+                lambda: called.append(True),
+                self.packet["journalPath"],
+                now=lambda: self.now,
+                transport=self.transport,
+                evidence_path=sink,
+            )
+        self.assertEqual(sink.read_bytes(), b"unchanged")
+        self.assertEqual(called, [])
+        self.assertEqual(self.methods, [])
+
+    def test_unsafe_acl_and_link_checks_refuse_before_credential(self):
+        for helper in (
+            "scripts.hosted_publisher_execution._assert_private",
+            "scripts.hosted_publisher_operator_plan._refuse_links",
+        ):
+            with self.subTest(helper=helper), patch(helper, side_effect=ValueError("private")):
+                with self.assertRaises(q.QualificationError):
+                    self.run_qualifier(
+                        transport=self.transport,
+                        evidence_path=Path(self.temp.name).resolve() / "response-evidence.jsonl",
+                    )
+                self.assertEqual(self.methods, [])
+                self.assertFalse(Path(self.packet["journalPath"]).exists())
+
+    def test_secret_echo_and_oversized_body_never_persisted(self):
+        for body in (
+            self.token.encode(),
+            b"Set-Cookie: secret",
+            b"Authorization: other",
+            b"x" * (q.MAX_EVIDENCE_BODY_BYTES + 1),
+        ):
+            with self.subTest(length=len(body)):
+
+                def fail_seed(request, body=body):
+                    if request.url.endswith("/query"):
+                        self.methods.append("POST")
+                        return Response(500, {"set-cookie": "never-save-me"}, body, len(body))
+                    return self.transport(request)
+
+                with self.assertRaises(q.QualificationError):
+                    self.evidence_run(transport=fail_seed)
+                self.assertEqual(len(self.evidence_records()), 1)
+                self.assertEqual(self.methods, ["POST", "POST"])
+                Path(self.packet["journalPath"]).unlink()
+                (Path(self.temp.name).resolve() / "response-evidence.jsonl").unlink()
+                self.methods.clear()
+
+    def test_evidence_caps_refuse_before_exceeding_fixed_bounds(self):
+        for cap, value in (
+            ("MAX_REQUESTS", 1),
+            ("MAX_EVIDENCE_RAW_BYTES", 300),
+            ("MAX_EVIDENCE_FILE_BYTES", 600),
+        ):
+            with self.subTest(cap=cap), patch.object(q, cap, value):
+                with self.assertRaises(q.QualificationError):
+                    self.evidence_run()
+                sink = Path(self.temp.name).resolve() / "response-evidence.jsonl"
+                self.assertLessEqual(sink.stat().st_size, q.MAX_EVIDENCE_FILE_BYTES)
+                records = self.evidence_records()
+                self.assertLessEqual(len(records), q.MAX_REQUESTS)
+                self.assertLessEqual(sum(r["bodyBytes"] for r in records), q.MAX_EVIDENCE_RAW_BYTES)
+                Path(self.packet["journalPath"]).unlink()
+                sink.unlink()
+                self.methods.clear()
+
+    def test_transport_exception_never_persists_exception_text(self):
+        self.fail_query = 1
+        with self.assertRaisesRegex(q.QualificationError, "^qualification_retained_no_replay$"):
+            self.evidence_run()
+        self.assertEqual(len(self.evidence_records()), 1)
+        self.assertNotIn(
+            b"synthetic lost",
+            (Path(self.temp.name).resolve() / "response-evidence.jsonl").read_bytes(),
+        )
+        self.assertEqual(self.methods, ["POST", "POST"])
+
+    def test_default_does_not_create_evidence_or_require_private_acl(self):
+        with patch(
+            "scripts.hosted_publisher_execution._assert_private", side_effect=AssertionError
+        ):
+            self.run_qualifier(transport=self.transport)
+        self.assertFalse((Path(self.temp.name).resolve() / "response-evidence.jsonl").exists())
+
+    def test_isolated_transport_with_evidence_keeps_actual_permit_route(self):
+        with (
+            patch("scripts.hosted_publisher_execution._assert_private"),
+            patch.object(q, "_pinned_https", self.transport),
+            patch("scripts.hosted_publisher_execution_provider._pinned_https", self.transport),
+        ):
+            result = self.run_qualifier(
+                evidence_path=Path(self.temp.name).resolve() / "response-evidence.jsonl"
+            )
+        self.assertFalse(result["syntheticTransport"])
+        self.assertEqual(result["requests"], 18)
+        self.assertEqual(len(self.evidence_records()), 11)
+
+    def test_evidence_fsync_failure_stops_without_further_request(self):
+        real_fsync = q.os.fsync
+        calls = []
+
+        def fsync(descriptor):
+            calls.append(descriptor)
+            if len(calls) == 3:  # opened journal, dispatch intent, first evidence record
+                raise OSError("synthetic private disk failure")
+            return real_fsync(descriptor)
+
+        with patch.object(q.os, "fsync", fsync), self.assertRaises(q.QualificationError):
+            self.evidence_run()
+        self.assertEqual(self.methods, ["POST"])
+        self.assertIn("retained_no_replay", Path(self.packet["journalPath"]).read_text())
+
+    def test_evidence_sink_change_stops_without_further_request(self):
+        def tamper(request):
+            response = self.transport(request)
+            sink = Path(self.temp.name).resolve() / "response-evidence.jsonl"
+            sink.write_bytes(b"unexpected-write")
+            return response
+
+        with self.assertRaises(q.QualificationError):
+            self.evidence_run(transport=tamper)
+        self.assertEqual(self.methods, ["POST"])
+        self.assertEqual(
+            (Path(self.temp.name).resolve() / "response-evidence.jsonl").read_bytes(),
+            b"unexpected-write",
+        )
+
+    def test_response_headers_are_never_recorded(self):
+        def headers(request):
+            response = self.transport(request)
+            return Response(
+                response.status,
+                {
+                    **response.headers,
+                    "set-cookie": "private-cookie-value",
+                    "authorization": "Bearer private-header-value",
+                },
+                response.body,
+                response.wire_bytes,
+            )
+
+        self.evidence_run(transport=headers)
+        raw = (Path(self.temp.name).resolve() / "response-evidence.jsonl").read_bytes()
+        self.assertNotIn(b"private-cookie-value", raw)
+        self.assertNotIn(b"private-header-value", raw)
+
+    def test_expired_response_is_fenced_before_capture_or_next_dispatch(self):
+        def expired(request):
+            response = self.transport(request)
+            self.now += timedelta(minutes=21)
+            return response
+
+        with self.assertRaises(q.QualificationError):
+            self.evidence_run(transport=expired)
+        self.assertEqual(self.evidence_records(), [])
+        self.assertEqual(self.methods, ["POST"])
+
+    def test_changed_source_is_fenced_before_capture_or_next_dispatch(self):
+        original = q.source_sha256
+        drift = []
+
+        def source():
+            return {} if drift else original()
+
+        def changed(request):
+            response = self.transport(request)
+            drift.append(True)
+            return response
+
+        with patch.object(q, "source_sha256", source), self.assertRaises(q.QualificationError):
+            self.evidence_run(transport=changed)
+        self.assertEqual(self.evidence_records(), [])
+        self.assertEqual(self.methods, ["POST"])
+
+    def test_escaped_authentication_and_credential_echoes_are_refused(self):
+        spellings = (
+            b'{"error":"' + b"".join(f"\\u{ord(c):04x}".encode() for c in self.token) + b'"}',
+            rb'{"\u0061uthorization":"private-value"}',
+            rb'{"coo\u006bie":"private-value"}',
+            rb'{"\u005cu0061uthorization":"private-value"}',
+            rb'{"error":"Bearer\tprivate-value"}',
+            rb"malformed \u0061uthorization",
+        )
+        for body in spellings:
+            with self.subTest(body_bytes=len(body)):
+
+                def escaped(request, body=body):
+                    self.methods.append("POST")
+                    return Response(500, {}, body, len(body))
+
+                with self.assertRaises(q.QualificationError):
+                    self.evidence_run(transport=escaped)
+                self.assertEqual(self.evidence_records(), [])
+                self.assertEqual(self.methods, ["POST"])
+                Path(self.packet["journalPath"]).unlink()
+                (Path(self.temp.name).resolve() / "response-evidence.jsonl").unlink()
+                self.methods.clear()
+
+    def test_benign_escaped_unicode_response_is_retained_before_schema_refusal(self):
+        import base64
+
+        body = rb'{"message":"caf\u00e9"}'
+
+        def benign(request):
+            self.methods.append("POST")
+            return Response(500, {}, body, len(body))
+
+        with self.assertRaises(q.QualificationError):
+            self.evidence_run(transport=benign)
+        records = self.evidence_records()
+        self.assertEqual(len(records), 1)
+        self.assertEqual(base64.b64decode(records[0]["bodyBase64"]), body)
+        self.assertEqual(self.methods, ["POST"])
+
 
 if __name__ == "__main__":
     unittest.main()

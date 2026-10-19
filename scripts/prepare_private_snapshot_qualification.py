@@ -11,15 +11,17 @@ import hashlib
 from pathlib import Path
 
 from scripts.private_d1_snapshot_reader import SOURCE_FILES
+from scripts.qualify_private_d1_snapshot import EVIDENCE_SOURCE_FILES
 from scripts.temporary_composition_metadata_collector import canonical, digest
 
 ROOT = Path(__file__).resolve().parents[1]
+QUALIFIER_SOURCE_FILES = (*SOURCE_FILES, *EVIDENCE_SOURCE_FILES)
 FILES = ("source-pins.json", "recipe.json", "packet-template.json", "consent-template.json")
 
 
 def source_sha256(root: Path = ROOT) -> dict[str, str]:
     """Read only the closed public source set, never a private configuration."""
-    names = (*SOURCE_FILES, Path(__file__).name)
+    names = (*QUALIFIER_SOURCE_FILES, Path(__file__).name)
     result = {}
     for name in names:
         path = root / "scripts" / name
@@ -35,7 +37,7 @@ def packet_template(source_pins: dict[str, str]) -> dict[str, object]:
         "schemaVersion": 1,
         "kind": "fresh_synthetic_d1_qualification",
         "sourceSha256": {
-            name: value for name, value in source_pins.items() if name in SOURCE_FILES
+            name: value for name, value in source_pins.items() if name in QUALIFIER_SOURCE_FILES
         },
         **dict.fromkeys(
             (
