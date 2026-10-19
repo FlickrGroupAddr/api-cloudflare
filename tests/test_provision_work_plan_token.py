@@ -326,6 +326,53 @@ class IssuerTests(unittest.TestCase):
                 self.calls.clear()
                 self.stopped(3)
 
+    def test_concrete_user_parent_resource_keeps_exact_child_account_policy(self):
+        resource = "com.cloudflare.api.user." + "9" * 32
+        self.parent_details["policies"][0]["resources"] = {resource: "*"}
+        self.run_issuer()
+        self.assertEqual(len(self.calls), 5)
+        self.assertEqual(
+            json.loads(self.calls[3].wire.split(b"\r\n\r\n")[1])["policies"],
+            issuer._policies(self.plan, IDS),
+        )
+
+    def test_concrete_parent_resource_does_not_relax_exact_policy(self):
+        resource = "com.cloudflare.api.user." + "9" * 32
+        for resources in (
+            {resource: "other"},
+            {resource: "*", "com.cloudflare.api.user.*": "*"},
+            {"com.cloudflare.api.account." + "9" * 32: "*"},
+            {"com.cloudflare.api.user." + "9" * 31: "*"},
+            {"com.cloudflare.api.user." + "G" * 32: "*"},
+            {"com.cloudflare.api.user." + "A" * 32: "*"},
+            {"com.cloudflare.api.user.": "*"},
+            {"*": "*"},
+        ):
+            with self.subTest(resources=resources):
+                details = copy.deepcopy(self.parent_details)
+                details["policies"][0]["resources"] = resources
+                with self.assertRaises(OperatorRefused):
+                    issuer._match_details(details, self.plan, IDS, NOW * issuer._SCALE, parent=True)
+        for change in ("extra_policy", "extra_permission", "deny", "wrong_permission"):
+            with self.subTest(change=change):
+                details = copy.deepcopy(self.parent_details)
+                policy = details["policies"][0]
+                policy["resources"] = {resource: "*"}
+                if change == "extra_policy":
+                    details["policies"].append(copy.deepcopy(policy))
+                elif change == "extra_permission":
+                    policy["permission_groups"].append({"id": IDS["D1 Write"]})
+                elif change == "deny":
+                    policy["effect"] = "deny"
+                else:
+                    policy["permission_groups"] = [{"id": IDS["D1 Write"]}]
+                with self.assertRaises(OperatorRefused):
+                    issuer._match_details(details, self.plan, IDS, NOW * issuer._SCALE, parent=True)
+        details = copy.deepcopy(self.child_details)
+        details["policies"][0]["resources"] = {resource: "*"}
+        with self.assertRaises(OperatorRefused):
+            issuer._match_details(details, self.plan, IDS, NOW * issuer._SCALE)
+
     def test_catalog_ambiguity_scope_selectability_missing_or_unknown_fields_refuse(self):
         variants = []
         duplicate = copy.deepcopy(self.catalog)

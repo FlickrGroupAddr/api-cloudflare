@@ -336,7 +336,16 @@ def _match_details(result, plan, ids, now, *, parent=False):
                 "permission_groups": [{"id": group["id"]} for group in policy["permission_groups"]],
             }
         )
-    if normalized != _policies(plan, ids, parent=parent):
+    expected = _policies(plan, ids, parent=parent)
+    if parent and len(normalized) == 1:
+        resources = normalized[0]["resources"]
+        if len(resources) == 1:
+            resource = next(iter(resources))
+            # Verify-self bound parent details can use a concrete user selector.
+            # It is not the token ID or the execution child's account selector.
+            if re.fullmatch(r"com\.cloudflare\.api\.user\.[a-f0-9]{32}", resource):
+                expected[0]["resources"] = {resource: "*"}
+    if normalized != expected:
         raise OperatorRefused("issuer_exact_provider_policy_required")
     if result.get("condition", {}) != plan["parent_condition" if parent else "child_condition"]:
         raise OperatorRefused("issuer_provider_condition_mismatch")
