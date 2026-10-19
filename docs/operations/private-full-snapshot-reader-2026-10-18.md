@@ -94,7 +94,13 @@ BLOBs use hex and text requires valid UTF-8,
 including embedded NUL. NULL-SQL autoindexes and generated columns are retained.
 Virtual/shadow tables and inaccessible hidden identities
 refuse rather than disappearing from the census.
-The encoding census requires actual UTF-8; unsupported database encoding refuses.
+The encoding witness requires actual UTF-8 representation; unsupported encoding
+refuses. The fixed `SELECT hex(CAST('A' AS BLOB)) AS encoding_probe` accepts only
+the exact one-row `41` witness. This is behavioral SQLite CAST evidence, not a
+provider-reported `PRAGMA encoding` result. UTF-16, missing, extra and malformed
+results refuse. Exact query/source provenance remains in the bound manifest.
+See the [complete query-surface audit](private-snapshot-query-support-2026-10-19.md),
+including the unresolved provider-reserved-table preservation boundary.
 
 Codec bounds also retain at most 128 tables, 2,048 schema objects, 256 columns
 per table, 10,000 total rows and 4MiB canonical snapshot content. Every table

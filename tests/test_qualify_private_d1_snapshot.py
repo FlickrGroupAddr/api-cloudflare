@@ -181,6 +181,46 @@ class QualificationTests(unittest.TestCase):
         self.assertNotIn("real", [row[0][0] for row in probe["rows"]])
         self.assertIn("reader_terminal_equal", Path(self.packet["journalPath"]).read_text())
 
+    def test_complete_manifest_uses_reviewed_functions_and_pragmas(self):
+        from scripts import private_d1_snapshot_codec as codec
+
+        function_calls, pragma_calls = set(), set()
+
+        def authorizer(action, first, second, _database, _context):
+            if action == sqlite3.SQLITE_FUNCTION:
+                function_calls.add(second)
+                return (
+                    sqlite3.SQLITE_OK
+                    if second in {"hex", "typeof", "count"}
+                    else sqlite3.SQLITE_DENY
+                )
+            if action == sqlite3.SQLITE_PRAGMA:
+                pragma_calls.add(first)
+                return (
+                    sqlite3.SQLITE_OK
+                    if first in {"table_list", "table_xinfo"}
+                    else sqlite3.SQLITE_DENY
+                )
+            if action == sqlite3.SQLITE_READ and first.lower().startswith("_cf_"):
+                return sqlite3.SQLITE_DENY
+            return sqlite3.SQLITE_OK
+
+        self.db.set_authorizer(authorizer)
+        # Covers the actual collector and independent isolated-reader manifest,
+        # not merely a candidate witness; this is a bounded local policy control.
+        with (
+            patch.object(q, "_pinned_https", self.transport),
+            patch("scripts.hosted_publisher_execution_provider._pinned_https", self.transport),
+        ):
+            result = self.run_qualifier()
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["requests"], 18)
+        self.assertEqual(function_calls, {"hex", "typeof", "count"})
+        self.assertEqual(pragma_calls, {"table_list", "table_xinfo"})
+        self.assertNotIn("pragma_encoding", codec.ENCODING_SQL)
+        self.assertFalse(result["productionQualified"])
+        self.assertFalse(result["cleanupVerified"])
+
     def test_missing_approval_refuses_before_credential(self):
         self.consent["approved"] = False
         called = []

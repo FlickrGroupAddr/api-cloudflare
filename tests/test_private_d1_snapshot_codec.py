@@ -150,6 +150,68 @@ class SnapshotCodecTests(unittest.TestCase):
         with self.assertRaises(codec.Refused):
             codec.collect_snapshot(self.query)
 
+    def test_encoding_witness_refuses_both_utf16_orders_and_malformed_results(self):
+        for encoding, witness in (("UTF-8", "41"), ("UTF-16le", "4100"), ("UTF-16be", "0041")):
+            with self.subTest(encoding=encoding):
+                db = sqlite3.connect(":memory:")
+                try:
+                    db.execute("PRAGMA encoding='" + encoding + "'")
+                    db.execute("CREATE TABLE sample(value)")
+                    db.execute("INSERT INTO sample VALUES (?)", ("a\0b🌊",))
+                    db.commit()
+                    self.assertEqual(db.execute(codec.ENCODING_SQL).fetchall(), [(witness,)])
+
+                    def query(sql, db=db):
+                        cursor = db.execute(sql)
+                        names = [item[0] for item in cursor.description]
+                        return [dict(zip(names, row, strict=True)) for row in cursor]
+
+                    if encoding == "UTF-8":
+                        self.assertIn("sample", codec.collect_snapshot(query)["tables"])
+                    else:
+                        with self.assertRaisesRegex(
+                            codec.Refused, "unsupported_database_text_encoding"
+                        ):
+                            codec.collect_snapshot(query)
+                finally:
+                    db.close()
+        self.db.execute("CREATE TABLE sample(value)")
+        for response in (
+            [],
+            [{"encoding_probe": "41"}] * 2,
+            [{"encoding_probe": "4100"}],
+            [{"encoding_probe": "0041"}],
+            [{"encoding_probe": None}],
+            [{"encoding_probe": 41}],
+            [{"encoding_probe": "004100"}],
+            [{"encoding_probe": "41", "extra": True}],
+            [{"encoding": "UTF-8"}],
+        ):
+            with self.subTest(response=response):
+
+                def changed(sql, response=response):
+                    return response if sql == codec.ENCODING_SQL else self.query(sql)
+
+                with self.assertRaises(codec.Refused):
+                    codec.collect_snapshot(changed)
+
+    def test_provider_reserved_table_denial_refuses_instead_of_omitting_state(self):
+        self.db.executescript(
+            "CREATE TABLE sample(v); "
+            "CREATE TABLE _cf_KV(key TEXT PRIMARY KEY,value BLOB) WITHOUT ROWID;"
+        )
+        calls = []
+
+        def deny_reserved(sql):
+            calls.append(sql)
+            if "_cf_KV" in sql:
+                raise sqlite3.DatabaseError("synthetic reserved-table authorization refusal")
+            return self.query(sql)
+
+        with self.assertRaisesRegex(codec.Refused, "snapshot_query_failed"):
+            codec.collect_snapshot(deny_reserved)
+        self.assertTrue(any("_cf_KV" in sql for sql in calls))
+
     def test_virtual_table_refuses_instead_of_omitting_shadow_state(self):
         self.db.execute("CREATE VIRTUAL TABLE sample USING fts5(value)")
         with self.assertRaises(codec.Refused):
