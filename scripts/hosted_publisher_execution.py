@@ -265,10 +265,24 @@ def validate_cleanup(plan, authority, now):
     )
 
 
+def _concrete_case_windows(plan: boundary.OperatorPlan) -> None:
+    """Concrete TLS permits support one common window, never narrower cases.
+
+    The final post-connect admission callback fences the plan window. Refuse
+    more expressive offline case schedules rather than imply it fences them.
+    """
+    if any(
+        (case.starts_at, case.expires_at) != (plan.starts_at, plan.expires_at)
+        for case in plan.cases
+    ):
+        raise OperatorRefused("concrete_common_case_window_required")
+
+
 def validate_inputs(inputs: RuntimeInputs, *, cleanup_only=False, now=None):
     now = datetime.now(UTC) if now is None else now
     manifest = packet.verify(inputs.packet, inputs.packet_digest)
     plan = boundary.load_plan(packet.bounded_read(inputs.packet, "plan.json", 262144))
+    _concrete_case_windows(plan)
     if inputs.current_root.resolve(strict=True) != _running_root().resolve(strict=True):
         raise OperatorRefused("caller_running_source_root_mismatch")
     files = {
@@ -403,6 +417,7 @@ class ExecutionPermit:
     def __init__(
         self, inputs, validated, *, cleanup_only, wall_clock=time.time, monotonic=time.monotonic
     ):
+        _concrete_case_windows(validated.plan)
         self.inputs, self.validated = inputs, validated
         self.cleanup_only = cleanup_only
         self.wall_clock, self.monotonic = wall_clock, monotonic
@@ -429,6 +444,8 @@ class ExecutionPermit:
         )
 
     def authorize(self):
+        # Also enforced by the existing final post-connect TLS callback.
+        _concrete_case_windows(self.validated.plan)
         if not self.cleanup_only:
             if (self.inputs.stop_file is not None and self.inputs.stop_file.exists()) or getattr(
                 self.operator, "_stopped", False

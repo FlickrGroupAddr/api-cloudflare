@@ -324,11 +324,26 @@ class HostedPublisherOperator:
             self._stopped = True
             raise OperatorRefused("dispatch_stopped")
 
+    def _case_window(self, now: datetime | None = None) -> datetime:
+        from scripts.hosted_publisher_operator_plan import utc_time
+
+        observed = self._now() if now is None else now
+        if getattr(self, "_cleanup_mode", False) or getattr(self, "_stopping", False):
+            return observed
+        case = getattr(self, "_request_case", None)
+        if case is None or case not in self.plan.cases:
+            raise OperatorRefused("provider_case_scope_required")
+        if not utc_time(case.starts_at) <= observed < utc_time(case.expires_at):
+            raise OperatorRefused("case_window_closed")
+        return observed
+
     def _before_request(self, key: str, mutation: bool, metadata: dict[str, Any]) -> None:
         from scripts.hosted_publisher_operator_plan import validate_operator_grant
 
         self._window(cleanup=getattr(self, "_cleanup_mode", False))
         validate_operator_grant(self.plan, self.operator_grant, self._now())
+        if mutation:
+            self._case_window()
         if getattr(self, "_cleanup_mode", False):
             if self._now() >= self._cleanup_expires_at:
                 raise OperatorRefused("cleanup_authority_expired")
@@ -376,8 +391,20 @@ class HostedPublisherOperator:
         validate_operator_grant(self.plan, self.operator_grant, self._now())
         if getattr(self, "_cleanup_mode", False) and self._now() >= self._cleanup_expires_at:
             raise OperatorRefused("cleanup_authority_expired")
+        # FULL-sync reservation may cross a narrower case deadline. Check again
+        # immediately before returning admission to the provider transport.
+        if mutation:
+            admitted = self._case_window()
+            timing = getattr(self, "_create_timing", None)
+            if timing is not None:
+                timing["request_started"] = admitted
 
     def _after_request(self, key: str, receipt: dict[str, Any]) -> None:
+        # Observe once before validation or durable receipt persistence can
+        # consume time. Provider field validation may raise after this callback.
+        timing = getattr(self, "_create_timing", None)
+        if timing is not None:
+            timing["response_received"] = self._now()
         if (
             type(receipt) is not dict
             or set(receipt) != {"status", "responseBytes"}
@@ -396,14 +423,34 @@ class HostedPublisherOperator:
         # the provider response failed local validation after its request receipt.
         if not self.journal.reserve("operation:" + key, {"operation": key}):
             raise OperatorRefused("operator_operation_already_reserved")
+        request_started = response_received = None
+        previous_case = getattr(self, "_request_case", None)
+        previous_timing = getattr(self, "_create_timing", None)
+        self._request_case = next(
+            (case for case in self.plan.cases if case.scenario == key.split(":", 1)[0]), None
+        )
+        if method.__name__ in {"create_database", "create_worker"}:
+            field = "d1_name" if method.__name__ == "create_database" else "worker_name"
+            self._request_case = next(
+                (case for case in self.plan.cases if getattr(case, field) == args[0]), None
+            )
+        self._create_timing = {} if method.__name__ == "create_database" else None
         try:
+            request_started = self._now()
+            if method.__name__ in {"create_database", "create_worker"}:
+                self._case_window(request_started)
             result = method(*args, key=key, **kwargs)
+            if self._create_timing is not None:
+                request_started = self._create_timing.get("request_started", request_started)
+                response_received = self._create_timing.get("response_received")
+            if response_received is None:
+                response_received = self._now()
             # Provider readbacks are untrusted until compared. A drifted binding
             # may contain a credential under an innocuous `text` key. Persist no
             # arbitrary response/projection, even on the rejecting path.
             receipt: dict[str, Any] = {"present": result is not None}
             if method.__name__ == "create_database":
-                from scripts.hosted_publisher_operator_plan import utc_time
+                from scripts.hosted_publisher_operator_plan import database_time, utc_time
 
                 if (
                     type(result) is not dict
@@ -417,13 +464,20 @@ class HostedPublisherOperator:
                 ):
                     raise OperatorRefused("create_receipt_identity_unknown")
                 case = next(c for c in self.plan.cases if c.d1_name == result["name"])
-                if (
-                    not utc_time(self.plan.starts_at)
-                    <= utc_time(result["created_at"])
-                    < utc_time(case.expires_at)
+                if not utc_time(case.starts_at) <= request_started <= response_received < utc_time(
+                    case.expires_at
+                ) or (
+                    result["created_at"] is not None
+                    and not database_time(self.plan.starts_at)
+                    <= database_time(result["created_at"])
+                    < database_time(case.expires_at)
                 ):
                     raise OperatorRefused("database_creation_time_unknown")
-                receipt = {"result": result}
+                receipt = {
+                    "result": result,
+                    "requestStartedAt": request_started.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "responseReceivedAt": response_received.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                }
             elif method.__name__ == "create_worker":
                 from scripts.hosted_publisher_operator_plan import utc_time
 
@@ -473,8 +527,51 @@ class HostedPublisherOperator:
             if self._active_request is not None:
                 self.journal.unknown(self._active_request, "provider_outcome_unknown")
                 self._active_request = None
-            self.journal.unknown("operation:" + key, "operation_outcome_unknown")
+            if self._create_timing is not None:
+                request_started = self._create_timing.get("request_started", request_started)
+                response_received = self._create_timing.get("response_received", response_received)
+            diagnostic = getattr(self.provider, "last_database_create", None)
+            if (
+                method.__name__ == "create_database"
+                and request_started is not None
+                and response_received is not None
+                and type(diagnostic) is dict
+                and set(diagnostic)
+                in (
+                    {"uuid", "name", "providerTimeStatus"},
+                    {"uuid", "name", "providerTimeStatus", "created_at"},
+                )
+                and diagnostic.get("name") == args[0]
+                and diagnostic.get("name") in {c.d1_name for c in self.plan.cases}
+                and type(diagnostic.get("uuid")) is str
+                and re.fullmatch(r"[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}", diagnostic["uuid"])
+                and diagnostic["uuid"] != "00000000-0000-0000-0000-000000000000"
+                and diagnostic.get("providerTimeStatus") in {"omitted", "valid", "invalid"}
+                and (("created_at" in diagnostic) == (diagnostic["providerTimeStatus"] == "valid"))
+            ):
+                from scripts.hosted_publisher_operator_plan import database_time
+
+                retained = dict(diagnostic)
+                if "created_at" in retained:
+                    database_time(retained["created_at"])
+                # This is an unknown operation with an acknowledged identity,
+                # never a successful receipt, qualification or cleanup adoption.
+                self.journal._finish(
+                    "operation:" + key,
+                    "unknown",
+                    {
+                        "reason": "operation_outcome_unknown",
+                        "acknowledgedCreate": retained,
+                        "requestStartedAt": request_started.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "responseReceivedAt": response_received.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    },
+                )
+            else:
+                self.journal.unknown("operation:" + key, "operation_outcome_unknown")
             raise OperatorRefused("operation_outcome_unknown") from None
+        finally:
+            self._request_case = previous_case
+            self._create_timing = previous_timing
 
     def _check_deployment(self, case: Any, entry: dict[str, Any], prefix: str) -> None:
         version = self._call(
@@ -586,6 +683,7 @@ class HostedPublisherOperator:
                 identity = self._call(
                     self.provider.create_database, case.d1_name, key=key + ":create"
                 )
+                create_receipt = self.journal.snapshot()["operation:" + key + ":create"]["receipt"]
                 entry = {
                     "database": identity,
                     "worker": None,
@@ -617,6 +715,8 @@ class HostedPublisherOperator:
                         identity["created_at"],
                         True,
                         self.plan.digest,
+                        create_receipt["requestStartedAt"],
+                        create_receipt["responseReceivedAt"],
                     )
                 )
             bound = bind_resources(self.plan, receipts)

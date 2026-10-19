@@ -167,6 +167,71 @@ class ExecutionRuntimeTests(unittest.TestCase):
         self.network.assert_not_called()
         self.entropy.assert_not_called()
 
+    def test_concrete_narrower_case_window_refuses_before_credential_or_provider(self):
+        for change in (
+            {"starts_at": "2026-10-17T12:00:01Z"},
+            {"expires_at": "2026-10-17T12:19:59Z"},
+        ):
+            narrow = replace(
+                self.plan, cases=(replace(self.plan.cases[0], **change), *self.plan.cases[1:])
+            )
+            # This remains a valid abstract plan, but is unsupported concretely.
+            boundary.validate_plan(narrow)
+            provider, client = Mock(), Mock()
+            with (
+                self.subTest(change=change),
+                patch.object(packet, "verify", return_value=self.manifest),
+                patch.object(boundary, "load_plan", return_value=narrow),
+                patch.object(runtime, "_private_bytes", wraps=runtime._private_bytes) as reads,
+            ):
+                with self.assertRaisesRegex(
+                    operator.OperatorRefused, "concrete_common_case_window_required"
+                ):
+                    runtime.run(
+                        self.inputs,
+                        wall_clock=lambda: self.now,
+                        monotonic=lambda: 100,
+                        provider_factory=provider,
+                        client_factory=client,
+                    )
+            reads.assert_not_called()
+            provider.assert_not_called()
+            client.assert_not_called()
+            self.network.assert_not_called()
+            self.assertFalse(self.inputs.journal.exists())
+
+    def test_concrete_permit_rechecks_common_case_window_at_dispatch_authorization(self):
+        checked = self.check()
+        narrow = replace(
+            checked,
+            plan=replace(
+                self.plan,
+                cases=(
+                    replace(self.plan.cases[0], starts_at="2026-10-17T12:00:01Z"),
+                    *self.plan.cases[1:],
+                ),
+            ),
+        )
+        with self.assertRaisesRegex(
+            operator.OperatorRefused, "concrete_common_case_window_required"
+        ):
+            runtime.ExecutionPermit(self.inputs, narrow, cleanup_only=False)
+        permit = runtime.ExecutionPermit(
+            self.inputs,
+            checked,
+            cleanup_only=False,
+            wall_clock=lambda: self.now,
+            monotonic=lambda: 100,
+        )
+        permit.authorize()
+        permit.validated = narrow
+        with patch.object(runtime, "_document", side_effect=AssertionError("no_authority_reads")):
+            with self.assertRaisesRegex(
+                operator.OperatorRefused, "concrete_common_case_window_required"
+            ):
+                permit.authorize()
+        self.network.assert_not_called()
+
     def test_private_read_accepts_stable_descriptor_and_path_with_windows_timestamp_semantics(self):
         path, _ = self.write("stable-synthetic.txt", b"synthetic stable bytes\r\n")
         self.assertEqual(runtime._private_bytes(path), b"synthetic stable bytes\r\n")

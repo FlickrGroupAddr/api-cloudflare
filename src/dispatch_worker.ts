@@ -6,11 +6,15 @@ import { reserveFlickrAttempt, DEFAULT_FLICKR_RATE_POLICY } from "./flickr_rate.
 import { sameGrant, type GrantSnapshot, type SecretReads, type FlickrFetch } from "./flickr_reads.ts";
 import { NOW_US_SQL } from "./installations.ts";
 import { scheduleView } from "./scheduling.ts";
+import { PartitionMaintenance, type PartitionCapture } from "./partition_maintenance.ts";
+import type { PartitionLifetime } from "./fail_polite.ts";
 
 export interface DispatchEnv extends SecretReads {
   DB: D1Database;
   FGA_DISPATCH_ENABLED?: string;
   FGA_ARTIFACT_SHA2_256?: string;
+  /** Trusted unregistered composition seam; never populated from request input. */
+  FGA_PARTITION_MAINTENANCE?: (storage:DurableObjectStorage)=>PartitionMaintenance;
 }
 
 export async function workerGrant(db: SqlStore, userId: string): Promise<GrantSnapshot | null> {
@@ -60,12 +64,15 @@ export async function consumePartition(
   env: DispatchEnv, partitionId: string, revision: string | null, source: string,
   fetcher: FlickrFetch = request => fetch(request),
   hooks?: DispatchHooks,
+  lifetime?: PartitionLifetime,
 ): Promise<string> {
+  await lifetime?.checkNew();
   if(env.FGA_DISPATCH_ENABLED!=="1")return "disabled";
   const owner=await env.DB.prepare("SELECT user_id userId FROM group_partitions WHERE partition_id=?")
     .bind(partitionId).first<{userId:string}>();
   if(!owner)return "no_partition";
   const snapshot=await workerGrant(env.DB,owner.userId);
+  await lifetime?.authority?.(snapshot);
   let selected:Promise<Transport>|undefined;
   const current=async()=>{
     if(!snapshot||!sameGrant(snapshot,await workerGrant(env.DB,owner.userId)))throw new Error("flickr_authority_changed");
@@ -75,7 +82,7 @@ export async function consumePartition(
     const value=await createDispatchTransport(env,snapshot!.generation,current,fetcher);
     return hooks?.transport?hooks.transport(value):value;
   })();
-  return runPartition({db:env.DB,monotonicUs:hooks?.monotonicUs??(()=>Date.now()*1000),fault:hooks?.fault,artifactSha2_256:env.FGA_ARTIFACT_SHA2_256,
+  return runPartition({db:env.DB,lifetime,monotonicUs:hooks?.monotonicUs??(()=>Date.now()*1000),fault:hooks?.fault,artifactSha2_256:env.FGA_ARTIFACT_SHA2_256,
     transport:{
       membership:async context=>(await transport()).membership(context),
       preflight:async context=>(await transport()).preflight(context),
@@ -102,9 +109,14 @@ export async function consumePartition(
 export class PartitionWorker {
   private ctx:DurableObjectState;
   private env:DispatchEnv;
-  constructor(ctx:DurableObjectState,env:DispatchEnv){this.ctx=ctx;this.env=env;}
+  private maintenance:PartitionMaintenance|undefined;
+  private driver:{fetcher?:FlickrFetch;hooks?:DispatchHooks};
+  // Trusted source-test driver, never deserialized from requests/environment.
+  constructor(ctx:DurableObjectState,env:DispatchEnv,driver:{fetcher?:FlickrFetch;hooks?:DispatchHooks}={}){
+    this.ctx=ctx;this.env=env;this.driver=driver;this.maintenance=env.FGA_PARTITION_MAINTENANCE?.(ctx.storage);
+  }
 
-  private async arm(partitionId:string,allowImmediate:boolean):Promise<void>{
+  private async arm(partitionId:string,allowImmediate:boolean,admission?:PartitionCapture):Promise<void>{
     if(this.env.FGA_DISPATCH_ENABLED!=="1")return;
     const view=await scheduleView(this.env.DB,partitionId);
     if(!view?.wakeAfterUs||!view.headId)return;
@@ -114,23 +126,41 @@ export class PartitionWorker {
     const delta=BigInt(view.wakeAfterUs)-BigInt(view.nowUs);
     if(delta<=0n&&!allowImmediate)return; // A refused due claim waits for the durable sweep.
     const desired=Date.now()+Math.min(86_400_000,Math.max(50,Number(delta/1000n)));
+    if(this.maintenance&&admission){
+      // A stopped admission leaves the D1 wake for the later independently
+      // qualified resumption; no result or follow-on arm is replayed.
+      try{await this.maintenance.arm(admission,partitionId,desired);}catch(error){
+        if(String(error).includes('partition_maintenance_fenced')||String(error).includes('admission_stopped'))return;
+        throw error;
+      }
+      return;
+    }
     await this.ctx.storage.transaction(async tx=>{
       const old=await tx.getAlarm();if(old===null||desired<old)await tx.setAlarm(desired);
     });
   }
 
-  private async consume(partitionId:string,revision:string|null,source:string):Promise<void>{
+  private async consume(partitionId:string,revision:string|null,source:string,admission?:PartitionCapture):Promise<void>{
     const before=await scheduleView(this.env.DB,partitionId);
-    try{await consumePartition(this.env,partitionId,revision,source);}
+    let result:string;
+    try{result=await consumePartition(this.env,partitionId,revision,source,this.driver.fetcher,this.driver.hooks,
+      admission?this.maintenance!.lifetime(admission,this.env.DB):undefined);}
     finally{
       const after=await scheduleView(this.env.DB,partitionId);
-      await this.arm(partitionId,!!before?.headId&&after?.headId!==before.headId);
+      await this.arm(partitionId,!!before?.headId&&after?.headId!==before.headId,admission);
     }
+    if(admission)await this.maintenance!.finish(admission,this.env.DB,result!);
   }
 
   async fetch(request:Request):Promise<Response>{
+    // Latch immutable control before body/SQL/KV/waitUntil can yield.
+    let captured:PartitionCapture|undefined;
+    try{captured=this.maintenance?.capture('fetch');}catch{return new Response(null,{status:503});}
     if(request.method!=="POST"||new URL(request.url).pathname!=="/wake")return new Response(null,{status:404});
     if(this.env.FGA_DISPATCH_ENABLED!=="1")return new Response(null,{status:503});
+    let admission:PartitionCapture|undefined;
+    try{admission=captured?await this.maintenance!.admit(captured):undefined;}catch{return new Response(null,{status:503});}
+    const finish=async()=>{if(admission)await this.maintenance!.finish(admission,this.env.DB,'no_dispatch');};
     let input:WakeHint&{source:string};
     try{
       const text=await request.text();if(text.length>1024)throw new Error();
@@ -139,18 +169,31 @@ export class PartitionWorker {
         typeof input.partitionId!=="string"||!/^[A-Za-z0-9][A-Za-z0-9@._:-]{0,127}$/.test(input.partitionId)||
         typeof input.wakeRevision!=="string"||!/^(0|[1-9][0-9]{0,18})$/.test(input.wakeRevision)||
         !["admission","sweep"].includes(input.source))throw new Error();
-    }catch{return new Response(null,{status:400});}
-    const bound=await this.ctx.storage.transaction(async tx=>{
+    }catch{await finish();return new Response(null,{status:400});}
+    const bound=admission?await this.maintenance!.bind(admission,input.partitionId):await this.ctx.storage.transaction(async tx=>{
       const old=await tx.get<string>("partitionId");if(old!==undefined&&old!==input.partitionId)return false;
       if(old===undefined)await tx.put("partitionId",input.partitionId);return true;
     });
-    if(!bound)return new Response(null,{status:409});
-    this.ctx.waitUntil(this.consume(input.partitionId,input.wakeRevision,input.source==="admission"?"hint":"sweep"));
+    if(!bound){await finish();return new Response(null,{status:409});}
+    this.ctx.waitUntil(this.consume(input.partitionId,input.wakeRevision,input.source==="admission"?"hint":"sweep",admission));
     return new Response(null,{status:204});
   }
 
   async alarm():Promise<void>{
+    const captured=this.maintenance?.capture('alarm');
     if(this.env.FGA_DISPATCH_ENABLED!=="1")return;
+    if(captured){
+      const admission=await this.maintenance!.admit(captured);
+      const due=await this.maintenance!.due(admission);
+      if(!due){await this.maintenance!.finish(admission,this.env.DB,'not_due');return;}
+      const partitionId=await this.maintenance!.partition(admission);
+      if(!partitionId||partitionId!==due.value)throw new Error('partition_alarm_binding');
+      await this.maintenance!.bind(admission,partitionId);
+      await this.maintenance!.markDue(admission,due);
+      await this.consume(partitionId,null,'alarm',admission);
+      await this.maintenance!.settleDue(admission,due);
+      return;
+    }
     const partitionId=await this.ctx.storage.get<string>("partitionId");
     if(partitionId)await this.consume(partitionId,null,"alarm");
   }

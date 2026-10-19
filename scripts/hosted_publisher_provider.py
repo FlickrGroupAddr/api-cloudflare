@@ -24,6 +24,8 @@ from email import policy
 from email.parser import BytesParser
 from typing import cast
 
+from scripts.hosted_publisher_operator_plan import database_time
+
 
 class ProviderError(ValueError):
     """Sanitized local rejection or unsuccessful provider response."""
@@ -333,6 +335,7 @@ class CloudflareProvider:
         self.calls = self.request_bytes = self.response_bytes = 0
         self._closed = False
         self.last_status = None
+        self.last_database_create = None
         self._keys = set()
         self._databases = {}
         self._created_names = set()
@@ -352,8 +355,11 @@ class CloudflareProvider:
             raise ProviderError("database_identity_invalid")
         if not _uuid(identity["uuid"]) or identity["name"] not in self.database_names:
             raise ProviderError("database_identity_invalid")
-        if not isinstance(identity["created_at"], str) or not identity["created_at"]:
-            raise ProviderError("database_identity_invalid")
+        if identity["created_at"] is not None:
+            try:
+                database_time(identity["created_at"])
+            except TypeError, ValueError:
+                raise ProviderError("database_identity_invalid") from None
         known = self._databases.get(identity["uuid"])
         if known is not None and known != identity:
             raise ProviderError("database_identity_drift")
@@ -467,6 +473,7 @@ class CloudflareProvider:
             raise ProviderUnknown("provider_outcome_unknown") from None
 
     def create_database(self, name, *, key):
+        self.last_database_create = None
         if name not in self.database_names or name in self._created_names:
             raise ProviderError("database_creation_refused")
         self._created_names.add(name)
@@ -474,12 +481,30 @@ class CloudflareProvider:
         if not isinstance(result, dict):
             self._unknown("database_create_identity_unknown")
         identity = {k: result.get(k) for k in ("uuid", "name", "created_at")}
+        if not _uuid(identity["uuid"]) or identity["name"] != name:
+            self._unknown("database_create_identity_unknown")
+        # Closed private diagnostics only. A rejected optional field must not
+        # destroy a genuinely acknowledged UUID/name, or preserve arbitrary data.
+        self.last_database_create = {
+            "uuid": identity["uuid"],
+            "name": name,
+            "providerTimeStatus": "invalid",
+        }
         try:
+            # Omission is documented; an explicitly supplied malformed/null value
+            # is not a timestamp. Never substitute local time for provider time.
+            if "created_at" in result:
+                database_time(result["created_at"])
             self._database(identity)
         except Exception:
             self._unknown("database_create_identity_unknown")
-        if identity["name"] != name:
-            self._unknown("database_create_identity_unknown")
+        self.last_database_create = {
+            "uuid": identity["uuid"],
+            "name": name,
+            "providerTimeStatus": "valid" if "created_at" in result else "omitted",
+        }
+        if "created_at" in result:
+            self.last_database_create["created_at"] = identity["created_at"]
         self._databases[identity["uuid"]] = identity.copy()
         return identity
 
@@ -487,8 +512,21 @@ class CloudflareProvider:
         result = self._request("GET", self._database(identity), key=key)
         if result is None:
             return None
-        if not isinstance(result, dict) or any(result.get(k) != v for k, v in identity.items()):
+        if (
+            not isinstance(result, dict)
+            or result.get("uuid") != identity["uuid"]
+            or result.get("name") != identity["name"]
+            or (
+                identity["created_at"] is not None
+                and result.get("created_at") != identity["created_at"]
+            )
+        ):
             raise ProviderError("database_identity_drift")
+        if "created_at" in result:
+            try:
+                database_time(result["created_at"])
+            except TypeError, ValueError:
+                raise ProviderError("database_identity_invalid") from None
         return identity.copy()
 
     def migrate(self, identity, sql, sha2, *, key):

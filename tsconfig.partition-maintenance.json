@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/partition_maintenance.ts", "src/dispatch_worker.ts", "src/fail_polite.ts"]
+}

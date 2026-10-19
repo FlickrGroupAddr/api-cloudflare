@@ -68,7 +68,16 @@ class Intent:
     operation: Operation
     expected: str
     window: Window
+    target_id: str
     candidate: str = CANDIDATE
+    # An explicit finite campaign, never an unbounded reservation lease.
+    transition_limit: int = 1
+
+    @property
+    def read_limit(self) -> int:
+        # Three transitions need twelve complete query calls; two reconciliations
+        # need four more. A third slot does not increase the multi-step ceiling.
+        return 8 if self.transition_limit == 1 else 16
 
     @property
     def next_generation(self) -> str:
@@ -84,6 +93,10 @@ class JournalEntry:
     intent: Intent
     phase: Phase
     dispatch_claimed: bool = False
+    root_key: str = ""
+    ordinal: int = 1
+    successor: str | None = None
+    confirmation: str | None = None
 
 
 class Journal(Protocol):
@@ -96,18 +109,30 @@ class Journal(Protocol):
     returning True. Reservation and recorded outcome are independent: settle
     MUST NOT release, expire or transfer the target reservation, including when
     it persists confirmed/refused and its acknowledgment is lost or late.
-    This seam performs at most one transition per bound target reservation.
-    spend_read durably increments a shared total counter only below 8.
+    Initial latch reserves headroom for intent.transition_limit (1, 2 or 3).
+    advance is an atomic compare-and-swap of the CURRENT reserved predecessor
+    to one immutable successor. Match the entire predecessor, its confirmed
+    dispatch, exact independently retained receipt, same target/candidate/window/
+    transition_limit, reverse operation and adjacent generation. Require a fresh
+    key, unused receipt and root ordinal below transition_limit. Preserve every
+    consumed intent, dispatch marker, receipt reference and successor linkage;
+    never expose an unreserved interval. Refuse duplicate/concurrent successors.
+    Reservation is never released; root headroom, window and counters do not reset.
+    spend_read durably increments the shared ROOT counter below root.read_limit:
+    8 for one transition, 16 for two or three. Successors cannot reset/increase it.
     claim_dispatch atomically changes latched -> dispatching and permanently
     records dispatch_claimed=True once. claim_reconcile consumes one of at most
     2 durable attempts only after dispatch_claimed, independent of outcome phase
     (the final outcome acknowledgment may itself have been lost).
-    No release or successor operation exists. Return bools
+    settle cannot rewrite a consumed predecessor. Return bools
     exactly; ambiguous acknowledgments consume authority and refuse dispatch.
     The service must serialize these operations across processes and crashes.
     """
 
     def latch(self, intent: Intent, deadline: float) -> bool: ...
+    def advance(
+        self, predecessor: Intent, successor: Intent, receipt: ConfirmedReceipt, deadline: float
+    ) -> bool: ...
     def get(self, key: str, deadline: float) -> JournalEntry: ...
     def spend_read(self, key: str, deadline: float) -> bool: ...
     def claim_dispatch(self, key: str, deadline: float) -> bool: ...
@@ -164,6 +189,34 @@ class Result:
     reason: str
     observed_generation: str | None = None
     observed_state: str | None = None
+    confirmed_at: float | None = None
+
+
+@dataclass(frozen=True)
+class ConfirmedReceipt:
+    reference: str
+    predecessor: Intent
+    result: Result
+    status: Literal["CONFIRMED"] = "CONFIRMED"
+
+
+class Confirmations(Protocol):
+    """INDEPENDENT append-only external confirmation custodian, not journal phase.
+
+    Read a previously retained artifact for the exact reference, once. The
+    custodian must independently establish provenance of the actual complete
+    returned CONFIRMED result AFTER timely final journal acknowledgement and
+    source/deadline checks. Bind exact target/candidate/immutable intent, the
+    one-row commit receipt and complete independent readback evidence. Do not
+    accept caller assertions, phase-only records, Result construction, or
+    reconstruct a missing/unknown/lost/late/refused result from current state.
+    Retain immutable evidence outside compared stores across crashes. Missing,
+    pending, malformed or uncertain confirmation is never CONFIRMED. Qualified
+    custody/producer attestation, target binding and stable clock domain remain
+    external obligations; this module has no receipt-writing/attestation backend.
+    """
+
+    def read(self, reference: str, deadline: float) -> ConfirmedReceipt: ...
 
 
 def verify_source() -> dict[str, bytes]:
@@ -232,17 +285,39 @@ def validate_schema(rows: CompleteRows, files: dict[str, bytes]) -> None:
 class Adapter:
     """Source/synthetic only. New sessions cannot replay a latched intent."""
 
-    def __init__(self, writer: Provider, observer: Observer, journal: Journal, clock: Clock):
+    def __init__(
+        self,
+        writer: Provider,
+        observer: Observer,
+        journal: Journal,
+        clock: Clock,
+        *,
+        target_id: str,
+        confirmations: Confirmations | None = None,
+    ):
         if writer is observer:
             raise Refusal("writer_is_not_independent_observer")
         self.writer, self.observer, self.journal, self.clock = writer, observer, journal, clock
+        if confirmations is not None and any(
+            confirmations is port for port in (writer, observer, journal)
+        ):
+            raise Refusal("confirmation_custodian_is_not_independent")
+        if type(target_id) is not str or not 1 <= len(target_id) <= 128 or not target_id.isascii():
+            raise Refusal("invalid_target_binding")
+        self.target_id, self.confirmations = target_id, confirmations
         self.last_time = -1.0
 
     def check(self, intent: Intent, *, reconciliation: bool = False) -> float:
+        if type(intent) is not Intent or type(intent.window) is not Window:
+            raise Refusal("invalid_intent")
         intent.window.validate()
         if intent.candidate != CANDIDATE or intent.operation not in ("close", "reopen"):
             raise Refusal("invalid_intent")
         generation(intent.expected, increment=True)
+        if intent.target_id != self.target_id or type(intent.target_id) is not str:
+            raise Refusal("wrong_target_binding")
+        if type(intent.transition_limit) is not int or intent.transition_limit not in (1, 2, 3):
+            raise Refusal("invalid_transition_limit")
         if (
             type(intent.key) is not str
             or not 1 <= len(intent.key) <= 128
@@ -282,20 +357,75 @@ class Adapter:
         return validate_control(replies[0])
 
     def close(self, key: str, expected: str, window: Window) -> Result:
-        return self.execute(Intent(key, "close", expected, window))
+        return self.execute(Intent(key, "close", expected, window, self.target_id))
 
     def reopen(self, key: str, expected: str, window: Window) -> Result:
-        return self.execute(Intent(key, "reopen", expected, window))
+        return self.execute(Intent(key, "reopen", expected, window, self.target_id))
 
     def execute(self, intent: Intent) -> Result:
-        # Intent contains no SQL, target, next state/generation or caller batch.
-        claimed = False
-        latched = False
+        # Intent binds an identity, never SQL, a transport selector or a caller batch.
         try:
             end = self.check(intent)
+            if int(intent.expected) + intent.transition_limit > MAX_GENERATION:
+                raise Refusal("lifecycle_generation_headroom_exhausted")
             if self.journal.latch(intent, end) is not True:
                 return Result("refused", "intent_already_latched_or_unconfirmed")
-            latched = True
+            self.check(intent)
+        except Exception:
+            # A persisted latch with a lost/late ack remains reserved, unusable.
+            return Result("refused", "reservation_unconfirmed")
+        return self._dispatch_reserved(intent)
+
+    def advance(self, predecessor: Intent, successor: Intent, reference: str) -> Result:
+        """Explicit separately scoped successor only; never replay or auto-reopen."""
+        try:
+            end = self.check(successor)
+            self.check(predecessor)
+            if (
+                self.confirmations is None
+                or type(reference) is not str
+                or not 1 <= len(reference) <= 128
+                or not reference.isascii()
+                or successor.key == predecessor.key
+                or successor.expected != predecessor.next_generation
+                or successor.operation == predecessor.operation
+                or successor.window != predecessor.window
+                or successor.transition_limit != predecessor.transition_limit
+            ):
+                raise Refusal("invalid_successor")
+            receipt = self.confirmations.read(reference, end)
+            self.check(successor)
+            if type(receipt) is not ConfirmedReceipt or type(receipt.result) is not Result:
+                raise Refusal("invalid_retained_confirmation")
+            result = receipt.result
+            at = result.confirmed_at
+            if (
+                receipt.reference != reference
+                or receipt.predecessor != predecessor
+                or receipt.status != "CONFIRMED"
+                or result.status != "confirmed"
+                or result.reason != "one_row_and_independent_readback"
+                or result.observed_generation != predecessor.next_generation
+                or result.observed_state != predecessor.target
+                or at is None
+                or type(at) not in (int, float)
+                or not math.isfinite(at)
+                or not predecessor.window.starts <= at < predecessor.window.dispatch_until
+                or at > self.last_time
+            ):
+                raise Refusal("invalid_retained_confirmation")
+            # One durable CAS consumes the predecessor/receipt and reserves its
+            # successor. A lost/late ack strands that reservation; never resume it.
+            if self.journal.advance(predecessor, successor, receipt, end) is not True:
+                raise Refusal("successor_reservation_refused")
+            self.check(successor)
+        except Exception:
+            return Result("refused", "successor_reservation_unconfirmed")
+        return self._dispatch_reserved(successor)
+
+    def _dispatch_reserved(self, intent: Intent) -> Result:
+        claimed = False
+        try:
             self.check(intent)
             before = self.observe(intent)
             expected_state = "open" if intent.operation == "close" else "closed"
@@ -330,19 +460,20 @@ class Adapter:
                 raise Refusal("transition_readback_mismatch")
             self.journal.settle(intent.key, "confirmed", self.check(intent))
             self.check(intent)
-            return Result("confirmed", "one_row_and_independent_readback", *observed)
+            return Result(
+                "confirmed", "one_row_and_independent_readback", *observed, self.last_time
+            )
         except Exception:
             # No exception message or private payload escapes to the result.
             # Unknown is deliberately sticky; this source supplies no retry.
-            if latched:
-                try:
-                    self.journal.settle(
-                        intent.key,
-                        "unknown" if claimed else "refused",
-                        self.check(intent, reconciliation=True),
-                    )
-                except Exception:
-                    pass
+            try:
+                self.journal.settle(
+                    intent.key,
+                    "unknown" if claimed else "refused",
+                    self.check(intent, reconciliation=True),
+                )
+            except Exception:
+                pass
             return Result("unknown" if claimed else "refused", "operation_unconfirmed")
 
     def reconcile(self, intent: Intent) -> Result:

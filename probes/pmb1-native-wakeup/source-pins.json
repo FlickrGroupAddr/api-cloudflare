@@ -1,0 +1,25 @@
+{
+  "workersTypesVersion": "5.20261015.1",
+  "files": [
+    {
+      "path": "probes/pmb1-object/candidate.ts",
+      "digest": "632b3c65d2714233e6c957a7b4381f47caa53401e1ca54d01d78e113fefbae46"
+    },
+    {
+      "path": "probes/pmb1-native-alarm/refusal.ts",
+      "digest": "9381dad340d55ae6bee2e0d7da11896fe7a86911dfa3be99aced9b7a010108e4"
+    },
+    {
+      "path": "probes/pmb1-native-alarm/local-storage.mjs",
+      "digest": "69b04c6ca3c3d127dc113e01dfb22358e770cb4039a2fcb321ee3910588fe511"
+    },
+    {
+      "path": "node_modules/@cloudflare/workers-types/index.d.ts",
+      "digest": "dd24c1870cb19c1b9337cca57bbc0bd9a7ae9b14098dacd81ae7a712196ab5ca"
+    }
+  ],
+  "nativeShapeSourceViable": true,
+  "actualQualification": false,
+  "observedOn": "2026-10-19",
+  "algorithm": "SHA2-256"
+}

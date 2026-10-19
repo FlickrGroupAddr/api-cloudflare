@@ -7,6 +7,7 @@ does no network I/O, account discovery, credential reads or command execution.
 
 from __future__ import annotations
 
+import calendar
 import hashlib
 import json
 import re
@@ -102,6 +103,14 @@ def _text(value: Any, pattern: str, label: str) -> str:
 def utc_time(value: str) -> datetime:
     _text(value, r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", "UTC timestamp")
     return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+
+
+def database_time(value: str) -> int:
+    """Validate D1/local UTC evidence without discarding fractional precision."""
+    _text(value, r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,18})?Z", "D1 UTC timestamp")
+    whole, _, fraction = value[:-1].partition(".")
+    parsed = datetime.strptime(whole, "%Y-%m-%dT%H:%M:%S")
+    return calendar.timegm(parsed.timetuple()) * 10**18 + int(fraction.ljust(18, "0"))
 
 
 def _uuid(value: Any) -> str:
@@ -412,9 +421,11 @@ class CreationReceipt:
     worker_name: str
     d1_name: str
     d1_uuid: str
-    created_at: str
+    created_at: str | None
     empty_verified: bool
     plan_digest: str
+    request_started_at: str
+    response_received_at: str
 
 
 @dataclass(frozen=True)
@@ -436,9 +447,16 @@ def bind_resources(plan: OperatorPlan, receipts: list[CreationReceipt]) -> tuple
             != (case.scenario, case.worker_name, case.d1_name)
             or receipt.plan_digest != plan.digest
             or receipt.empty_verified is not True
-            or not utc_time(plan.starts_at)
-            <= utc_time(receipt.created_at)
-            < utc_time(case.expires_at)
+            or not database_time(case.starts_at)
+            <= database_time(receipt.request_started_at)
+            <= database_time(receipt.response_received_at)
+            < database_time(case.expires_at)
+            or (
+                receipt.created_at is not None
+                and not database_time(plan.starts_at)
+                <= database_time(receipt.created_at)
+                < database_time(case.expires_at)
+            )
         ):
             raise ValueError("Creation receipt is not exact fresh authorized identity")
         projection = deployment_projection(plan, case, receipt.d1_uuid)

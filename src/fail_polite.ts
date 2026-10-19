@@ -26,6 +26,18 @@ export interface Dependencies {
  beforePreflight?:(lease:Lease)=>Promise<boolean>;
  onFlickrCode?:(code:number)=>Promise<void>;
  artifactSha2_256?:string;
+  lifetime?:PartitionLifetime;
+}
+/** Trusted fixed bridge only. These callbacks never replace the domain result
+ * transaction or rate-release finally. Failed/unknown callbacks retain admission.
+ */
+export interface PartitionLifetime {
+ checkNew():Promise<void>;
+ authority?(snapshot:{userId:string;revision:string;generation:string}|null):Promise<void>;
+ claiming(partitionId:string,invocationId:string):Promise<void>;
+ claimed(lease:Lease):Promise<void>;
+ attempted(lease:Lease,attemptId:string):Promise<void>;
+ dispatching(lease:Lease,attemptId:string):Promise<void>;
 }
 interface Attempt extends AttemptContext { intentId:string;marked:number; }
 const HEAD = `(SELECT intent_id FROM submission_intents WHERE partition_id=?1 AND active_fifo_member=1 ORDER BY enqueue_ordinal LIMIT 1)`;
@@ -146,14 +158,22 @@ export async function resolveAttempt(db:SqlStore,lease:Lease,attemptId:string,ou
  await db.batch(statements);return outcome;
 }
 export async function runPartition(deps:Dependencies,partitionId:string,source:string,revision:string|null=null,policy?:LeasePolicy):Promise<string> {
- const {db}=deps,lease=await claimPartition(db,partitionId,source+"-"+crypto.randomUUID(),revision,policy);
+ await deps.lifetime?.checkNew();
+ const {db}=deps,invocationId=source+"-"+crypto.randomUUID();
+ await deps.lifetime?.claiming(partitionId,invocationId);
+ const lease=await claimPartition(db,partitionId,invocationId,revision,policy);
  if(!lease) return "no_claim";
+ await deps.lifetime?.claimed(lease);
  const old=await unfinished(db,lease);
  if(old) {
+  await deps.lifetime?.attempted(lease,old.attemptId);
   await resolveAttempt(db,lease,old.attemptId,old.marked?"delivery_uncertain":"retrying",old.marked?"unresolved_dispatch":"abandoned_before_dispatch");
   return "recovered"; // Recovery never hands off POST. Later work begins a fresh attempt.
  }
- const attempt=await begin(db,lease),reservation=await deps.reserve(attempt);
+ await deps.lifetime?.checkNew();
+ const attempt=await begin(db,lease);
+ await deps.lifetime?.attempted(lease,attempt.attemptId);
+ const reservation=await deps.reserve(attempt);
  if(!reservation) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","rate_capacity_unavailable",{delayMs:await deps.rateRetryDelayMs?.()??1000});return "deferred";}
  const fault=async(point:FaultPoint)=>{await deps.fault?.(point);};
  const unavailable=async(error?:unknown)=>{
@@ -169,15 +189,19 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
  };
  try {
   await fault("before_membership");
+  await deps.lifetime?.checkNew();
   if(!await reservation.check(attempt))return await rateUnavailable();
+  await deps.lifetime?.checkNew();
   let present:boolean;
   try {reservation.consume("membership");present=await deps.transport.membership(attempt);}
   catch(error) {return await unavailable(error);}
   await fault("after_membership");await record(db,lease,attempt,"membership",present?0:1);await fault("membership_committed");
   if(present) {await resolveAttempt(db,lease,attempt.attemptId,"added","pre_add_membership_observation");return "added";}
   await fault("before_preflight");
+  await deps.lifetime?.checkNew();
   if(!await reservation.check(attempt))return await rateUnavailable();
   if(deps.beforePreflight&&!await deps.beforePreflight(lease))return await unavailable();
+  await deps.lifetime?.checkNew();
   let moderated:0|1,received:number;
   try {reservation.consume("preflight");moderated=await deps.transport.preflight(attempt);received=deps.monotonicUs();}
   catch(error) {return await unavailable(error);}
@@ -186,13 +210,16 @@ export async function runPartition(deps:Dependencies,partitionId:string,source:s
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
   // Resolve credentials, sign and materialize before the last marker I/O (ADR 0056).
   let prepared:PreparedAdd;
+  await deps.lifetime?.checkNew();
   try {prepared=await deps.transport.prepareAdd(attempt);}
   catch(error) {return await unavailable(error);}
   try {
   const handoff=()=>{reservation.consume("add");return prepared.handoff();};
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
+  await deps.lifetime?.checkNew();
   await record(db,lease,attempt,"marker",0,reservation.id??null);
   if(deps.fault) await deps.fault("marker_committed");
+  await deps.lifetime?.dispatching(lease,attempt.attemptId);
   // No await between this live zero-handoff check and the call into the adapter.
   if(!fresh()) {await resolveAttempt(db,lease,attempt.attemptId,"retrying","not_dispatched_preflight_expired");return "expired";}
   let result:"ok"|number;

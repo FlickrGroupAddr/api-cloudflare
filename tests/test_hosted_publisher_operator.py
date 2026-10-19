@@ -323,6 +323,162 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
             instance.cleanup_only(self.authority)
         self.assertNotIn("d" * 64, json.dumps(self.journal.snapshot()))
 
+    def test_omitted_d1_provider_time_runs_with_separate_local_create_evidence(self):
+        stateful = StatefulTransport()
+
+        def omit_time(*args):
+            status, headers, raw = stateful(*args)
+            if "/d1/database" in args[1] and args[0] in {"POST", "GET"}:
+                document = json.loads(raw)
+                if type(document.get("result")) is dict:
+                    document["result"].pop("created_at", None)
+                    raw = json.dumps(document).encode()
+            return status, headers, raw
+
+        instance = self.make(transport=omit_time)
+        self.assertEqual(self.run_synthetic(instance)["status"], "phases_complete_cleanup_pending")
+        event = self.journal.snapshot()["operation:happy:create"]
+        self.assertEqual(event["state"], "complete")
+        self.assertIsNone(event["receipt"]["result"]["created_at"])
+        self.assertEqual(event["receipt"]["requestStartedAt"], "2026-10-17T12:01:00.000000Z")
+        self.assertEqual(event["receipt"]["responseReceivedAt"], "2026-10-17T12:01:00.000000Z")
+        self.assertEqual(len(self.requests), 28)
+        self.assertEqual(instance.cleanup_only(self.authority)["status"], "resources_disposed")
+
+    def test_invalid_provider_time_retains_closed_identity_without_advancing(self):
+        for timestamp in (None, "SYNTHETIC-PRIVATE-INVALID-TIME"):
+            with self.subTest(timestamp=timestamp):
+                stateful = StatefulTransport()
+
+                def invalid_time(*args, stateful=stateful, timestamp=timestamp):
+                    status, headers, raw = stateful(*args)
+                    value = json.loads(raw)
+                    value["result"]["created_at"] = timestamp
+                    return status, headers, json.dumps(value).encode()
+
+                # Each once-only case needs its own genuinely fresh journal.
+                with operator.DurableJournal(
+                    self.root / (str(timestamp is None) + ".sqlite"), self.plan.digest
+                ) as journal:
+                    original_journal, self.journal = self.journal, journal
+                    try:
+                        instance = self.make(transport=invalid_time)
+                        self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+                        event = self.journal.snapshot()["operation:happy:create"]
+                        diagnostic = event["receipt"]["acknowledgedCreate"]
+                        self.assertEqual(event["state"], "unknown")
+                        self.assertEqual(diagnostic["providerTimeStatus"], "invalid")
+                        self.assertEqual(diagnostic["name"], self.plan.cases[0].d1_name)
+                        self.assertNotIn("created_at", diagnostic)
+                        self.assertNotIn("SYNTHETIC-PRIVATE-INVALID-TIME", json.dumps(event))
+                        self.assertEqual(len(stateful.calls), 1)
+                        self.assertEqual(self.requests, [])
+                    finally:
+                        self.journal = original_journal
+
+    def replace_case_windows(self, **changes):
+        self.plan = replace(
+            self.plan, cases=tuple(replace(case, **changes) for case in self.plan.cases)
+        )
+        self.consent["plan_digest"] = self.authority["plan_digest"] = self.plan.digest
+        self.journal.close()
+        self.journal = operator.DurableJournal(
+            self.root / "changed-window.sqlite", self.plan.digest
+        )
+        self.addCleanup(self.journal.close)
+
+    def test_future_case_window_refuses_create_before_any_provider_request(self):
+        self.replace_case_windows(starts_at="2026-10-17T12:05:00Z")
+        instance = self.make()
+        self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        self.assertEqual(self.provider_transport.calls, [])
+        self.assertEqual(self.requests, [])
+        self.assertEqual(self.journal.snapshot()["operation:happy:create"]["state"], "unknown")
+        self.assertFalse(any(key.startswith("provider:") for key in self.journal.snapshot()))
+
+    def test_durable_provider_reservation_crossing_case_expiry_never_dispatches(self):
+        self.replace_case_windows(expires_at="2026-10-17T12:02:00Z")
+        instance = self.make()
+        reserve = self.journal.reserve
+
+        def expires_during_reservation(key, payload):
+            admitted = reserve(key, payload)
+            if key == "provider:happy:create":
+                self.wall = datetime(2026, 10, 17, 12, 2, tzinfo=UTC).timestamp()
+            return admitted
+
+        with patch.object(self.journal, "reserve", side_effect=expires_during_reservation):
+            self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        self.assertEqual(self.provider_transport.calls, [])
+        self.assertEqual(self.requests, [])
+        self.assertEqual(self.journal.snapshot()["provider:happy:create"]["state"], "unknown")
+
+    def test_rejected_local_validation_retains_the_captured_response_sample(self):
+        instance = self.make()
+        identity = {
+            "uuid": "11111111-1111-4111-8111-111111111111",
+            "name": self.plan.cases[0].d1_name,
+            "created_at": "2026-10-17T11:00:00Z",
+        }
+        self.provider.last_database_create = {**identity, "providerTimeStatus": "valid"}
+        ticks = iter(datetime(2026, 10, 17, 12, minute, tzinfo=UTC) for minute in (1, 2, 3))
+
+        def create_database(name, *, key):
+            return identity.copy()
+
+        with patch.object(instance, "_now", side_effect=lambda: next(ticks)):
+            with self.assertRaises(operator.OperatorRefused):
+                instance._call(create_database, identity["name"], key="review:rejected-time")
+        receipt = self.journal.snapshot()["operation:review:rejected-time"]["receipt"]
+        self.assertEqual(receipt["requestStartedAt"], "2026-10-17T12:01:00.000000Z")
+        self.assertEqual(receipt["responseReceivedAt"], "2026-10-17T12:02:00.000000Z")
+        self.assertEqual(next(ticks).minute, 3)
+
+    def test_provider_validation_exception_retains_response_time_before_durable_delay(self):
+        stateful = StatefulTransport()
+
+        def invalid_provider_time(*args):
+            status, headers, raw = stateful(*args)
+            self.wall = datetime(2026, 10, 17, 12, 2, tzinfo=UTC).timestamp()
+            value = json.loads(raw)
+            value["result"]["created_at"] = "SYNTHETIC-PRIVATE-INVALID-TIME"
+            return status, headers, json.dumps(value).encode()
+
+        instance = self.make(transport=invalid_provider_time)
+        complete = self.journal.complete
+
+        def delayed_provider_receipt(key, receipt):
+            if key == "provider:happy:create":
+                self.wall = datetime(2026, 10, 17, 12, 3, tzinfo=UTC).timestamp()
+            complete(key, receipt)
+
+        with patch.object(self.journal, "complete", side_effect=delayed_provider_receipt):
+            self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        event = self.journal.snapshot()["operation:happy:create"]
+        self.assertEqual(event["state"], "unknown")
+        self.assertEqual(event["receipt"]["requestStartedAt"], "2026-10-17T12:01:00.000000Z")
+        self.assertEqual(event["receipt"]["responseReceivedAt"], "2026-10-17T12:02:00.000000Z")
+        self.assertEqual(event["receipt"]["acknowledgedCreate"]["providerTimeStatus"], "invalid")
+        self.assertNotIn("SYNTHETIC-PRIVATE-INVALID-TIME", json.dumps(event))
+        self.assertEqual(len(stateful.calls), 1)
+        self.assertEqual(self.requests, [])
+
+    def test_create_local_response_outside_window_never_claims_resource_or_dispatches(self):
+        stateful = StatefulTransport()
+
+        def expires_during_create(*args):
+            response = stateful(*args)
+            self.wall = datetime(2026, 10, 17, 12, 20, tzinfo=UTC).timestamp()
+            return response
+
+        instance = self.make(transport=expires_during_create)
+        self.assertEqual(self.run_synthetic(instance)["status"], "unknown")
+        event = self.journal.snapshot()["operation:happy:create"]
+        self.assertEqual(event["state"], "unknown")
+        self.assertNotIn("result", event["receipt"])
+        self.assertEqual(len(stateful.calls), 1)
+        self.assertEqual(self.requests, [])
+
     def test_lost_create_has_no_retry_or_phase_and_retains_unknown(self):
         instance = self.make(fault="lost_create")
         self.assertEqual(self.run_synthetic(instance)["status"], "unknown")

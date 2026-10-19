@@ -1,3 +1,4 @@
+import {MainEntryMaintenance,MainEntryUnavailable} from "./main_entry_maintenance.ts";
 import {albumLocalRemovalRequest} from "./album_local_removal.ts";
 import {albumCreateRepairRequest,type AlbumCreateRepairDependencies} from "./album_create_repair.ts";
 import {albumTitleRequest} from "./album_title.ts";
@@ -35,7 +36,7 @@ export function safePath(raw: string): string | null {
   return path;
 }
 import type {FlickrFetch} from "./flickr_reads.ts";
-export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request),albumRepairDependencies?:AlbumCreateRepairDependencies) {return {
+function workerHandlers(flickrFetch:FlickrFetch,albumRepairDependencies?:AlbumCreateRepairDependencies) {return {
   async fetch(request: Request, env: Env): Promise<Response> {
     const providerFetch=budgetedFlickrFetch(env.DB,flickrFetch);
     const path = safePath(request.url);
@@ -144,4 +145,24 @@ export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request),alb
     for(const hint of await duePartitions(env.DB)){try{await publishNativeHint(env,hint,"sweep");}catch{/* Durable due work remains authoritative. */}}
   },
 } satisfies ExportedHandler<Env>;}
+/** The ordinary artifact remains unchanged; PMB-1 assembly must use the required
+ * bridge constructor below with independently qualified durable ports. */
+export function createWorker(flickrFetch:FlickrFetch=request=>fetch(request),albumRepairDependencies?:AlbumCreateRepairDependencies) {
+  return workerHandlers(flickrFetch,albumRepairDependencies);
+}
+export function createMaintenanceWorker(maintenance:MainEntryMaintenance,
+  flickrFetch:FlickrFetch=request=>fetch(request),albumRepairDependencies?:AlbumCreateRepairDependencies) {
+  if(!(maintenance instanceof MainEntryMaintenance))throw new MainEntryUnavailable();
+  return {
+    async fetch(request:Request,env:Env):Promise<Response> {
+      try { return await maintenance.run('fetch',scope=>workerHandlers(scope.fetcher(flickrFetch),scope.repair(albumRepairDependencies)).fetch(request,scope.environment(env))); }
+      catch(error) { if(!(error instanceof MainEntryUnavailable))throw error;
+        const reply=errorResponse(503,"service_unavailable","Service unavailable.");reply.headers.set("Retry-After","5");return reply; }
+    },
+    async scheduled(event:ScheduledController,env:Env):Promise<void> {
+      // Admission precedes ALL maintenance, including status cleanup before dispatch.
+      await maintenance.run('scheduled',scope=>workerHandlers(scope.fetcher(flickrFetch),scope.repair(albumRepairDependencies)).scheduled(event,scope.environment(env)));
+    },
+  } satisfies ExportedHandler<Env>;
+}
 export default createWorker();

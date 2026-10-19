@@ -56,6 +56,8 @@ def receipts(value):
             "2026-10-17T12:01:00Z",
             True,
             value.digest,
+            "2026-10-17T12:00:59.000001Z",
+            "2026-10-17T12:01:00.000001Z",
         )
         for i, c in enumerate(value.cases)
     ]
@@ -263,6 +265,28 @@ class HostedPublisherOperatorPlanTests(unittest.TestCase):
             changed[0] = replace(changed[0], **changes)
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 plan.bind_resources(value, changed)
+
+    def test_missing_d1_provider_time_requires_independent_local_window_evidence(self):
+        value = loaded()
+        original = [replace(receipt, created_at=None) for receipt in receipts(value)]
+        self.assertEqual(len(plan.bind_resources(value, original)), 4)
+        for changes in (
+            {"request_started_at": "2026-10-17T11:59:59.999999999999999999Z"},
+            {"response_received_at": "2026-10-17T12:30:00Z"},
+            {"request_started_at": "2026-10-17T12:01:01Z"},
+            {"request_started_at": None},
+            {"response_received_at": "not-a-time"},
+            {"created_at": "2026-10-17T12:30:00.000000000000000001Z"},
+            {"created_at": "2026-10-17T11:59:59.999999999999999999Z"},
+            {"empty_verified": False},
+        ):
+            changed = original.copy()
+            changed[0] = replace(changed[0], **changes)
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                plan.bind_resources(value, changed)
+        changed = original.copy()
+        changed[0] = replace(changed[0], created_at="2026-10-17T12:29:59.999999999999999999Z")
+        self.assertEqual(len(plan.bind_resources(value, changed)), 4)
 
     def test_actual_overlay_binding_and_all_configuration_fields_must_match(self):
         value = loaded()

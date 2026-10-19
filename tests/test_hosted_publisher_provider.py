@@ -68,6 +68,71 @@ class HostedPublisherProviderTests(unittest.TestCase):
             self.assertEqual(call.args[3]["Authorization"], "Bearer " + TOKEN)
             self.assertEqual(call.args[3]["Accept-Encoding"], "identity")
 
+    def test_omitted_provider_time_retains_exact_acknowledged_uuid_and_name(self):
+        minimal = {k: IDENTITY[k] for k in ("uuid", "name")}
+        p, transport = self.adapter(envelope(minimal), envelope(IDENTITY), envelope({}))
+        identity = p.create_database(NAME, key="create")
+        self.assertEqual(identity, {**minimal, "created_at": None})
+        with self.assertRaises(provider.ProviderError):
+            p.create_database(NAME, key="another-create")
+        self.assertIsNone(p.last_database_create)
+        self.assertEqual(transport.call_count, 1)
+        self.assertEqual(
+            p.delete_database(identity, key="cleanup"),
+            {"deletionAcknowledged": True, "absenceVerified": False},
+        )
+        self.assertEqual(transport.call_count, 3)
+
+    def test_supplied_optional_time_is_validated_without_losing_fractional_precision(self):
+        valid = {**IDENTITY, "created_at": "2026-10-17T12:00:00.442097123456789123Z"}
+        p, _ = self.adapter(envelope(valid), envelope(valid))
+        identity = p.create_database(NAME, key="create")
+        self.assertEqual(identity, valid)
+        self.assertEqual(p.inspect_database(identity, key="inspect"), identity)
+        for value in (
+            None,
+            "",
+            False,
+            "not-a-time",
+            "2026-02-30T12:00:00Z",
+            "2026-10-17T12:00:00+00:00",
+        ):
+            p, transport = self.adapter(envelope({**IDENTITY, "created_at": value}))
+            with self.subTest(value=value), self.assertRaises(provider.ProviderUnknown):
+                p.create_database(NAME, key="create")
+            with self.assertRaises(provider.ProviderError):
+                p.create_database(NAME, key="retry")
+            self.assertEqual(transport.call_count, 1)
+
+    def test_missing_uuid_or_name_never_uses_optional_time_as_ownership(self):
+        for field in ("uuid", "name"):
+            value = {k: v for k, v in IDENTITY.items() if k != field}
+            p, transport = self.adapter(envelope(value))
+            with self.subTest(field=field), self.assertRaises(provider.ProviderUnknown):
+                p.create_database(NAME, key="create")
+            with self.assertRaises(provider.ProviderError):
+                p.inspect_database(IDENTITY, key="followup")
+            self.assertEqual(transport.call_count, 1)
+
+    def test_optional_time_never_allows_drift_or_malformed_readback_before_delete(self):
+        minimal = {k: IDENTITY[k] for k in ("uuid", "name")}
+        for result in (
+            {**minimal, "uuid": "22222222-2222-4222-8222-222222222222"},
+            {**minimal, "name": "fga-publisher-other"},
+            {**minimal, "created_at": None},
+            {**minimal, "created_at": "not-a-time"},
+        ):
+            p, transport = self.adapter(envelope(minimal), envelope(result))
+            identity = p.create_database(NAME, key="create")
+            with self.subTest(result=result), self.assertRaises(provider.ProviderError):
+                p.delete_database(identity, key="delete")
+            self.assertEqual([c.args[0] for c in transport.call_args_list], ["POST", "GET"])
+        p, transport = self.adapter(envelope(IDENTITY), envelope(minimal))
+        identity = p.create_database(NAME, key="create")
+        with self.assertRaises(provider.ProviderError):
+            p.delete_database(identity, key="delete")
+        self.assertEqual(transport.call_count, 2)
+
     def test_cleanup_refuses_reused_name_with_different_creation_identity(self):
         p, transport = self.adapter(envelope({**IDENTITY, "created_at": "2026-10-18T12:00:00Z"}))
         with self.assertRaises(provider.ProviderError):

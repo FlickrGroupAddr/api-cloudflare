@@ -1,0 +1,59 @@
+{
+  "status": "request-prepared-source-proof-absent",
+  "retrieved_on": "2026-10-19",
+  "request_delivery": "UNSENT",
+  "managed_observation": "not-performed",
+  "managed_engine_identity": null,
+  "managed_service_generation": null,
+  "managed_effective_rpc_branch": null,
+  "managed_binding_identity": null,
+  "managed_serializer_identity": null,
+  "managed_artifact_configuration_schema": null,
+  "supported_all_finite_persisted_source_guarantee": null,
+  "supported_independent_persisted_bit_channel": null,
+  "integration_eligible": false,
+  "public_source_pins": [
+    {
+      "repository": "cloudflare/workerd",
+      "commit": "48e34eaefc8e3ee5633797eebc307ade1cb9642b",
+      "path": "src/cloudflare/internal/d1-api.ts",
+      "git_blob": "91a42520dbc580114621dd91a83113f8f6e21c7f",
+      "line_count_with_trailing_empty": 1045,
+      "retrieval": "public GitHub connector: commit-list API, immutable raw path, fetch_file metadata",
+      "claim": "Public wrapper has JSON and JS-RPC branches; upstream source-bit and actual managed applicability premise remains unknown.",
+      "managed_deployment_attestation": false
+    },
+    {
+      "repository": "cloudflare/workerd",
+      "commit": "4c42a4a9d3390c88e9bd977091c9d3395a6cd665",
+      "path": "src/workerd/util/sqlite.c++",
+      "git_blob": "210a50e2c2aa8ba0be1a8784a7ed67fddc81f821",
+      "retrieval": "existing immutable link in official D1 SQL documentation, public GitHub connector raw path and fetch_file metadata",
+      "claim": "Public utility dispatches SQLITE_FLOAT through getDouble; no ieee754 name in inspected file. Neither observation attests a managed D1 serializer chain.",
+      "managed_deployment_attestation": false
+    }
+  ],
+  "public_documentation": [
+    "https://developers.cloudflare.com/d1/worker-api/#type-conversion",
+    "https://developers.cloudflare.com/d1/worker-api/prepared-statements/#raw",
+    "https://developers.cloudflare.com/workers/runtime-apis/rpc/#structured-cloneable-types-and-more",
+    "https://developers.cloudflare.com/d1/sql-api/sql-statements/#supported-sqlite-extensions",
+    "https://developers.cloudflare.com/d1/worker-api/d1-database/#dump",
+    "https://developers.cloudflare.com/d1/best-practices/import-export-data/#export-an-existing-d1-database",
+    "https://sqlite.org/datatype3.html#type_affinity",
+    "https://sqlite.org/floatingpoint.html#the_ieee754_from_blob_and_ieee754_to_blob_functions",
+    "https://sqlite.org/lang_expr.html#castexpr",
+    "https://tc39.es/ecma262/2026/multipage/structured-data.html#sec-serializejsonproperty"
+  ],
+  "documentation_is_mutable": true,
+  "public_commits_are_not_asserted_one_build": true,
+  "prior_profile_source_pins": "../pmb1-real-profile/source-pins.json",
+  "invalidators": [
+    "semantic contract or source change",
+    "provider rollout, generation or engine change",
+    "effective runtime flag, binding or serializer change",
+    "schema, affinity, query or canonical codec change",
+    "tooling, artifact or configuration change",
+    "unknown applicability or independent oracle"
+  ]
+}
