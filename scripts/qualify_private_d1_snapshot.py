@@ -13,6 +13,7 @@ import base64
 import hashlib
 import os
 import re
+import subprocess
 import time
 from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
@@ -59,6 +60,43 @@ def source_sha256():
     for name in EVIDENCE_SOURCE_FILES:
         result[name] = hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
     return result
+
+
+def runtime_commit(root=None):
+    """Bind the actual checkout revision, independently of source byte pins."""
+    root = (root if root is not None else Path(__file__).resolve().parents[1]).resolve(strict=True)
+    try:
+        lines = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=5,
+        ).stdout.splitlines()
+    except OSError, subprocess.SubprocessError:
+        raise QualificationError("qualification_runtime_commit") from None
+    require(
+        len(lines) == 2
+        and Path(lines[0]).resolve(strict=True) == root
+        and re.fullmatch(r"[a-f0-9]{40}", lines[1]) is not None,
+        "qualification_runtime_commit",
+    )
+    return lines[1]
+
+
+def profile_context(packet):
+    """Selection is explicit; reviewed input is never inferred from a census."""
+    if "profile" not in packet:
+        return {}
+    from scripts.private_d1_snapshot_profile import PROFILE, validate_manifest
+
+    require(packet["profile"] == PROFILE, "qualification_profile")
+    manifest = packet.get("profileManifest")
+    require(type(manifest) is dict, "qualification_profile_manifest")
+    validate_manifest(manifest, manifest.get("schema"), manifest.get("tableList"))
+    require(packet.get("runtimeCommit") == runtime_commit(), "qualification_runtime_commit")
+    return {key: packet[key] for key in ("profile", "profileManifest", "runtimeCommit")}
 
 
 class _ResponseEvidence:
@@ -195,7 +233,10 @@ def _prepare(packet: dict[str, Any], expected, consent, now):
         "outputPath",
         "readerJournalPath",
     }
-    require(type(packet) is dict and set(packet) == keys, "qualification_packet_fields")
+    context = profile_context(packet) if type(packet) is dict else {}
+    require(
+        type(packet) is dict and set(packet) == keys | context.keys(), "qualification_packet_fields"
+    )
     require(
         type(packet["schemaVersion"]) is int
         and packet["schemaVersion"] == 1
@@ -220,13 +261,17 @@ def _prepare(packet: dict[str, Any], expected, consent, now):
         )
     require(
         type(consent) is dict
-        and set(consent) == {"approved", "decisionRef", "packetSha256"}
+        and set(consent) == {"approved", "decisionRef", "packetSha256", *context}
         and consent["approved"] is True
         and consent["packetSha256"] == expected
         and type(consent["decisionRef"]) is str
         and 0 < len(consent["decisionRef"]) <= 512
         and all(ord(c) >= 32 for c in consent["decisionRef"]),
         "qualification_owner_approval",
+    )
+    require(
+        all(consent[key] == value for key, value in context.items()),
+        "qualification_profile_consent",
     )
     start, end = _utc(packet["startsAt"]), _utc(packet["expiresAt"])
     require(
@@ -268,6 +313,10 @@ def qualify(
         require(len(canonical(packet)) <= 65536, "qualification_packet_limit")
         packet, consent = _json(canonical(packet)), _json(canonical(consent))
         address, end = _prepare(packet, expected_packet_sha256, consent, now())
+        context = profile_context(packet)
+        reader_context = (
+            {key: context[key] for key in ("profile", "profileManifest")} if context else {}
+        )
         require(
             str(Path(journal_path).resolve()) == packet["journalPath"] and callable(credential),
             "qualification_inputs",
@@ -284,6 +333,8 @@ def qualify(
                 and source_sha256() == packet["sourceSha256"],
                 "qualification_fence",
             )
+            if context:
+                require(profile_context(packet) == context, "qualification_profile_changed")
 
         with ExitStack() as stack:
             # Create/prove the optional exclusive private sink before reading credentials.
@@ -295,7 +346,7 @@ def qualify(
             )
             log = stack.enter_context(Path(journal_path).open("xb"))
 
-            def record(state):
+            def record(state, receipt_sha256=None):
                 log.write(
                     canonical(
                         {
@@ -303,6 +354,20 @@ def qualify(
                             "packetSha256": expected_packet_sha256,
                             "databaseId": database,
                             "ordinal": count,
+                            **(
+                                {
+                                    "profile": context["profile"],
+                                    "profileManifestSha256": digest(context["profileManifest"]),
+                                    "runtimeCommit": context["runtimeCommit"],
+                                }
+                                if context
+                                else {}
+                            ),
+                            **(
+                                {"qualificationReceiptSha256": receipt_sha256}
+                                if receipt_sha256 is not None
+                                else {}
+                            ),
                         }
                     )
                 )
@@ -456,7 +521,9 @@ def qualify(
                     queries.append(sql)
                     return rows
 
-                expected_snapshot = codec.collect_snapshot(query, page_size=256)
+                expected_snapshot = codec.collect_snapshot(
+                    query, page_size=256, profile_manifest=packet.get("profileManifest")
+                )
                 expected_cells = [
                     ["null", None],
                     ["integer", -(2**63)],
@@ -476,6 +543,7 @@ def qualify(
                         "seed": SEED_SQL,
                         "snapshot": expected_snapshot,
                         "packet": expected_packet_sha256,
+                        **context,
                     }
                 )
                 plan = {
@@ -500,6 +568,7 @@ def qualify(
                     "qualificationEvidenceSha256": receipt,
                     "grantEvidenceSha256": packet["grantEvidenceSha256"],
                     "credentialBinding": packet["credentialBinding"],
+                    **reader_context,
                 }
                 reader_consent = {
                     "approved": True,
@@ -507,6 +576,7 @@ def qualify(
                     "planSha256": digest(plan),
                     "sourceSha256": plan["sourceSha256"],
                     **{key: plan[key] for key in reader.PINS},
+                    **reader_context,
                 }
                 permit = _FreshDatabasePermit(_PROCESS, plan, guard)
                 uncertain = True  # Reader failure might have dispatched SQL: retain, never delete.
@@ -537,7 +607,10 @@ def qualify(
                     )
                 count += len(queries)
                 actual = _json(Path(plan["outputPath"]).read_bytes())
-                require(actual["snapshot"] == expected_snapshot, "qualification_snapshot_mismatch")
+                require(
+                    actual["plan"] == plan and actual["snapshot"] == expected_snapshot,
+                    "qualification_snapshot_mismatch",
+                )
                 # This is an unsupported typed cell decoder check, never a production claim.
                 try:
                     codec._decode_cell("real", None)
@@ -547,14 +620,14 @@ def qualify(
                     raise QualificationError("qualification_negative_failed")
                 uncertain = False
                 permit.active = False
-                record("reader_terminal_equal")
+                record("reader_terminal_equal", receipt if context else None)
                 deleted = True
                 dispatch("DELETE", base + "/" + database, None)
                 record("deleted_known_fresh_database")
                 dispatch("GET", base + "/" + database, None, absence=True)
                 record("exact_database_not_found_response")
                 record("cleanup_unconfirmed_provider_not_found")
-                return {
+                result = {
                     "complete": True,
                     "cleanupVerified": False,
                     "providerNotFoundObserved": True,
@@ -562,6 +635,15 @@ def qualify(
                     "syntheticTransport": transport is not None,
                     "requests": count,
                 }
+                if context:
+                    result.update(
+                        profileBinding=expected_snapshot["profileBinding"],
+                        runtimeCommit=context["runtimeCommit"],
+                        applicationStateEqualityVerified=True,
+                        wholeProviderContentsEqualityVerified=False,
+                        qualificationReceiptSha256=receipt,
+                    )
+                return result
             except Exception:
                 if permit is not None:
                     permit.active = False
