@@ -59,3 +59,24 @@ refuses. Any uncertain deletion consumes the attempt without retry, token
 listing, discovery, reissuance or bypass through a new packet. The parent is
 retained for separately approved work. Successful child retirement establishes
 no resource cleanup, positive qualification or cascade from parent revocation.
+
+## Observed October 19 retirement
+
+One independently reviewed invocation of runtime commit
+`71c5878be6ed8d37758b0c15e1e586f9cf493994` completed within its fresh action
+window after explicit owner approval of the exact expired-child deletion.
+The provider acknowledged deletion of the original acknowledged execution child.
+
+- All five management requests completed; no unknown intent was recorded.
+- The original six issuance intents remained unchanged. One completed retirement
+  latch was appended, and the consumed action cannot be replayed.
+- No child bearer was read. The bootstrap parent remains retained under its
+  existing finite policy; its observed active status preceded child deletion.
+- No database, Worker, SQL, native or qualification operation occurred in this
+  retirement. Six previously acknowledged synthetic databases remained retained
+  at this checkpoint. Their old unknown outcomes were not resolved by revocation.
+
+The immutable approval, source/packet review, actual-result review and protected
+journals remain in the private operator evidence store. No credential or provider
+identity is reproduced here. This records exact-child deletion acknowledgement;
+it does not claim cascade, physical erasure, database cleanup, or qualification.
