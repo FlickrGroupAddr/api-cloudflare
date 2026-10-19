@@ -34,6 +34,7 @@ MAX_TOTAL_BYTES = 16 * 1024 * 1024
 SOURCE_FILES = (
     "private_d1_snapshot_reader.py",
     "private_d1_snapshot_codec.py",
+    "private_d1_snapshot_profile.py",
     "fixed_origin_preservation.py",
     "fixed_origin_restore.py",
     "qualify_private_d1_snapshot.py",
@@ -82,6 +83,15 @@ def _hash(value):
 
 def _prepare(plan, expected, consent, now):
     require(_hash(expected) and digest(plan) == expected, "snapshot_plan_pin")
+    profile = plan.get("profile") if type(plan) is dict else None
+    profile_keys = {"profile", "profileManifest"} if profile is not None else set()
+    if profile is not None:
+        from scripts.private_d1_snapshot_profile import PROFILE, validate_manifest
+
+        require(profile == PROFILE and "profileManifest" in plan, "snapshot_profile")
+        manifest = plan["profileManifest"]
+        require(type(manifest) is dict, "snapshot_profile")
+        validate_manifest(manifest, manifest.get("schema"), manifest.get("tableList"))
     _keys(
         plan,
         {
@@ -102,6 +112,7 @@ def _prepare(plan, expected, consent, now):
             "outputPath",
             "journalPath",
             *PINS,
+            *profile_keys,
         },
     )
     require(
@@ -129,7 +140,7 @@ def _prepare(plan, expected, consent, now):
         is not None,
         "snapshot_database",
     )
-    _keys(consent, {"approved", "decisionRef", "planSha256", "sourceSha256", *PINS})
+    _keys(consent, {"approved", "decisionRef", "planSha256", "sourceSha256", *PINS, *profile_keys})
     require(
         consent["approved"] is True
         and consent["planSha256"] == expected
@@ -137,6 +148,8 @@ def _prepare(plan, expected, consent, now):
         and all(consent[key] == plan[key] for key in PINS),
         "snapshot_consent",
     )
+    if profile is not None:
+        require(all(consent[key] == plan[key] for key in profile_keys), "snapshot_profile_consent")
     ref = consent["decisionRef"]
     require(
         type(ref) is str and 0 < len(ref) <= 512 and all(ord(c) >= 32 for c in ref),
@@ -374,7 +387,11 @@ def collect(
 
                 from scripts.private_d1_snapshot_codec import collect_snapshot
 
-                snapshot = collect_snapshot(query, page_size=plan["pageSize"])
+                snapshot = collect_snapshot(
+                    query,
+                    page_size=plan["pageSize"],
+                    profile_manifest=plan.get("profileManifest"),
+                )
                 require(ordinal == len(plan["queries"]), "snapshot_unused_queries")
                 guard()
                 encoded = canonical(
@@ -398,7 +415,13 @@ def collect(
                 os.fsync(out.fileno())
                 guard()
                 record("complete")
-                return {"complete": True, "productionQualified": False, "queries": ordinal}
+                summary = {"complete": True, "productionQualified": False, "queries": ordinal}
+                if "profile" in plan:
+                    summary.update(
+                        profileBinding=snapshot["profileBinding"],
+                        wholeProviderContentsEqualityVerified=False,
+                    )
+                return summary
             except Exception:
                 record("aborted_no_replay")
                 raise SnapshotError("snapshot_aborted_no_replay") from None

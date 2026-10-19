@@ -9,6 +9,16 @@ It does not authorize account access, a production capture, credentials, provide
 mutations, deployment, native input or publishing private evidence. No such
 action is recorded here.
 
+Source boundary update accepted on 2026-10-19: architecture
+[ADR0064](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/decisions/0064-scope-private-d1-preservation-to-application-state.md)
+and the [owning preservation profile](fixed-origin-preservation-2026-10-17.md#accepted-private-d1-application-state-source-profile)
+authorize source implementation/review and qualification preparation for exact
+application-state equality with only documented exact-manifest `_cf_KV` contents
+excluded. All observed schema/census metadata remains exact; excluded contents
+must be unobserved, unfrozen and unverified. Implementation/qualification of that
+profile is pending; the strict source interface described below is not
+retroactively changed or qualified by this acceptance.
+
 ## Authority and purpose
 
 The [preservation contract](fixed-origin-preservation-2026-10-17.md#paused-gates-and-consistent-full-data)
@@ -100,7 +110,9 @@ the exact one-row `41` witness. This is behavioral SQLite CAST evidence, not a
 provider-reported `PRAGMA encoding` result. UTF-16, missing, extra and malformed
 results refuse. Exact query/source provenance remains in the bound manifest.
 See the [complete query-surface audit](private-snapshot-query-support-2026-10-19.md),
-including the unresolved provider-reserved-table preservation boundary.
+including its then-unresolved provider-reserved-table preservation boundary.
+ADR0064 now resolves the owner source-direction choice; implementing and
+independently qualifying that accepted profile remain separate work.
 
 Codec bounds also retain at most 128 tables, 2,048 schema objects, 256 columns
 per table, 10,000 total rows and 4MiB canonical snapshot content. Every table
