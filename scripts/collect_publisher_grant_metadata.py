@@ -443,20 +443,26 @@ def _bounded_tree(value, depth=0, *, allow_empty=False):
         raise OperatorRefused("metadata_policy_type_refused")
 
 
-def _validate_details(result, verified, now):
+def _validate_details(result, verified, now, *, expired=False):
     _closed(
         result,
         {"id", "name", "status", "issued_on", "expires_on", "not_before", "policies"},
         {"modified_on", "last_used_on", "condition"},
     )
     _provider_text(result["name"], 480)
-    if result["id"] != verified["id"] or result["status"] != "active":
+    statuses = ("expired",) if expired is True else ("active",)
+    if (
+        type(expired) is not bool
+        or result["id"] != verified["id"]
+        or result["status"] not in statuses
+    ):
         raise OperatorRefused("metadata_details_identity_mismatch")
     for field in ("expires_on", "not_before"):
         if _timestamp(result[field]) != _timestamp(verified[field]):
             raise OperatorRefused("metadata_details_time_mismatch")
     issued, expiry = _timestamp(result["issued_on"]), _timestamp(result["expires_on"])
-    if not issued <= now < expiry or _timestamp(result["not_before"]) > now:
+    lifetime_matches = issued < expiry <= now if expired else issued <= now < expiry
+    if not lifetime_matches or _timestamp(result["not_before"]) > min(now, expiry):
         raise OperatorRefused("metadata_issue_expiry_refused")
     for field in ("modified_on", "last_used_on"):
         if field in result and result[field] is not None:
