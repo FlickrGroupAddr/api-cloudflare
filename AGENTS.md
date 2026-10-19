@@ -535,3 +535,34 @@ Bot-only queued alerts retain the existing metadata-only suppression rule; a
 monitor notification alone does not start execution of this work plan. The
 localswim work-plan #0112 Sol/High four-agent policy does not apply to FGA.
 All Astra use requires Terry's fresh explicit approval for that turn.
+
+
+## Rolling three-turn worker assignments
+
+Terry requested this end-of-turn planning rule on 2026-10-19. For every active
+multi-turn work plan, including FGA implementation tracker #0208, refresh the
+planned workers for the new remaining turns 1-3 before ending every turn.
+
+- Reconcile actual handoffs, owner-controlled Completed cards, carryover,
+  accepted decisions, new findings and changed dependencies before assigning.
+  Rebase remaining turns from 1; retain unfinished work visibly. Do not decrement
+  the remaining-turn count merely because a conversation turn ended.
+- Pre-assign a descriptive author name and a fresh independent reviewer for
+  every card in those three turns. Record explicit model/effort, the authorized
+  scope reference, prerequisite readiness, and any missing input or decision.
+  Assign primary-only actions to the primary and name packet/support workers.
+- Record the current assignments on the plan card and in its current private
+  human-readable and JSON plan. Identify the assignment revision and preserve
+  superseded rosters and evidence. Use a TXT plan where that plan already uses
+  TXT; keep an existing Markdown schedule current as well.
+- Model rolling author-to-reviewer waves within the current active-slot limit;
+  replace finished authors with fresh non-author reviewers. Do not reserve idle
+  author/reviewer pairs. Planned future workers do not occupy active slots.
+- Planning does not spawn workers, authorize future scope, revive a spent run or
+  credential, imply positive qualification, or bypass prerequisites. Recheck
+  eligibility and move each ticket In Progress before actual work or delegation.
+- Refresh the new turns 1-3 even after partial completion, findings, reordering
+  or a planning-only turn. If fewer than three turns remain, assign all of them.
+  Respect current session limits, depth one and role-based models; do not change
+  persistent configuration to fit the roster. Plan-specific stricter rules,
+  including localswim #0112's model and four-agent ceiling, remain in force.
