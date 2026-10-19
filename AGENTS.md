@@ -452,15 +452,23 @@ and again at handoff. Use the shared CLI and current card evidence:
   has not thereby reached owner-controlled Completed; retain its remaining step.
 - Maintain a table with exactly two columns: one-indexed remaining turn number and
   the cards to work that turn. Rebase future turns from 1 after updating progress.
-- Use the current user-authorized subagent ceiling: temporarily seven direct
-  subagents until Terry changes it. Count implementation, meaningful verification
-  and fresh independent review within each planned card unit; replace finished
-  authors with reviewers instead of reserving idle pairs. Serialize work requiring
-  the single primary desktop/operator.
+- The temporary limit is seven ACTIVE direct subagents, depth one, not seven
+  cards or seven total spawns per turn. Use rolling implementation, verification
+  and fresh independent review; replace finished authors with reviewers instead
+  of reserving idle pairs. Reuse freed slots for further eligible work.
+- A dependency does not require a new parent turn. Once its actual qualifying
+  output and independent review exist, consume that handoff and begin downstream
+  work in the same turn after checking its In Progress gate. Preserve Terry's
+  Completed control; a separately required substantive owner decision must still
+  be satisfied. Serialize primary desktop/operator actions, not entire turns;
+  several safely terminated actions may occur sequentially in one turn.
+- Treat forecast rows as work-based targets, never mandatory stopping points.
+  Keep pulling eligible work from later rows while progress is possible. Include
+  review/integration effort and actual constraints; do not derive a turn minimum
+  from unmeasured dependency layers or a fixed cards-per-turn assumption.
 - Respect actual positive evidence as well as dependency status. Completed
   research, an unsent request, a source-only NO-GO or matching synthetic snapshots
-  cannot satisfy a positive source/qualification requirement. Exact private,
-  provider and native action approvals remain separate and current.
+  cannot satisfy a positive source/qualification requirement.
 - Recompute the remaining-turn estimate from the revised schedule and update the
   title to exactly `Work Plan: <n> turns remaining`, with integer `<n>` equal to
   the number of future scheduled rows. Do not decrement for elapsed time, a
@@ -471,6 +479,26 @@ and again at handoff. Use the shared CLI and current card evidence:
   workspace, not public source. Record a concise actual-progress/replan comment.
   Preserve priorities and Completed cards. At zero, retain Terry's final
   acceptance boundary rather than marking the tracker Completed yourself.
+
+### Advance authority for plan execution
+
+Terry explicitly preauthorized all work already within this maintained closeout
+plan on 2026-10-19. This supersedes older routine requirements to obtain a new
+permission for every in-plan private preparation, provider, deployment, native,
+release or bounded live-execution step. Do not reserve a separate turn for an
+approval record or ask again solely because an older card says to do so.
+
+First prepare and independently review the concrete packet, then record how the
+standing authority applies and check current inputs, credentials/grants,
+ownership, accepted finite limits/window, positive proof, cleanup and no-replay
+conditions before action. Authority does not supply those facts, revive expired
+credentials or spent attempts, or fabricate qualification or a future material
+contract acceptance. Ask only for a concrete missing owner input, materially new
+scope/risk/contract decision or action outside the plan. Continue independent
+eligible work while such an input is pending. Preserve accepted safety
+requirements, intentional stops, independent review and Terry's control of
+Completed and final acceptance. New cards are not automatically authorized merely
+because they are added to the tracker; reconcile their actual scope first.
 
 Bot-only queued alerts retain the existing metadata-only suppression rule; a
 monitor notification alone does not start execution of this work plan. The
