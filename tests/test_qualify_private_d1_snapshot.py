@@ -128,6 +128,59 @@ class QualificationTests(unittest.TestCase):
             "cleanup_unconfirmed_provider_not_found", Path(self.packet["journalPath"]).read_text()
         )
 
+    def test_values_seed_and_full_roundtrip_under_five_compound_select_terms(self):
+        self.db.setlimit(sqlite3.SQLITE_LIMIT_COMPOUND_SELECT, 5)
+        self.assertEqual(self.db.getlimit(sqlite3.SQLITE_LIMIT_COMPOUND_SELECT), 5)
+        previous_seed = (
+            "CREATE TABLE probe AS SELECT NULL AS v UNION ALL SELECT -9223372036854775808 "
+            "UNION ALL SELECT 9223372036854775807 UNION ALL SELECT '' "
+            "UNION ALL SELECT CAST(X'610062F09F8C8A' AS TEXT) UNION ALL SELECT X'0001FF'"
+        )
+        with self.assertRaisesRegex(sqlite3.OperationalError, "too many terms"):
+            self.db.execute(previous_seed)
+        queries = []
+
+        def limited_transport(request, *_args, **_kwargs):
+            if request.url.endswith("/query"):
+                body = _json(request.wire.split(b"\r\n\r\n", 1)[1])
+                queries.append(body["sql"])
+            return self.transport(request)
+
+        # Exercise capture, same-process isolated permit, exact reader, equality
+        # and conditional cleanup with the same restricted synthetic SQLite DB.
+        with (
+            patch.object(q, "_pinned_https", limited_transport),
+            patch("scripts.hosted_publisher_execution_provider._pinned_https", limited_transport),
+        ):
+            result = self.run_qualifier()
+        self.assertTrue(result["complete"])
+        self.assertFalse(result["productionQualified"])
+        self.assertFalse(result["cleanupVerified"])
+        self.assertEqual(result["requests"], 18)
+        self.assertLessEqual(result["requests"], q.MAX_REQUESTS)
+        self.assertEqual(q.MAX_REQUESTS, 26)
+        self.assertEqual(self.methods, ["POST"] * 16 + ["DELETE", "GET"])
+        self.assertEqual(queries.count(q.SEED_SQL), 1)
+        self.assertEqual(queries[0], q.SEED_SQL)
+        self.assertEqual(len(queries), 15)
+        self.assertEqual(queries[1:8], queries[8:])
+        snapshot = _json(Path(self.packet["outputPath"]).read_bytes())["snapshot"]
+        self.assertEqual(set(snapshot["tables"]), {"probe"})
+        probe = snapshot["tables"]["probe"]
+        self.assertEqual(probe["columns"], ["v"])
+        expected = [
+            ["null", None],
+            ["integer", -(2**63)],
+            ["integer", 2**63 - 1],
+            ["text", ""],
+            ["text", "a\0b🌊"],
+            ["blob", "0001ff"],
+        ]
+        self.assertCountEqual([row[0] for row in probe["rows"]], expected)
+        self.assertEqual(len(probe["rowids"]), 6)
+        self.assertNotIn("real", [row[0][0] for row in probe["rows"]])
+        self.assertIn("reader_terminal_equal", Path(self.packet["journalPath"]).read_text())
+
     def test_missing_approval_refuses_before_credential(self):
         self.consent["approved"] = False
         called = []
