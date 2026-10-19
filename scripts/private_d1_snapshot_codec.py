@@ -40,7 +40,10 @@ TABLE_LIST_SQL = (
     'SELECT schema,name,type,ncol,wr,"strict" FROM pragma_table_list '
     f"WHERE schema='main' ORDER BY name LIMIT {MAX_SCHEMA + 1}"
 )
-ENCODING_SQL = "SELECT encoding FROM pragma_encoding LIMIT 2"
+# Behavioral SQLite CAST representation witness, not provider-reported PRAGMA metadata.
+# CAST-to-BLOB uses the database connection encoding: UTF-8 'A' is exactly 41;
+# UTF-16le/be are 4100/0041 and remain unsupported. Keep the actual query in provenance.
+ENCODING_SQL = "SELECT hex(CAST('A' AS BLOB)) AS encoding_probe"
 Query = Callable[[str], list[dict[str, Any]]]
 
 
@@ -410,7 +413,7 @@ def collect_snapshot(query: Query, *, page_size: int = MAX_PAGE_ROWS) -> dict[st
     schema = read(SCHEMA_SQL)
     storage = read(TABLE_LIST_SQL)
     encoding = read(ENCODING_SQL)
-    _require(encoding == [{"encoding": "UTF-8"}], "unsupported_database_text_encoding")
+    _require(encoding == [{"encoding_probe": "41"}], "unsupported_database_text_encoding")
     _require(type(schema) is list and len(schema) <= MAX_SCHEMA, "schema_bound_exceeded")
     names = []
     for row in schema:
