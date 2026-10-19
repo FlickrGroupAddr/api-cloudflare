@@ -437,3 +437,41 @@ Terry made this a mandatory execution gate on 2026-10-17:
 The sequence is: select an eligible card, move it to In Progress, then work or
 delegate. A Ready for Work card may retain prerequisites, but the prerequisite
 and In Progress gates still govern execution.
+
+## Rolling closeout work plan
+
+Terry requested a persistent closeout plan on 2026-10-19. The implementation-board
+tracker is **#0208**, stable ID `fga-open-work-execution-plan`. Keep it In Progress
+while planned work remains; exclude the tracker from its own execution schedule.
+
+Review and update the plan every substantive FGA work turn, before selecting work
+and again at handoff. Use the shared CLI and current card evidence:
+
+- Reconcile remaining RFW work and its owner/review prerequisites, actual outcomes,
+  new cards, scope changes and dependencies. A card moved to review or Needs Terry
+  has not thereby reached owner-controlled Completed; retain its remaining step.
+- Maintain a table with exactly two columns: one-indexed remaining turn number and
+  the cards to work that turn. Rebase future turns from 1 after updating progress.
+- Use the current user-authorized subagent ceiling: temporarily seven direct
+  subagents until Terry changes it. Count implementation, meaningful verification
+  and fresh independent review within each planned card unit; replace finished
+  authors with reviewers instead of reserving idle pairs. Serialize work requiring
+  the single primary desktop/operator.
+- Respect actual positive evidence as well as dependency status. Completed
+  research, an unsent request, a source-only NO-GO or matching synthetic snapshots
+  cannot satisfy a positive source/qualification requirement. Exact private,
+  provider and native action approvals remain separate and current.
+- Recompute the remaining-turn estimate from the revised schedule and update the
+  title to exactly `Work Plan: <n> turns remaining`, with integer `<n>` equal to
+  the number of future scheduled rows. Do not decrement for elapsed time, a
+  stalled turn or a monitor-only notification. New findings or work may increase
+  the count. Show conditional evidence/owner/fit assumptions; never promise an
+  unconditional finite closeout when a prerequisite is unresolved.
+- Keep the full private board schedule and planning evidence in the board/task
+  workspace, not public source. Record a concise actual-progress/replan comment.
+  Preserve priorities and Completed cards. At zero, retain Terry's final
+  acceptance boundary rather than marking the tracker Completed yourself.
+
+Bot-only queued alerts retain the existing metadata-only suppression rule; a
+monitor notification alone does not start execution of this work plan. The
+localswim work-plan #0112 Astra/four-agent authorization does not apply to FGA.
