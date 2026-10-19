@@ -21,6 +21,7 @@ from typing import Any
 import bounded_local_delivery_path_proof as proof
 from binding import ADAPTER_SHA2_256, GUARD_SHA2_256, ProcessIdentity, Refused
 from reviewed_adapter import load_reviewed
+from role_policy import RolePolicy, role_path
 
 REVIEWED = load_reviewed()
 _ATTEMPTS: set[str] = set()
@@ -31,12 +32,32 @@ class CleanupUnconfirmed(Refused):
     pass
 
 
+NATIVE_MARKER_NAMES = (
+    "target.json",
+    "target.used.json",
+    "status.json",
+    "stop.json",
+    "target.json.tmp",
+    "status.json.tmp",
+    "stop.json.tmp",
+)
+
+
+@dataclass(frozen=True)
+class ParentChain:
+    roots: tuple[str, ...]
+    private_from: int | None
+
+
 @dataclass(frozen=True)
 class LocalPacket:
     run_identity: str
     process: ProcessIdentity
-    roots: tuple[str, ...]
-    private_from: int
+    source_parents: ParentChain
+    destination_parents: ParentChain
+    native_parents: tuple[ParentChain, ...]
+    claim_parents: ParentChain
+    receipt_parents: ParentChain
     source: str
     destination: str
     source_sha2_256: str
@@ -64,7 +85,7 @@ def current_source_pins() -> tuple[tuple[str, str], ...]:
     root = Path(__file__).resolve().parent
     return tuple(
         (name, hashlib.sha256((root / name).read_bytes()).hexdigest())
-        for name in ("binding.py", "reviewed_adapter.py", "local_action.py")
+        for name in ("binding.py", "reviewed_adapter.py", "role_policy.py", "local_action.py")
     )
 
 
@@ -78,15 +99,25 @@ def validate_packet(packet: LocalPacket, reviewed_fingerprint: str) -> None:
         or packet.adapter_sha2_256 != ADAPTER_SHA2_256
         or packet.guard_sha2_256 != GUARD_SHA2_256
         or packet.integration_pins != current_source_pins()
-        or type(packet.private_from) is not int
-        or not 1 <= packet.private_from < len(packet.roots)
-        or packet.roots[0] != "C:\\"
+        or type(packet.markers) is not tuple
+        or type(packet.native_parents) is not tuple
         or len(packet.markers) != 7
         or len({p.casefold() for p in packet.markers}) != 7
-        or packet.claim not in packet.markers
-        or packet.receipt not in packet.markers
-        or packet.claim == packet.receipt
-        or len({p.casefold() for p in (packet.source, packet.destination, *packet.markers)}) != 9
+        or len(packet.native_parents) != 7
+        or tuple(PureWindowsPath(p).name for p in packet.markers) != NATIVE_MARKER_NAMES
+        or len(
+            {
+                p.casefold()
+                for p in (
+                    packet.source,
+                    packet.destination,
+                    *packet.markers,
+                    packet.claim,
+                    packet.receipt,
+                )
+            }
+        )
+        != 11
         or not re.fullmatch(r"[a-f0-9]{64}", packet.source_sha2_256)
         or not re.fullmatch(r"[a-f0-9]{64}", packet.process.executable_sha2_256)
         or type(packet.process.process_id) is not int
@@ -95,13 +126,36 @@ def validate_packet(packet: LocalPacket, reviewed_fingerprint: str) -> None:
     ):
         raise Refused("exact_packet_refused")
     _ = proof.Policy(packet.process.user_sid, proof.TRUSTEDINSTALLER).trusted
-    for index, root in enumerate(packet.roots):
-        path = proof.fixed_path(root)
-        if index and path.parent != PureWindowsPath(packet.roots[index - 1]):
-            raise Refused("full_parent_chain_required")
-    for path in (packet.source, packet.destination, *packet.markers):
-        if proof.fixed_path(path).parent != PureWindowsPath(packet.roots[-1]):
-            raise Refused("exact_private_parent_required")
+    # Each role has its own complete, exact parent chain. Case variants of a
+    # shared ancestor refuse rather than opening aliases or rewriting paths.
+    spellings: dict[str, str] = {}
+    for leaf, parents, private in role_chains(packet):
+        if (
+            not isinstance(parents, ParentChain)
+            or type(parents.roots) is not tuple
+            or not parents.roots
+            or parents.roots[0] != "C:\\"
+            or (private and parents.private_from is None)
+            or (
+                parents.private_from is not None
+                and (
+                    type(parents.private_from) is not int
+                    or not 1 <= parents.private_from < len(parents.roots)
+                )
+            )
+        ):
+            raise Refused("role_parent_chain_refused")
+        for index, root in enumerate(parents.roots):
+            path = role_path(root)
+            if index and str(path.parent) != parents.roots[index - 1]:
+                raise Refused("full_parent_chain_required")
+            if spellings.setdefault(root.casefold(), root) != root:
+                raise Refused("shared_parent_spelling_refused")
+        if str(role_path(leaf).parent) != parents.roots[-1]:
+            raise Refused("exact_role_parent_required")
+    # No file role may also name a participating directory.
+    if any(path.casefold() in spellings for path, _, _ in role_chains(packet)):
+        raise Refused("file_directory_role_collision")
     # Validate finite numeric start/deadline and the maximum fifteen-minute bound.
     proof.Window(packet.start, packet.deadline, 0.0, packet.start, 0.0).before_dispatch(
         packet.start, 0.0
@@ -112,6 +166,81 @@ def validate_packet(packet: LocalPacket, reviewed_fingerprint: str) -> None:
         or packet.source_not_after <= packet.deadline
     ):
         raise Refused("credential_lifetime_refused")
+
+
+def role_chains(packet: LocalPacket) -> tuple[tuple[str, ParentChain, bool], ...]:
+    return (
+        (packet.source, packet.source_parents, True),
+        (packet.destination, packet.destination_parents, True),
+        *(
+            (path, chain, True)
+            for path, chain in zip(packet.markers, packet.native_parents, strict=True)
+        ),
+        (packet.claim, packet.claim_parents, True),
+        (packet.receipt, packet.receipt_parents, True),
+    )
+
+
+class HeldParents:
+    """Borrow shared exact prefixes per role; the facade owns each native handle.
+
+    References remain held until all effects finish. Reusing a prefix inspects
+    the SAME held handle, then qualifies it under this role's private boundary.
+    Distinct paths cannot alias one object, even across otherwise disjoint roles.
+    Logical references release together; facade.close_all is the sole final
+    native-handle owner and closes its ledger once, including partial acquisition.
+    """
+
+    def __init__(self, facade: Any, policy: RolePolicy, admit: Callable[[], None]):
+        self.facade, self.policy, self.admit = facade, policy, admit
+        self.nodes: dict[str, Any] = {}
+        self.references: dict[str, int] = {}
+        self.chains: dict[str, tuple[Any, ...]] = {}
+        self.identities: dict[tuple[int, int], str] = {}
+        self.borrows: list[str] = []
+
+    def acquire(self, leaf: str, parents: ParentChain):
+        chain: list[Any] = []
+        for path in parents.roots:
+            self.admit()
+            if path in self.nodes:
+                node = self.facade.inspect(self.nodes[path].handle_id)
+                REVIEWED._same_file(self.nodes[path], node)
+            else:
+                node = self.facade.open_directory(
+                    path, proof.DIRECTORY_ACCESS, proof.FILE_SHARE_READ, proof.DIRECTORY_FLAGS
+                )
+                if node.path != path:
+                    raise Refused("exact_parent_refused")
+                if node.handle_id in self.identities:
+                    raise Refused("cross_role_object_alias_refused")
+                self.nodes[path] = node
+                self.identities[node.handle_id] = path
+            chain.append(node)
+            self.policy.qualify_chain(
+                tuple(chain),
+                private_from=(
+                    parents.private_from
+                    if parents.private_from is not None and len(chain) > parents.private_from
+                    else None
+                ),
+            )
+            self.references[path] = self.references.get(path, 0) + 1
+            self.borrows.append(path)
+        self.chains[leaf] = tuple(chain)
+
+    def release(self):
+        # No handle is closed for a borrowed reference. All roles finish before
+        # the facade's single ledger drain, even when acquisition was partial.
+        for path in reversed(self.borrows):
+            self.references[path] -= 1
+        if any(self.references.values()):
+            raise Refused("parent_reference_cleanup_unconfirmed")
+        self.borrows.clear()
+        self.references.clear()
+        self.chains.clear()
+        self.nodes.clear()
+        self.identities.clear()
 
 
 class BoundFacade(REVIEWED.NativeFacade):
@@ -138,10 +267,8 @@ class BoundFacade(REVIEWED.NativeFacade):
 
     def _allowed(self, path: str):
         if path not in {
-            *self.packet.roots,
-            self.packet.source,
-            self.packet.destination,
-            *self.packet.markers,
+            *(root for _, chain, _ in role_chains(self.packet) for root in chain.roots),
+            *(leaf for leaf, _, _ in role_chains(self.packet)),
         }:
             raise Refused("exact_path_refused")
 
@@ -150,7 +277,7 @@ class BoundFacade(REVIEWED.NativeFacade):
 
     def open_directory(self, path: str, access: int, share: int, flags: int):
         if (
-            path not in self.packet.roots
+            path not in {root for _, chain, _ in role_chains(self.packet) for root in chain.roots}
             or access != proof.DIRECTORY_ACCESS
             or share != proof.FILE_SHARE_READ
             or flags != proof.DIRECTORY_FLAGS
@@ -223,7 +350,12 @@ class BoundFacade(REVIEWED.NativeFacade):
             raise Refused("flush_unconfirmed")
 
     def marker_absent(self, path: str) -> bool:
-        if path not in self.packet.markers:
+        if path not in {
+            *self.packet.markers,
+            self.packet.claim,
+            self.packet.receipt,
+            self.packet.destination,
+        }:
             raise Refused("marker_path_refused")
         self._admit()
         handle = self.k.CreateFileW(
@@ -351,6 +483,7 @@ def prepare_local(
     """
     result = LocalReceipt(reviewed_fingerprint)
     facade = None
+    held = None
     try:
         validate_packet(packet, reviewed_fingerprint)
         admit = admission if admission is not None else Admission(packet, clock)
@@ -362,21 +495,11 @@ def prepare_local(
             raise Refused("process_identity_refused")
         admit()
         facade = facade_factory(packet, admit)
-        policy = proof.Policy(packet.process.user_sid, proof.TRUSTEDINSTALLER)
-        chain: list[Any] = []
-        for path in packet.roots:
-            admit()
-            node = facade.open_directory(
-                path, proof.DIRECTORY_ACCESS, proof.FILE_SHARE_READ, proof.DIRECTORY_FLAGS
-            )
-            if node.path != path:
-                raise Refused("exact_parent_refused")
-            chain.append(node)
-            policy.qualify_chain(
-                tuple(chain),
-                private_from=(packet.private_from if len(chain) > packet.private_from else None),
-            )
-        for path in packet.markers:
+        policy = RolePolicy(packet.process.user_sid, proof.TRUSTEDINSTALLER)
+        held = HeldParents(facade, policy, admit)
+        for leaf, parents, _ in role_chains(packet):
+            held.acquire(leaf, parents)
+        for path in (*packet.markers, packet.claim, packet.receipt, packet.destination):
             admit()
             if facade.marker_absent(path) is not True:
                 raise Refused("marker_not_fresh")
@@ -400,7 +523,7 @@ def prepare_local(
             )
             if node.path != path:
                 raise Refused("exact_output_refused")
-            policy.qualify_new_file(node, tuple(chain))
+            policy.qualify_new_file(node, held.chains[path])
             return node
 
         def write_record(node: Any, raw: bytes):
@@ -411,7 +534,7 @@ def prepare_local(
             facade.flush(node.handle_id)
             admit()
             after = facade.inspect(node.handle_id)
-            policy.qualify_new_file(after, tuple(chain))
+            policy.qualify_new_file(after, held.chains[node.path])
             REVIEWED._same_file(node, after)
 
         result = replace(result, claim_attempted=True)
@@ -429,7 +552,7 @@ def prepare_local(
         )
         if source.path != packet.source:
             raise Refused("exact_source_refused")
-        policy.qualify_source(source, tuple(chain))
+        policy.qualify_source(source, held.chains[packet.source])
         result = replace(result, destination_attempted=True)
         destination = create(packet.destination)
         if destination.handle_id == source.handle_id:
@@ -441,7 +564,7 @@ def prepare_local(
             raise Refused("bounded_read_refused")
         admit()
         source_after = facade.inspect(source.handle_id)
-        policy.qualify_source(source_after, tuple(chain))
+        policy.qualify_source(source_after, held.chains[packet.source])
         REVIEWED._same_file(source, source_after)
         if hashlib.sha256(raw).hexdigest() != packet.source_sha2_256:
             raise Refused("source_fingerprint_refused")
@@ -462,6 +585,12 @@ def prepare_local(
     except Exception:
         result = replace(result, outcome="local_preparation_unknown_no_replay")
     finally:
+        if held is not None:
+            try:
+                held.release()
+            except Exception:
+                if facade is not None:
+                    facade.cleanup_confirmed = False
         if facade is not None:
             try:
                 facade.close_all()

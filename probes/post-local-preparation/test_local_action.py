@@ -8,44 +8,61 @@ import io
 import json
 import unittest
 from dataclasses import replace
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import bounded_local_delivery_path_proof as proof
 from binding import FIXED_PACKET, ProcessIdentity
 from local_action import (
+    NATIVE_MARKER_NAMES,
     REVIEWED,
     Admission,
     AdmittedLibrary,
     BoundFacade,
+    HeldParents,
     LocalPacket,
+    ParentChain,
     current_source_pins,
     live_factory,
     main,
     packet_fingerprint,
     prepare_local,
+    role_chains,
     windows_identity,
 )
+from role_policy import RolePolicy, role_path
 from test_0161_local_preparation_candidate import Clock, FixtureFacade
 
 
+def parent_chain(parent: str, private_from: int | None = 2) -> ParentChain:
+    windows = PureWindowsPath(parent)
+    return ParentChain(tuple(str(p) for p in reversed(windows.parents)) + (parent,), private_from)
+
+
 def packet() -> LocalPacket:
+    source = r"C:\synthetic\retained\credential-delivery"
+    destination = r"C:\synthetic\.coordination-runs\post\private"
+    native = r"C:\Temp\FGA-group-post-v1"
+    records = source + r"\draft"
     return LocalPacket(
-        FIXED_PACKET.run_identity,
-        ProcessIdentity(),
-        REVIEWED.ROOTS,
-        3,
-        FIXED_PACKET.source,
-        FIXED_PACKET.destination,
-        FIXED_PACKET.source_sha2_256,
-        FIXED_PACKET.markers,
-        FIXED_PACKET.claim,
-        FIXED_PACKET.receipt,
-        FIXED_PACKET.start,
-        FIXED_PACKET.deadline,
-        2000.0,
-        current_source_pins(),
+        run_identity=FIXED_PACKET.run_identity,
+        process=ProcessIdentity(),
+        source_parents=parent_chain(source),
+        destination_parents=parent_chain(destination),
+        native_parents=(parent_chain(native),) * 7,
+        claim_parents=parent_chain(records),
+        receipt_parents=parent_chain(records),
+        source=source + r"\operator-token.txt",
+        destination=destination + r"\operator-token.txt",
+        source_sha2_256=FIXED_PACKET.source_sha2_256,
+        markers=tuple(native + "\\" + name for name in NATIVE_MARKER_NAMES),
+        claim=records + r"\local.claim",
+        receipt=records + r"\local.receipt",
+        start=FIXED_PACKET.start,
+        deadline=FIXED_PACKET.deadline,
+        source_not_after=2000.0,
+        integration_pins=current_source_pins(),
         localConsent=True,
     )
 
@@ -59,9 +76,46 @@ class LocalFacade(FixtureFacade):
         self.failed_path: str | None = None
         self.short_path: str | None = None
         self.admission = lambda: None
+        self.directory_changes: dict[str, dict] = {}
+        self.unknown_markers: set[str] = set()
+        self.expire_path: str | None = None
+        self.duplicate_directory: str | None = None
+
+    def open_directory(self, path, access, share, flags):
+        node = super().open_directory(path, access, share, flags)
+        changes = self.directory_changes.get(path, {})
+        if path == self.duplicate_directory:
+            changes = {**changes, "handle_id": (1, 11)}
+        modified = replace(node, **changes)
+        # Keep the fixture's owner ledger even for an injected bad observation.
+        if path == self.expire_path:
+            self.clock.expired = True
+        return modified
+
+    def open_source(self, path, access, share, flags):
+        self.record("source", path, access, share, flags)
+        self.next_identity += 1
+        node = replace(
+            proof.Node(
+                path,
+                self.current_user_sid,
+                (),
+                directory=False,
+                desired_access=access,
+                share_mode=share,
+                flags=flags,
+                handle_id=(1, self.next_identity + 1000),
+                protected_dacl=True,
+            ),
+            **self.bad_source,
+        )
+        self.nodes[node.handle_id] = node
+        return node
 
     def marker_absent(self, path: str) -> bool:
         self.record("marker", path)
+        if path in self.unknown_markers:
+            raise OSError("synthetic marker observation unknown")
         return path not in self.existing
 
     def create_new(self, path: str, security: object, access: int, share: int, flags: int):
@@ -102,9 +156,11 @@ class LocalFacade(FixtureFacade):
                 self.close(node.handle_id)
             except Exception:
                 self.cleanup_confirmed = False
+            finally:
+                self.nodes.pop(node.handle_id, None)
 
 
-class LocalActionTests(unittest.TestCase):
+class LocalActionCase(unittest.TestCase):
     def setUp(self):
         self.packet = packet()
         self.clock = Clock()
@@ -124,6 +180,8 @@ class LocalActionTests(unittest.TestCase):
             exact, pin or packet_fingerprint(exact), lambda: self.identity, self.factory, self.clock
         )
 
+
+class LocalActionTests(LocalActionCase):
     def test_complete_exact_custody_source_and_private_receipt(self):
         result = self.run_local()
         self.assertEqual(result.outcome, "local_preparation_complete_no_run_authority")
@@ -133,7 +191,7 @@ class LocalActionTests(unittest.TestCase):
         self.assertEqual(self.facade.contents[self.packet.destination], REVIEWED.SYNTHETIC_BYTES)
         saved = json.loads(self.facade.contents[self.packet.receipt])
         self.assertFalse(saved["cleanup_confirmed"])
-        self.assertEqual(len(self.facade.effects("marker")), 7)
+        self.assertEqual(len(self.facade.effects("marker")), 10)
 
     def test_false_consent_closed_scope_and_bad_pin_do_not_construct_facade(self):
         for changes in (
@@ -141,7 +199,7 @@ class LocalActionTests(unittest.TestCase):
             {"nativeConsent": True},
             {"actionReady": True},
             {"run_identity": "bad"},
-            {"private_from": True},
+            {"source_parents": replace(self.packet.source_parents, private_from=True)},
             {"source_sha2_256": "bad"},
             {"markers": self.packet.markers[:-1]},
             {"destination": self.packet.source},
@@ -149,7 +207,11 @@ class LocalActionTests(unittest.TestCase):
             {"deadline": 2000.0},
             {"source_not_after": 1900.0},
             {"integration_pins": ()},
-            {"roots": ("C:\\", self.packet.roots[-1])},
+            {
+                "source_parents": replace(
+                    self.packet.source_parents, roots=("C:\\", self.packet.source_parents.roots[-1])
+                )
+            },
         ):
             with self.subTest(changes=changes):
                 result = self.run_local(replace(self.packet, **changes))
@@ -199,7 +261,7 @@ class LocalActionTests(unittest.TestCase):
     def test_existing_destination_refuses_before_source_read(self):
         self.facade.existing.add(self.packet.destination)
         result = self.run_local()
-        self.assertTrue(result.claim_confirmed and result.destination_attempted)
+        self.assertFalse(result.claim_attempted or result.destination_attempted)
         self.assertEqual(result.credential_reads, 0)
 
     def test_source_mismatch_and_read_failure_never_write_destination(self):
@@ -291,6 +353,258 @@ class LocalActionTests(unittest.TestCase):
             self.assertEqual(
                 live_factory(expired, packet_fingerprint(expired), self.clock).outcome, "no_replay"
             )
+
+
+class RoleTopologyTests(LocalActionCase):
+    def test_documented_public_topology_passes_with_invented_observations(self):
+        workspace = r"C:\Users\TDO-XPS15-2024\Documents\ChatGPT\FGA"
+        source = workspace + (
+            r"\private-evidence\0134\publisher-expiry-oct18-staging"
+            r"\credential-delivery"
+        )
+        caller = workspace + (
+            r"\.coordination-runs\renewed-group-post"
+            r"\0a8b92d40ed1466fa7de82c1\private"
+        )
+        records = source + r"\0161-private-draft"
+        # Strings are public topology evidence only. No path resolver, lookup,
+        # native facade or actual process identity is called by this fixture.
+        self.packet = replace(
+            packet(),
+            source=source + r"\operator-token.txt",
+            destination=caller + r"\operator-token.txt",
+            source_parents=parent_chain(source, 7),
+            destination_parents=parent_chain(caller, 7),
+            claim=records + r"\new-invented.claim",
+            receipt=records + r"\new-invented.receipt",
+            claim_parents=parent_chain(records, 7),
+            receipt_parents=parent_chain(records, 7),
+        )
+        result = self.run_local()
+        self.assertTrue(result.delivered and result.cleanup_confirmed)
+        opened = [args[0] for args in self.facade.effects("directory")]
+        expected = {p for _, chain, _ in role_chains(self.packet) for p in chain.roots}
+        self.assertEqual(set(opened), expected)
+        self.assertEqual(len(opened), len(expected))
+        closed = [args[0] for args in self.facade.effects("close")]
+        self.assertEqual(len(closed), len(set(closed)))
+        self.assertEqual(len(closed), len(expected) + 4)
+        self.assertFalse(result.actionReady or result.nativeConsent)
+
+    def test_cached_shared_prefix_retains_identity_and_balances_references(self):
+        facade = LocalFacade(Clock())
+        held = HeldParents(
+            facade, RolePolicy(ProcessIdentity().user_sid, proof.TRUSTEDINSTALLER), lambda: None
+        )
+        for leaf, parents, _ in role_chains(self.packet):
+            held.acquire(leaf, parents)
+        self.assertEqual(held.references["C:\\"], 11)
+        self.assertEqual(len(facade.effects("directory")), len(held.nodes))
+        self.assertEqual(held.chains[self.packet.source][0].handle_id, held.nodes["C:\\"].handle_id)
+        held.release()
+        self.assertEqual(held.references, {})
+        self.assertEqual(facade.effects("close"), [])
+        facade.close_all()
+        closed = [args[0] for args in facade.effects("close")]
+        self.assertEqual(len(closed), len(set(closed)))
+
+    def test_wrong_role_chains_and_file_directory_collisions_precede_callbacks(self):
+        for changes in (
+            {"destination_parents": self.packet.source_parents},
+            {"claim_parents": self.packet.destination_parents},
+            {"receipt_parents": self.packet.source_parents},
+            {"native_parents": (self.packet.source_parents,) * 7},
+            {
+                "source": self.packet.destination_parents.roots[-1],
+                "source_parents": parent_chain(self.packet.destination_parents.roots[-2]),
+            },
+            {"native_parents": (replace(self.packet.native_parents[0], private_from=None),) * 7},
+        ):
+            with self.subTest(changes=changes):
+                self.setUp()
+                result = self.run_local(replace(self.packet, **changes))
+                self.assertEqual(self.factories, 0)
+                self.assertEqual(result.credential_reads, 0)
+
+    def test_all_native_names_required_and_records_cannot_substitute(self):
+        for markers in (
+            self.packet.markers[:-1],
+            (*self.packet.markers[:-1], self.packet.markers[0]),
+            (*self.packet.markers[:-1], self.packet.claim),
+            (*self.packet.markers[:-1], self.packet.markers[-1] + ".other"),
+            tuple(reversed(self.packet.markers)),
+        ):
+            with self.subTest(markers=markers):
+                result = self.run_local(replace(self.packet, markers=markers))
+                self.assertEqual(self.factories, 0)
+                self.assertEqual(result.credential_reads, 0)
+        for name in ("claim", "receipt", "destination", "source"):
+            result = self.run_local(replace(self.packet, **{name: self.packet.markers[0]}))
+            self.assertEqual(self.factories, 0)
+            self.assertFalse(result.claim_attempted)
+
+    def test_shared_prefix_case_alias_and_cross_branch_object_alias_refuse(self):
+        renamed = replace(
+            self.packet.destination_parents,
+            roots=tuple(
+                p.replace("synthetic", "Synthetic") for p in self.packet.destination_parents.roots
+            ),
+        )
+        exact = replace(
+            self.packet,
+            destination_parents=renamed,
+            destination=self.packet.destination.replace("synthetic", "Synthetic"),
+        )
+        self.assertEqual(self.run_local(exact).outcome, "shared_parent_spelling_refused")
+        self.assertEqual(self.factories, 0)
+        self.facade.duplicate_directory = self.packet.destination_parents.roots[-1]
+        result = self.run_local()
+        self.assertEqual(result.outcome, "cross_role_object_alias_refused")
+        self.assertFalse(result.claim_attempted)
+        self.assertEqual(result.credential_reads, 0)
+
+    def test_each_role_branch_reparse_acl_share_volume_or_unknown_refuses(self):
+        branches = (
+            self.packet.source_parents,
+            self.packet.destination_parents,
+            self.packet.native_parents[0],
+            self.packet.claim_parents,
+        )
+        for parents in branches:
+            for change in (
+                {"reparse": True},
+                {"aces": None},
+                {"protected_dacl": False},
+                {"share_mode": 3},
+                {"owner": "S-1-1-0"},
+                {"handle_id": (2, 1000)},
+                {"held": False},
+                {"aces": (proof.Ace("allow", "S-1-1-0", 1),)},
+            ):
+                with self.subTest(branch=parents.roots[-1], change=change):
+                    self.setUp()
+                    self.facade.directory_changes[parents.roots[-1]] = change
+                    result = self.run_local()
+                    self.assertFalse(result.claim_attempted or result.delivered)
+                    self.assertEqual(result.credential_reads, 0)
+                    self.assertNotEqual(
+                        result.outcome, "local_preparation_complete_no_run_authority"
+                    )
+
+    def test_marker_and_output_present_or_unknown_prevents_all_effects(self):
+        for path in (
+            *self.packet.markers,
+            self.packet.claim,
+            self.packet.receipt,
+            self.packet.destination,
+        ):
+            for unknown in (False, True):
+                with self.subTest(path=path, unknown=unknown):
+                    self.setUp()
+                    (self.facade.unknown_markers if unknown else self.facade.existing).add(path)
+                    result = self.run_local()
+                    self.assertFalse(result.claim_attempted or result.destination_attempted)
+                    self.assertEqual(result.credential_reads, 0)
+                    self.assertEqual(self.facade.effects("create"), [])
+
+    def test_deadline_across_every_branch_still_closes_each_owned_handle_once(self):
+        paths = {
+            self.packet.source_parents.roots[-1],
+            self.packet.destination_parents.roots[-1],
+            self.packet.native_parents[0].roots[-1],
+            self.packet.claim_parents.roots[-1],
+        }
+        for path in paths:
+            with self.subTest(path=path):
+                self.setUp()
+                self.facade.expire_path = path
+                result = self.run_local()
+                self.assertEqual(result.outcome, "window_closed")
+                self.assertFalse(result.claim_attempted)
+                self.assertEqual(result.credential_reads, 0)
+                closed = [args[0] for args in self.facade.effects("close")]
+                self.assertEqual(len(closed), len(set(closed)))
+                self.assertEqual(self.facade.nodes, {})
+
+    def test_partial_chain_failure_and_shared_prefix_change_cleanup_without_read(self):
+        for change in (
+            {"path": r"C:\substituted"},
+            {"handle_id": (1, 999)},
+            {"owner": "S-1-1-0"},
+            {"protected_dacl": False},
+        ):
+            with self.subTest(change=change):
+                self.setUp()
+                # Every branch revisits C: through its same retained handle.
+                self.facade.bad_inspection = change
+                result = self.run_local()
+                self.assertFalse(result.claim_attempted)
+                self.assertEqual(result.credential_reads, 0)
+                self.assertEqual(self.facade.nodes, {})
+        self.setUp()
+        self.facade.fail_at = "directory"
+        self.assertFalse(self.run_local().delivered)
+
+    def test_destination_and_receipt_partial_writes_preserve_claim_and_never_reread(self):
+        for field in ("destination", "receipt"):
+            for failure in ("short_path", "failed_path"):
+                with self.subTest(field=field, failure=failure):
+                    self.setUp()
+                    path = getattr(self.packet, field)
+                    setattr(self.facade, failure, path)
+                    result = self.run_local()
+                    self.assertEqual(result.credential_reads, 1)
+                    self.assertTrue(result.claim_confirmed)
+                    self.assertIn(self.packet.claim, self.facade.existing)
+                    self.assertIn(path, self.facade.existing)
+                    self.assertFalse(result.receipt_confirmed)
+                    if field == "destination":
+                        self.assertFalse(result.delivered)
+                    self.assertEqual(self.run_local().outcome, "marker_not_fresh")
+                    self.assertEqual(len(self.facade.effects("read")), 1)
+
+    def test_role_private_boundaries_are_requalified_when_shared(self):
+        # A source-role ancestor can allow an untrusted read above its private
+        # boundary. The SAME cached node must refuse a stricter records role.
+        shared = self.packet.source_parents.roots[-2]
+        source_parents = replace(self.packet.source_parents, private_from=3)
+        self.packet = replace(self.packet, source_parents=source_parents)
+        self.facade.directory_changes[shared] = {"aces": (proof.Ace("allow", "S-1-1-0", 1),)}
+        original = self.facade.open_directory
+
+        def retain(path, access, share, flags):
+            node = original(path, access, share, flags)
+            self.facade.nodes[node.handle_id] = node
+            return node
+
+        self.facade.open_directory = retain
+        result = self.run_local()
+        self.assertFalse(result.claim_attempted)
+        self.assertEqual(result.outcome, "private_access_refused")
+        self.assertEqual(result.credential_reads, 0)
+
+    def test_local_policy_has_exact_hidden_component_delta_only(self):
+        good = r"C:\invented\.coordination-runs\post\private"
+        self.assertEqual(str(role_path(good)), good)
+        for bad in (
+            r"C:\invented\.other\post",
+            r"C:\invented\.\post",
+            r"C:\invented\..\post",
+            good + ".",
+            good + " ",
+            good.replace(".coordination-runs", ".Coordination-runs"),
+            good.replace(".coordination-runs", "..coordination-runs"),
+            good.replace(".coordination-runs", ".coordination-runs."),
+            good.replace(".coordination-runs", ".coordination-runs "),
+            good.replace(".coordination-runs", ".coordination-runs:ads"),
+            r"\\?\C:\invented\.coordination-runs",
+            r"\\host\share\file",
+            r"C:\invented\CON",
+            r"C:\invented\\post",
+            "C:/invented/post",
+        ):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                role_path(bad)
 
 
 class BoundNativeTests(unittest.TestCase):
