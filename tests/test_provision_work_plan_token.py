@@ -347,6 +347,62 @@ class IssuerTests(unittest.TestCase):
                 with self.assertRaises(OperatorRefused):
                     issuer.permission_ids(response(value))
 
+    def test_catalog_nullable_category_and_lf_description_keep_exact_profile(self):
+        self.catalog["result"].insert(
+            0,
+            {
+                "id": "f" * 32,
+                "name": "Synthetic Unrelated Read",
+                "scopes": ["com.cloudflare.api.account.zone"],
+                "category": None,
+                "is_selectable": True,
+                "description": "Synthetic first line\nsecond line\n",
+            },
+        )
+        self.catalog["result_info"]["count"] = 4
+        self.catalog["result_info"]["total_count"] = 4
+        self.assertEqual(issuer.permission_ids(response(self.catalog)), IDS)
+        self.run_issuer()
+        self.assertEqual(len(self.calls), 5)
+        self.assertEqual(
+            json.loads(self.calls[3].wire.split(b"\r\n\r\n")[1])["policies"],
+            issuer._policies(self.plan, IDS),
+        )
+
+    def test_catalog_prose_compatibility_keeps_types_controls_and_byte_bounds(self):
+        for key, value in (
+            ("category", []),
+            ("category", 1),
+            ("category", "Synthetic\ncategory"),
+            ("description", None),
+            ("description", []),
+            ("description", "Synthetic\r\nline"),
+            ("description", "Synthetic\tline"),
+            ("description", "Synthetic\x00line"),
+            ("description", "Synthetic\x1bline"),
+            ("description", "Synthetic\x7fline"),
+            ("description", "\n" * 4097),
+            ("description", "é" * 2048 + "\n"),
+        ):
+            with self.subTest(key=key, kind=type(value).__name__):
+                altered = copy.deepcopy(self.catalog)
+                altered["result"][1][key] = value
+                with self.assertRaises(OperatorRefused):
+                    issuer.permission_ids(response(altered))
+
+    def test_catalog_prose_compatibility_does_not_alias_names_or_scopes(self):
+        for key, value in (
+            ("name", "D1 Edit"),
+            ("name", "D1 Write\n"),
+            ("scopes", ["com.cloudflare.api.account.zone"]),
+        ):
+            with self.subTest(key=key):
+                altered = copy.deepcopy(self.catalog)
+                altered["result"][1].update(category=None, description="Synthetic\nprose")
+                altered["result"][1][key] = value
+                with self.assertRaises(OperatorRefused):
+                    issuer.permission_ids(response(altered))
+
     def test_child_wrong_actual_policy_expiry_or_identity_never_delivers(self):
         for key, value in (
             ("expires_on", "2026-10-19T13:00:00.000000001Z"),

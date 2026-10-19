@@ -264,9 +264,17 @@ def permission_ids(response):
         _closed(group, {"id", "name", "scopes"}, {"category", "is_selectable", "description"})
         _text(group["id"], 32, metadata._ID)
         _text(group["name"], 128)
-        for key in ("category", "description"):
-            if key in group:
-                metadata._provider_text(group[key], 4096, allow_empty=True)
+        if "category" in group and group["category"] is not None:
+            metadata._provider_text(group["category"], 4096, allow_empty=True)
+        if "description" in group:
+            description = group["description"]
+            # Catalog prose may contain LF; retain the original byte bound and
+            # reject every other nonprintable character. It grants no access.
+            metadata._provider_text(
+                description.replace("\n", " ") if type(description) is str else description,
+                4096,
+                allow_empty=True,
+            )
         if "is_selectable" in group and type(group["is_selectable"]) is not bool:
             raise OperatorRefused("issuer_permission_selectability_refused")
         if group["id"] in seen:
