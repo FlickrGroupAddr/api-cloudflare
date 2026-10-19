@@ -1,0 +1,1 @@
+{"extends":"../../pyproject.toml","include":["."],"venvPath":"../..","venv":".venv"}

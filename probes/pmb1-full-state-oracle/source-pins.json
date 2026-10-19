@@ -1,0 +1,6 @@
+{
+  "scripts/fixed_origin_preservation.py": "a7fdbf748adc5b239014fea27a4e1bc60f838557e919a4fc025d6d9fae9101e7",
+  "scripts/private_d1_snapshot_codec.py": "0353eb8ff62011630c3887b97ddc4d22ecc89163e9d4958b65f9bc096ca58b2b",
+  "probes/typed-real-encoding/typed_real.py": "f804028e1551419c2a2774a5776c003d5f8df174fb7d06a472ee85db33d9839c",
+  "docs/operations/prospective-maintenance-contract-decision-2026-10-18.md": "a6f5916944509f37b95d0d9bf1c10910bcdc04792d281345fc5cf11e54841fdb"
+}

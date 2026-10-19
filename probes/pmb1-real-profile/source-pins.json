@@ -1,0 +1,31 @@
+{
+  "status": "source-no-go",
+  "reviewed_on": "2026-10-19",
+  "managed_engine_identity": null,
+  "managed_binding_transport_identity": null,
+  "hosted_observation": "not-performed",
+  "tooling": {
+    "uv": "0.12.5",
+    "python": "3.14.7",
+    "sqlite_local": "3.53.1",
+    "node": "24.22.0",
+    "native_typescript": "7.0.2",
+    "ruff": "0.16.3",
+    "pyright": "1.1.411"
+  },
+  "sha256": {
+    "probes/pmb1-real-profile/binding_profile.ts": "97876ea69152d0de0aea0e1bbf9cf2c14d6eba513bf5acd7c52dc1f6537d5350",
+    "probes/pmb1-real-profile/binding_profile.test.mjs": "7d650a03bb48c93f69797b735eb7a1e954063b320fae5b006a5622feb5538e7e",
+    "probes/pmb1-real-profile/canonical_real.py": "5994aa760c079617949e367259cdf6aea90bcc4e7f13808902b1b35a8966c4b7",
+    "probes/pmb1-real-profile/test_canonical_real.py": "a13104fdaf2525f8bdba30d217ce17834611b3ed71a9085dc3d9fbbd336c1098",
+    "probes/pmb1-real-profile/fixture-driver.mjs": "6a0b884644970266ad80cf3875e64b0da82073440976b435f7c4a6a386932217",
+    "probes/pmb1-real-profile/pyrightconfig.json": "516cd0c601546b26ac913a9b74cc9d0040f8e2d3405839ad3bc2dc11dc541598",
+    "probes/pmb1-real-profile/tsconfig.json": "83ee2595f3f249f0ba92d7d0c5e564a6fd9ac0de8de5d36f5206230799cc3195",
+    "probes/typed-real-encoding/typed_real.py": "f804028e1551419c2a2774a5776c003d5f8df174fb7d06a472ee85db33d9839c",
+    "scripts/private_d1_snapshot_codec.py": "0353eb8ff62011630c3887b97ddc4d22ecc89163e9d4958b65f9bc096ca58b2b",
+    "scripts/private_d1_snapshot_reader.py": "fe10fee8a311d0e1760889f40a5e18677f5da5308570afa79e19d6c5962e3f5f",
+    "scripts/fixed_origin_preservation.py": "a7fdbf748adc5b239014fea27a4e1bc60f838557e919a4fc025d6d9fae9101e7",
+    "package-lock.json": "6894a3dcecffb784baae9751677b0c231250ae9e99a2cb6ddacc6011a0dc0048",
+    "uv.lock": "aa94ded3cda190efe788d8b1028bcf57fab22495c19113b1ad8ce1a1d0adafba"
+  }
+}

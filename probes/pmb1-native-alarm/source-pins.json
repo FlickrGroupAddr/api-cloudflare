@@ -1,0 +1,22 @@
+{
+  "observedOn": "2026-10-19",
+  "algorithm": "SHA2-256",
+  "files": [
+    {
+      "path": "probes/pmb1-object/candidate.ts",
+      "digest": "632b3c65d2714233e6c957a7b4381f47caa53401e1ca54d01d78e113fefbae46"
+    },
+    {
+      "path": "node_modules/@cloudflare/workers-types/index.d.ts",
+      "digest": "dd24c1870cb19c1b9337cca57bbc0bd9a7ae9b14098dacd81ae7a712196ab5ca"
+    }
+  ],
+  "workersTypesVersion": "5.20261015.1",
+  "primaryDocumentation": [
+    "https://developers.cloudflare.com/durable-objects/api/alarms/",
+    "https://developers.cloudflare.com/durable-objects/api/base/#alarm",
+    "https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/#alarms"
+  ],
+  "nativeSupport": false,
+  "actualQualification": false
+}
