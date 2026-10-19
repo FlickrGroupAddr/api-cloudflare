@@ -1,0 +1,9 @@
+{
+  "include": ["."],
+  "extraPaths": [".", "../local-delivery-path-proof"],
+  "venvPath": "../..",
+  "venv": ".venv",
+  "pythonPlatform": "Windows",
+  "pythonVersion": "3.14",
+  "typeCheckingMode": "standard"
+}
