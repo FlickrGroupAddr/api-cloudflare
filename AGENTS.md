@@ -500,6 +500,38 @@ requirements, intentional stops, independent review and Terry's control of
 Completed and final acceptance. New cards are not automatically authorized merely
 because they are added to the tracker; reconcile their actual scope first.
 
+### Accepted work-plan bootstrap credential
+
+Terry accepted this specific policy on 2026-10-19 in decision
+`call_8562d3b067e14c66ba2f351e1ea50eb2` to reduce repeated manual token creation:
+
+- One human-created user token using Cloudflare's Create additional tokens
+  template, with API Tokens/Edit (Write) only. Its actual provider power is
+  user-wide token management and minting access beyond FGA; Terry knowingly
+  accepted that capability. Local child restrictions do not narrow that grant.
+- Parent expiry is no later than **2026-10-26 12:00 UTC (08:00 EDT)** and at most
+  seven days after actual issuance. Revoke earlier when the work ends or Terry
+  stops it. This is a new parent policy, not renewal of an expired execution
+  token, a rolling deadline or permission for unattended work.
+- Keep the parent local to the trusted operator. Never put it in a Worker,
+  native client or CI job. Use exact independently reviewed child profiles;
+  initial execution scope is D1/Edit + Workers Scripts/Edit on the FGA account.
+  Future profiles require their actual reviewed plan operations, not arbitrary
+  extra permissions or child token-management capability.
+- Parent and execution child remain distinct credentials/IDs. The Write parent
+  may serve as the metadata-reader role under the explicit successor procedure.
+  Record authorized automated provisioning honestly; do not fabricate human
+  dashboard issuance or silently weaken the old exact execution-grant checks.
+- Give children explicit short expiry within their existing accepted run/cleanup
+  bounds and no later than parent expiry. Track and revoke each acknowledged
+  child individually. Do not assume expiry or revocation cascades from parent.
+  Unknown creation/delivery/deletion stops without blind retry or discovery.
+- Implementation/review, actual protected delivery, current provider metadata,
+  source/packet binding and finite invocation budgets precede credential use.
+  Acceptance alone proves no issuance, custody, effective grant or qualification.
+  Preserve historical packets, consumed attempts and existing execution limits.
+
 Bot-only queued alerts retain the existing metadata-only suppression rule; a
 monitor notification alone does not start execution of this work plan. The
-localswim work-plan #0112 Astra/four-agent authorization does not apply to FGA.
+localswim work-plan #0112 Sol/High four-agent policy does not apply to FGA.
+All Astra use requires Terry's fresh explicit approval for that turn.
