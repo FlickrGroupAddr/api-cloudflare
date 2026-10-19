@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { ACTION, COMMAND, NATIVE_ROOT, createNativeDispatchController } from '../scripts/group_post_native_dispatch.mjs';
+import { ACTION, COMMAND, NATIVE_ROOT, observedCommandIndex, createNativeDispatchController } from '../scripts/group_post_native_dispatch.mjs';
 
 function fixture() {
   const binding = { coordinationRoot: 'C:\\synthetic\\renewed-attempt', nativeRoot: NATIVE_ROOT,
@@ -13,8 +13,10 @@ function fixture() {
   const n = (name) => path.win32.join(binding.nativeRoot, name);
   const records = new Map(); const events = [];
   let now = 1000; let live = true; let failPublish; let afterPublish;
-  let clickError = false; let refreshError = false; let captures = 0; let sleeps = 0; let captureDelay = 0; let afterClick;
-  const observation = { window: { id: 5, app: 'synthetic-only' }, screenshots: [{ id: 'shot-1', width: 800, height: 600 }] };
+  let clickError = false; let refreshError = false; let captures = 0; let sleeps = 0; let captureDelay = 0; let afterClick; let afterCapture;
+  const observation = { window: { id: 5, app: 'synthetic-only' },
+    accessibility: { tree: '[1] MenuItem "FGA-LrC15" disabled\n\t[12] MenuItem "Characterize synthetic POST v1"' },
+    screenshots: [{ id: 'shot-1', width: 800, height: 600 }] };
   const originalWindow = observation.window;
   const session = {};
   const put = (file, value) => records.set(file, Buffer.from(JSON.stringify(value)));
@@ -32,14 +34,15 @@ function fixture() {
   };
   const sky = {
     async click(input) {
-      assert.deepEqual(input, { window: originalWindow, screenshotId: 'shot-1', x: 100, y: 200 });
+      assert.deepEqual(input, { window: originalWindow, element_index: 12 });
       assert.equal(session.fgaPostAttempt.attempted, true); assert.equal(session.state, null);
       assert.equal(JSON.parse(records.get(c('attempted.json'))).requestedInputCount, 1);
       events.push('click'); if (clickError) throw Error('private click detail'); await afterClick?.();
     },
     async get_window_state(input) {
-      assert.equal(input.window, originalWindow); captures += 1; events.push('capture');
-      if (captures === 1) { now += captureDelay; return observation; }
+      assert.deepEqual(input, { window: originalWindow, include_screenshot: true, include_text: true });
+      captures += 1; events.push('capture');
+      if (captures === 1) { now += captureDelay; await afterCapture?.(); return observation; }
       assert.equal(records.has(c('ack.json')), false);
       if (refreshError) throw Error('private screenshot detail');
       return { window: originalWindow, screenshots: [{ id: 'shot-2', width: 800, height: 600 }] };
@@ -49,16 +52,114 @@ function fixture() {
     sleep: async () => { sleeps += 1; }, randomNonce: () => 'c'.repeat(32) };
   const controller = createNativeDispatchController(options);
   const invoke = (extra = {}) => put(c('invoke.json'), { ...identity, action: ACTION, deadlineUnix: now + 30, requestedInputCount: 1, ...extra });
-  const dispatch = (extra = {}) => controller.dispatchObserved({ observation, screenshotId: 'shot-1', x: 100, y: 200, commandLabel: COMMAND, ...extra });
-  const ready = async () => { await controller.prewarm(); await controller.observe(observation.window); invoke(); };
+  const dispatch = (extra = {}) => controller.dispatchObserved({ observation, elementIndex: 12, commandLabel: COMMAND, ...extra });
+  const ready = async () => { await controller.prewarm(); invoke(); await controller.observe(observation.window); };
   return { binding, identity, c, n, records, events, put, session, observation, options, controller, invoke, dispatch, ready,
     setNow: (value) => { now = value; }, live: (value) => { live = value; },
     fail: (name) => { failPublish = c(name); }, after: (fn) => { afterPublish = fn; },
     clickError: () => { clickError = true; }, refreshError: () => { refreshError = true; },
-    captureDelay: (value) => { captureDelay = value; }, afterClick: (fn) => { afterClick = fn; }, sleeps: () => sleeps };
+    captureDelay: (value) => { captureDelay = value; }, afterClick: (fn) => { afterClick = fn; },
+    afterCapture: (fn) => { afterCapture = fn; }, sleeps: () => sleeps };
 }
 
-test('fresh inspected screenshot dispatches once after durable intent, then immediate capture and ack', async () => {
+for (const prefix of ['[12]', '12:', '12.', '12)', '12']) {
+  for (const label of [`MenuItem ${COMMAND}`, `MenuItem "${COMMAND}"`,
+    `menu item ${COMMAND}`, `menu item "${COMMAND}"`]) {
+    test(`exact synthetic tree subset ${prefix} ${label} yields its index`, () => {
+      assert.equal(observedCommandIndex(`\t${prefix} ${label}\r\n[1] MenuItem FGA-LrC15 disabled`), 12);
+    });
+  }
+}
+for (const [name, tree] of [
+  ['absent tree', null], ['empty tree', ''],
+  ['header alone', '[12] MenuItem "FGA-LrC15" disabled'],
+  ['wrong role', `[12] Button "${COMMAND}"`],
+  ['substring label', `[12] MenuItem "${COMMAND} extra"`],
+  ['disabled target annotation', `[12] MenuItem "${COMMAND}" disabled`],
+  ['unknown state annotation', `[12] MenuItem "${COMMAND}" enabled`],
+  ['duplicate command indexes', `[12] MenuItem "${COMMAND}"\n[13] MenuItem "${COMMAND}"`],
+  ['disabled matching duplicate', `[12] MenuItem "${COMMAND}"\n[13] MenuItem "${COMMAND}" disabled`],
+  ['unsupported matching duplicate', `[12] MenuItem "${COMMAND}"\nMenuItem(name=${COMMAND}, index=13)`],
+  ['unindexed matching context', `[12] MenuItem "${COMMAND}"\nMenu ${COMMAND}`],
+  ['reused index', `[12] MenuItem "${COMMAND}"\n[12] Button other`],
+  ['unsafe integer index', `[9007199254740992] MenuItem "${COMMAND}"`],
+  ['invented malformed index', `[12) MenuItem "${COMMAND}"`],
+]) test(`${name} cannot establish a command target`, () => {
+  assert.throws(() => observedCommandIndex(tree));
+});
+
+test('observation requires an active correlated invocation before capture', async () => {
+  const f = fixture(); await f.controller.prewarm();
+  await assert.rejects(f.controller.observe(f.observation.window));
+  assert.equal(f.events.includes('capture'), false);
+  f.invoke(); await assert.rejects(f.controller.observe(f.observation.window));
+});
+
+test('controller permits only one observation and cannot refresh its age or index', async () => {
+  const f = fixture(); await f.ready();
+  await assert.rejects(f.controller.observe(f.observation.window));
+  assert.equal(f.events.filter((event) => event === 'capture').length, 1);
+  const result = await f.dispatch(); assert.equal(result.actualInputCount, 1);
+});
+
+for (const state of [null, {}, { tree: '' }]) test(`missing or empty accessibility cannot dispatch (${JSON.stringify(state)})`, async () => {
+  const f = fixture(); f.observation.accessibility = state;
+  await f.controller.prewarm(); f.invoke();
+  if (typeof state?.tree !== 'string') await assert.rejects(f.controller.observe(f.observation.window));
+  else { await f.controller.observe(f.observation.window); await assert.rejects(f.dispatch()); }
+  assert.equal(f.events.includes('click'), false); assert.equal(f.records.has(f.c('attempted.json')), false);
+});
+
+test('unsupported actual tree format refuses instead of falling back to coordinates', async () => {
+  const f = fixture(); f.observation.accessibility.tree = `MenuItem(name=${COMMAND}, index=12)`;
+  await f.ready(); await assert.rejects(f.dispatch());
+  assert.equal(f.events.includes('click'), false); assert.equal(f.records.has(f.c('attempted.json')), false);
+});
+
+for (const duplicate of [`[13] MenuItem "${COMMAND}" disabled`, `MenuItem(name=${COMMAND}, index=13)`]) {
+  test(`matching duplicate cannot dispatch: ${duplicate}`, async () => {
+    const f = fixture(); f.observation.accessibility.tree += '\n' + duplicate;
+    await f.ready(); await assert.rejects(f.dispatch());
+    assert.equal(f.events.includes('click'), false); assert.equal(f.records.has(f.c('attempted.json')), false);
+  });
+}
+
+test('replacement invoke cannot extend the original observed expired request', async () => {
+  const f = fixture(); await f.controller.prewarm(); f.invoke({ deadlineUnix: 1010 });
+  await f.controller.observe(f.observation.window); f.setNow(1011); f.invoke({ deadlineUnix: 1030 });
+  await assert.rejects(f.dispatch());
+  assert.equal(f.events.includes('click'), false); assert.equal(f.records.has(f.c('attempted.json')), false);
+});
+
+test('even an unexpired shortened replacement request cannot substitute observation authority', async () => {
+  const f = fixture(); await f.ready(); f.invoke({ deadlineUnix: 1020 });
+  await assert.rejects(f.dispatch());
+  assert.equal(f.events.includes('click'), false); assert.equal(f.records.has(f.c('attempted.json')), false);
+});
+
+for (const delay of [0, 11]) test(`request replacement during capture refuses (${delay}s delay)`, async () => {
+  const f = fixture(); await f.controller.prewarm(); f.invoke({ deadlineUnix: 1010 }); f.captureDelay(delay);
+  f.afterCapture(() => f.invoke({ deadlineUnix: 1030 }));
+  await assert.rejects(f.controller.observe(f.observation.window), /observed_request_changed_or_expired/);
+  await assert.rejects(f.dispatch());
+  assert.equal(f.events.includes('click'), false); assert.equal(f.records.has(f.c('attempted.json')), false);
+});
+
+for (const expire of [false, true]) test(`request replacement during checkpoint cannot alter original binding (expired=${expire})`, async () => {
+  const f = fixture(); await f.controller.prewarm(); f.invoke({ deadlineUnix: 1010 });
+  await f.controller.observe(f.observation.window);
+  f.after((file) => {
+    if (file === f.c('challenge-dispatch.json')) {
+      if (expire) f.setNow(1011);
+      f.invoke({ deadlineUnix: 1030 });
+    }
+  });
+  await assert.rejects(f.dispatch(), /no_retry/);
+  assert.equal(f.events.includes('click'), false); assert.equal(f.session.fgaPostAttempt.stopped, true);
+  await assert.rejects(f.dispatch());
+});
+
+test('fresh exact menu item dispatches once after durable intent, then immediate capture and ack', async () => {
   const f = fixture(); await f.ready(); const start = f.events.length;
   const result = await f.dispatch(); assert.equal(result.outcome, 'dispatched');
   assert.deepEqual(f.events.slice(start), ['attempted.json', 'challenge-dispatch.json', 'click', 'capture', 'ack.json']);
@@ -68,9 +169,11 @@ test('fresh inspected screenshot dispatches once after durable intent, then imme
 });
 
 for (const [name, params] of [
-  ['unknown screenshot', { screenshotId: 'unobserved' }], ['wrong exact command', { commandLabel: COMMAND + ' extra' }],
-  ['negative x', { x: -1 }], ['negative y', { y: -1 }], ['x outside image', { x: 800 }], ['y outside image', { y: 600 }],
-  ['NaN', { x: NaN }], ['infinity', { y: Infinity }], ['string coordinate', { x: '100' }],
+  ['old coordinate action', { screenshotId: 'shot-1', x: 100, y: 200 }],
+  ['wrong exact command', { commandLabel: COMMAND + ' extra' }],
+  ['header index', { elementIndex: 1 }], ['negative index', { elementIndex: -1 }],
+  ['unknown index', { elementIndex: 800 }], ['fractional index', { elementIndex: 12.5 }],
+  ['NaN', { elementIndex: NaN }], ['infinity', { elementIndex: Infinity }], ['string index', { elementIndex: '12' }],
 ]) test(`${name} refuses before intent or input`, async () => {
   const f = fixture(); await f.ready(); await assert.rejects(f.dispatch(params));
   assert.equal(f.records.has(f.c('attempted.json')), false); assert.equal(f.events.includes('click'), false);
@@ -132,12 +235,12 @@ test('failed post-input observation records unknown outcome with one input and s
 });
 
 test('slow capture cannot reset the observation age after capture completes', async () => {
-  const f = fixture(); f.captureDelay(31); await f.ready(); await assert.rejects(f.dispatch());
+  const f = fixture(); f.captureDelay(31); await assert.rejects(f.ready()); await assert.rejects(f.dispatch());
   assert.equal(f.events.includes('click'), false);
 });
 
-test('observation expiry after owner checkpoint stops even with action deadline still valid', async () => {
-  const f = fixture(); await f.ready(); f.setNow(1020); f.invoke();
+test('original request deadline expiry after owner checkpoint stops input', async () => {
+  const f = fixture(); await f.ready(); f.setNow(1020);
   f.after((file) => { if (file === f.c('attempted.json')) f.setNow(1031); });
   await assert.rejects(f.dispatch(), /no_retry/); assert.equal(f.events.includes('click'), false);
 });
@@ -159,6 +262,8 @@ test('closed original identity remains forbidden', () => {
 });
 
 const observationMutations = [
+  ['accessibility replacement', (f) => { f.observation.accessibility = { ...f.observation.accessibility }; }],
+  ['accessibility text', (f) => { f.observation.accessibility.tree += '\n[13] MenuItem other'; }],
   ['window replacement', (f) => { f.observation.window = { ...f.observation.window }; }],
   ['window id', (f) => { f.observation.window.id = 999; }],
   ['window app', (f) => { f.observation.window.app = 'fabricated'; }],

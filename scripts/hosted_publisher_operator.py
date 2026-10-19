@@ -421,6 +421,9 @@ class HostedPublisherOperator:
     def _call(self, method: Callable[..., Any], *args: Any, key: str, **kwargs: Any) -> Any:
         # Method-level intent retains parsed identity even if request succeeded but
         # the provider response failed local validation after its request receipt.
+        if method.__name__ == "deploy_version":
+            # A previous operation's diagnostic must never be attributed here.
+            self.provider.last_deployment_diagnostic = None
         if not self.journal.reserve("operation:" + key, {"operation": key}):
             raise OperatorRefused("operator_operation_already_reserved")
         request_started = response_received = None
@@ -566,6 +569,32 @@ class HostedPublisherOperator:
                         "responseReceivedAt": response_received.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     },
                 )
+            elif method.__name__ == "deploy_version":
+                from scripts.hosted_publisher_worker_deployment import deployment_diagnostic
+
+                closed = deployment_diagnostic(
+                    getattr(self.provider, "last_deployment_diagnostic", None)
+                )
+                observed = None
+                if closed is not None:
+                    try:
+                        # Optional diagnostic time must not prevent unknown settlement.
+                        observed = self._now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                    except Exception:
+                        closed = None
+                if closed is None:
+                    self.journal.unknown("operation:" + key, "operation_outcome_unknown")
+                else:
+                    # Observation time is local, never the untrusted provider timestamp.
+                    self.journal._finish(
+                        "operation:" + key,
+                        "unknown",
+                        {
+                            "reason": "operation_outcome_unknown",
+                            "deploymentDiagnostic": closed,
+                            "diagnosticObservedAt": observed,
+                        },
+                    )
             else:
                 self.journal.unknown("operation:" + key, "operation_outcome_unknown")
             raise OperatorRefused("operation_outcome_unknown") from None
