@@ -1,7 +1,7 @@
 // Node is required only for the supported Computer Use Node REPL integration.
-// This new #0161 closure preserves sealed #0160 source without synthesizing an
-// accessibility tree or index. It never initializes Sky, discovers windows, or
-// runs an input loop. JavaScript is required by supported Computer Use Node REPL.
+// Proposed #0216 successor: use one exact menu item from a fresh supported
+// accessibility observation. Never synthesize a tree/index or fall back to
+// coordinates. It never initializes Sky, discovers windows, or runs an input loop.
 // Source preparation and synthetic tests establish no live route/consent.
 // See docs/operations/renewed-group-post-attempt-2026-10-18.md.
 import * as fs from 'node:fs/promises';
@@ -18,6 +18,28 @@ function requireValue(ok, code) { if (!ok) throw new Error(code); }
 function exact(value, keys) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     && Object.keys(value).sort().join('|') === [...keys].sort().join('|');
+}
+
+// Fail-closed subset of the historical indexed tree notation. Sky documents
+// indexes in formatted tree text, not a universal line grammar. A different
+// real format needs a reviewed adaptation; these examples prove no host route.
+export function observedCommandIndex(tree) {
+  requireValue(typeof tree === 'string' && tree.length > 0, 'observed_accessibility_required');
+  // Count target-bearing evidence before parsing the supported subset. A second
+  // disabled/unsupported-format occurrence cannot be silently discarded as if
+  // the supported line were the only command in the observation.
+  requireValue(tree.split(COMMAND).length === 2, 'observed_command_ambiguous');
+  const labels = ['MenuItem ' + COMMAND, 'MenuItem ' + JSON.stringify(COMMAND),
+    'menu item ' + COMMAND, 'menu item ' + JSON.stringify(COMMAND)];
+  const entries = tree.split(/\r?\n/).map((line) => {
+    const match = /^\s*(?:\[(0|[1-9][0-9]*)\]|(0|[1-9][0-9]*)[.:)]?)\s+(.+)$/.exec(line);
+    return match && { index: Number(match[1] ?? match[2]), label: match[3] };
+  }).filter(Boolean);
+  const matches = entries.filter((entry) => labels.includes(entry.label));
+  requireValue(matches.length === 1 && Number.isSafeInteger(matches[0].index)
+    && entries.filter((entry) => entry.index === matches[0].index).length === 1,
+  'observed_command_mismatch');
+  return matches[0].index;
 }
 
 // Bounded reads use one handle and parse the same bytes. Final-path exclusive
@@ -77,6 +99,8 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
   let captured = null;
   let capturedSnapshot = null;
   let capturedAt = -Infinity;
+  let capturedRequest = null;
+  let observationStarted = false;
   function time() {
     const now = clock();
     requireValue(Number.isFinite(now) && now >= lastTime, 'clock_invalid_or_reversed');
@@ -84,6 +108,9 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
     return now;
   }
   const correlated = (value) => ID_KEYS.every((key) => value[key] === identity[key]);
+  const requestKeys = [...ID_KEYS, 'action', 'deadlineUnix', 'requestedInputCount'];
+  const sameRequest = (value, saved) => saved !== null && exact(value, requestKeys)
+    && requestKeys.every((key) => Object.is(value[key], saved[key]));
   async function read(name, keys) {
     const bytes = await files.read(coord(name), MAX_BYTES);
     requireValue(Buffer.byteLength(bytes) <= MAX_BYTES, 'coordination_byte_limit');
@@ -178,19 +205,25 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
   // screenshot before calling dispatchObserved in a distinct action cell. Window
   // must be the real object selected by the primary from supported Sky discovery.
   async function observe(window) {
-    requireValue(!busy && ready && !session.fgaPostAttempt, 'controller_not_ready');
+    requireValue(!busy && ready && !observationStarted && !session.fgaPostAttempt, 'controller_not_ready');
     busy = true;
+    observationStarted = true;
     captured = null;
     capturedSnapshot = null;
+    capturedRequest = null;
     session.state = null;
     try {
-      await active();
+      const request = Object.freeze({ ...await active({ invocation: true }) });
       const startedAt = time();
       const state = await sky.get_window_state({ window,
-        include_screenshot: true, include_text: false });
+        include_screenshot: true, include_text: true });
       time(); // Reject a reversed clock even if state capture completed.
+      const currentRequest = await active({ invocation: true });
+      requireValue(sameRequest(currentRequest, request) && time() < request.deadlineUnix,
+        'observed_request_changed_or_expired');
       capturedAt = startedAt;
       capturedSnapshot = snapshot(state);
+      capturedRequest = request;
       captured = state;
       session.state = state;
       return state;
@@ -198,12 +231,16 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
   }
   const windowKeys = ['id', 'app', 'title'];
   const screenshotKeys = ['id', 'width', 'height', 'originX', 'originY', 'zIndex', 'url'];
+  const accessibilityKeys = ['tree', 'focused_element', 'selected_text', 'document_text'];
   function fields(value, keys) {
     return Object.freeze(keys.map((key) => value[key]));
   }
   function snapshot(state) {
-    requireValue(state?.window && Array.isArray(state.screenshots), 'observed_state_required');
+    requireValue(state?.window && Array.isArray(state.screenshots)
+      && state.screenshots.length > 0 && typeof state.accessibility?.tree === 'string',
+    'observed_state_required');
     return Object.freeze({ state, window: state.window,
+      accessibility: state.accessibility, accessibilityFields: fields(state.accessibility, accessibilityKeys),
       windowFields: fields(state.window, windowKeys), screenshots: state.screenshots,
       shots: Object.freeze(state.screenshots.map((shot) => Object.freeze({
         reference: shot, values: fields(shot, screenshotKeys),
@@ -217,6 +254,8 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
     return saved !== null && observation === saved.state
       && observation.window === saved.window
       && unchangedWindow(saved)
+      && observation.accessibility === saved.accessibility
+      && accessibilityKeys.every((key, index) => Object.is(saved.accessibility[key], saved.accessibilityFields[index]))
       && observation.screenshots === saved.screenshots
       && saved.screenshots.length === saved.shots.length
       && saved.shots.every((shot, index) => saved.screenshots[index] === shot.reference
@@ -226,44 +265,42 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
     return observation === captured && observation === session.state
       && captured !== null && unchanged(observation, capturedSnapshot) && time() - capturedAt <= 30;
   }
-  async function dispatchObserved({ observation, screenshotId, x, y, commandLabel }) {
+  async function dispatchObserved(input) {
     requireValue(!busy && ready, 'controller_not_ready');
     busy = true;
     let actualInputCount = 0;
     let attempted = false;
     try {
+      requireValue(exact(input, ['observation', 'elementIndex', 'commandLabel']), 'observed_action_schema');
+      const { observation, elementIndex, commandLabel } = input;
       requireValue(commandLabel === COMMAND && fresh(observation) && observation?.window
-        && typeof screenshotId === 'string' && screenshotId.length > 0
-        && Array.isArray(observation.screenshots), 'observed_command_required');
-      const matches = observation.screenshots.filter((shot) => shot.id === screenshotId);
-      requireValue(matches.length === 1, 'observed_screenshot_required');
-      const screenshot = matches[0];
-      // Conservative finite bound. The primary must additionally inspect the
-      // target and use Sky's documented window-relative coordinates; bounded
-      // screenshot dimensions do not establish a window-origin mapping.
-      requireValue(Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0
-        && Number.isFinite(screenshot.width) && Number.isFinite(screenshot.height)
-        && screenshot.width > 0 && screenshot.height > 0
-        && x < screenshot.width && y < screenshot.height, 'observed_coordinates_required');
+        && Number.isSafeInteger(elementIndex) && elementIndex >= 0,
+      'observed_command_required');
+      requireValue(observedCommandIndex(observation.accessibility.tree) === elementIndex,
+        'observed_command_mismatch');
       const saved = capturedSnapshot;
+      const savedRequest = capturedRequest;
       const request = await active({ invocation: true });
+      requireValue(sameRequest(request, savedRequest) && time() < savedRequest.deadlineUnix,
+        'observed_request_changed_or_expired');
       await absent([coord('attempted.json'), coord('attempted.json.tmp')]);
       requireValue(!session.fgaPostAttempt && fresh(observation), 'session_or_observation_latched');
       session.state = null;
       captured = null;
       capturedSnapshot = null;
+      capturedRequest = null;
       session.fgaPostAttempt = { ...identity, attempted: true, stopped: false };
       attempted = true;
       await publish('attempted.json', { action: ACTION, deadlineUnix: request.deadlineUnix, requestedInputCount: 1 });
       const checkpointDeadline = await checkpoint('dispatch', request.deadlineUnix);
       const finalRequest = await active({ invocation: true, allowAttempt: true });
-      requireValue(JSON.stringify(finalRequest) === JSON.stringify(request), 'request_changed');
+      requireValue(sameRequest(finalRequest, savedRequest), 'request_changed');
       requireValue(!session.fgaPostAttempt.stopped && session.state === null
         && unchanged(observation, saved) && time() - capturedAt <= 30
-        && time() < finalRequest.deadlineUnix && time() < checkpointDeadline, 'session_or_deadline_lost');
+        && time() < savedRequest.deadlineUnix && time() < checkpointDeadline, 'session_or_deadline_lost');
       // No waits or further file operations intervene between this final check and input.
       actualInputCount = null;
-      await sky.click({ window: saved.window, screenshotId, x, y });
+      await sky.click({ window: saved.window, element_index: elementIndex });
       actualInputCount = 1;
       requireValue(unchangedWindow(saved), 'window_changed_after_input');
       const state = await sky.get_window_state({ window: saved.window,

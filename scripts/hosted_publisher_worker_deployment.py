@@ -37,6 +37,34 @@ def _date(value):
         return False
 
 
+def deployment_diagnostic(value):
+    """Return only closed metadata; no provider values or exception prose."""
+    if (
+        type(value) is not dict
+        or set(value) != {"stage", "field", "status"}
+        or type(value["stage"]) is not str
+        or value["stage"]
+        not in {
+            "preflight",
+            "version_readback",
+            "before_identity",
+            "deployment_admission",
+            "deployment_response",
+            "response_validation",
+            "receipt_registration",
+            "post_identity_admission",
+            "post_identity_response",
+            "post_identity_validation",
+        }
+        or type(value["field"]) is not str
+        or value["field"] not in {"none", "result", "id", "created_on", "strategy", "versions"}
+        or type(value["status"]) is not str
+        or value["status"] not in {"not_checked", "missing", "invalid"}
+    ):
+        return None
+    return value.copy()
+
+
 def _exclusive(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
@@ -70,6 +98,13 @@ class BetaPublisherProvider(CloudflareProvider):
         self._version_intents = set()
         self._deployments = {}
         self._deployment_intents = set()
+        self.last_deployment_diagnostic = None
+        self._deployment_diagnostic_active = False
+        self._deployment_request_key = None
+
+    def _deployment_stage(self, stage, field="none", status="not_checked"):
+        if self._deployment_diagnostic_active:
+            self.last_deployment_diagnostic = {"stage": stage, "field": field, "status": status}
 
     def _guard(self):
         if self._concrete:
@@ -77,7 +112,24 @@ class BetaPublisherProvider(CloudflareProvider):
 
     def _request(self, method, path, body=None, *, key, media="application/json", raw=False):
         self._guard()
-        return super()._request(method, path, body, key=key, media=media, raw=raw)
+        stage = None
+        if self._deployment_diagnostic_active:
+            if key == self._deployment_request_key:
+                stage = "deployment"
+            elif key == self._deployment_request_key + ":after":
+                stage = "post_identity"
+        if stage is not None:
+            self._deployment_stage(stage + "_admission")
+        calls = self.calls
+        try:
+            result = super()._request(method, path, body, key=key, media=media, raw=raw)
+        except Exception:
+            if stage is not None and self.calls > calls:
+                self._deployment_stage(stage + "_response")
+            raise
+        if stage == "post_identity":
+            self._deployment_stage("post_identity_validation")
+        return result
 
     def set_endpoint(self, name, enabled, *, key):
         raise ProviderError("worker_immutable_identity_required")
@@ -314,14 +366,23 @@ class BetaPublisherProvider(CloudflareProvider):
         return version.copy()
 
     def _deployment(self, result, identity, version, expected=None):
-        if (
-            not isinstance(result, dict)
-            or not _uuid(result.get("id"))
-            or not _date(result.get("created_on"))
-            or result.get("strategy") != "percentage"
-            or result.get("versions") != [{"version_id": version["id"], "percentage": 100}]
-        ):
+        if not isinstance(result, dict):
+            self._deployment_stage("response_validation", "result", "invalid")
             self._unknown("worker_deployment_unknown_or_drift")
+        for field, valid in (
+            ("id", _uuid(result.get("id"))),
+            ("created_on", _date(result.get("created_on"))),
+            ("strategy", result.get("strategy") == "percentage"),
+            (
+                "versions",
+                result.get("versions") == [{"version_id": version["id"], "percentage": 100}],
+            ),
+        ):
+            if not valid:
+                self._deployment_stage(
+                    "response_validation", field, "invalid" if field in result else "missing"
+                )
+                self._unknown("worker_deployment_unknown_or_drift")
         receipt = {
             "id": result["id"],
             "workerId": identity["id"],
@@ -334,11 +395,24 @@ class BetaPublisherProvider(CloudflareProvider):
 
     @_exclusive
     def deploy_version(self, identity, version, *, key):
+        self.last_deployment_diagnostic = None
+        self._deployment_diagnostic_active = True
+        self._deployment_request_key = key
+        try:
+            return self._deploy_version(identity, version, key=key)
+        finally:
+            self._deployment_diagnostic_active = False
+            self._deployment_request_key = None
+
+    def _deploy_version(self, identity, version, *, key):
+        self._deployment_stage("preflight")
         self._guard()
         self._version(identity, version)
         if identity["id"] in self._deployment_intents:
             raise ProviderError("worker_deployment_replay_refused")
+        self._deployment_stage("version_readback")
         self.inspect_version(identity, version, key=key + ":version")
+        self._deployment_stage("before_identity")
         self._observe(identity, key=key + ":before")
         self._deployment_intents.add(identity["id"])
         result = self._request(
@@ -350,9 +424,13 @@ class BetaPublisherProvider(CloudflareProvider):
             },
             key=key,
         )
+        self._deployment_stage("response_validation")
         receipt = self._deployment(result, identity, version)
+        self._deployment_stage("receipt_registration")
         self._deployments[receipt["id"]] = receipt.copy()
+        self._deployment_stage("post_identity_admission")
         self._observe(identity, key=key + ":after")
+        self.last_deployment_diagnostic = None
         return receipt
 
     @_exclusive
