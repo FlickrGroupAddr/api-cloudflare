@@ -10,11 +10,14 @@ Integers are rendered by SQLite as decimal text before JSON transport. Text is
 strict UTF-8 hex, BLOBs are hex and NULL stays distinct. REAL is deliberately
 unsupported: neither SQL quote/printf nor JSON numbers establish lossless
 binary64 (including negative zero) on the production D1 adapter. Any REAL or
-unsupported/omitted object makes the entire capture refuse, never partial.
+unsupported/omitted application object makes the entire capture refuse. Only an
+explicit reviewed ADR0064 manifest selects its narrowly scoped contents boundary;
+the default remains strict and requires every enumerated table's contents.
 """
 
 from __future__ import annotations
 
+import copy
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -98,6 +101,8 @@ class SnapshotPlan:
     schema: tuple[tuple[Any, ...], ...]
     tables: tuple[TablePlan, ...]
     page_size: int
+    profile_manifest: Any = None
+    table_list: Any = None
 
 
 def build_plan(
@@ -106,13 +111,15 @@ def build_plan(
     columns_by_table: Any,
     *,
     page_size: int = MAX_PAGE_ROWS,
+    profile_manifest: Any = None,
 ) -> SnapshotPlan:
-    """Validate a complete actual census; no migration allowlist or exclusions.
+    """Validate the complete actual census against the selected explicit profile.
 
     sqlite_schema itself is represented by its complete schema rows, as in the
     existing contract. Every table it names, including sqlite_sequence, stats,
     d1_migrations and provider-owned tables such as _cf_KV, must be read. A
-    provider-denied table is a refusal, not a reason to omit that table.
+    provider-denied table is a refusal under the default strict profile. An
+    explicit ADR0064 manifest may exclude only exact main._cf_KV contents.
     """
     _require(type(page_size) is int and 1 <= page_size <= MAX_PAGE_ROWS, "invalid_page_size")
     _require(type(schema_rows) is list and len(schema_rows) <= MAX_SCHEMA, "schema_bound_exceeded")
@@ -149,7 +156,13 @@ def build_plan(
     _require(schema == sorted(schema, key=lambda row: row[:3]), "noncanonical_schema_census")
     table_names.sort()
     _require(len(table_names) <= MAX_TABLES, "table_bound_exceeded")
-    _require(set(columns_by_table) == set(table_names), "column_census_mismatch")
+    excluded: set[str] = set()
+    if profile_manifest is not None:
+        from scripts.private_d1_snapshot_profile import EXCLUDED, validate_manifest
+
+        validate_manifest(profile_manifest, schema_rows, storage_rows)
+        excluded = {EXCLUDED}
+    _require(set(columns_by_table) == set(table_names) - excluded, "column_census_mismatch")
     storage: dict[str, dict[str, Any]] = {}
     for row in storage_rows:
         _keys(row, ("schema", "name", "type", "ncol", "wr", "strict"), "invalid_storage_census")
@@ -178,6 +191,8 @@ def build_plan(
     for name in table_names:
         info = storage[name]
         _require(info["type"] == "table", "unsupported_table_storage")
+        if name in excluded:
+            continue
         columns = columns_by_table[name]
         _require(
             type(columns) is list and 0 < len(columns) <= MAX_COLUMNS,
@@ -228,7 +243,7 @@ def build_plan(
             rowid_alias = None
             keys = tuple(primary[key] for key in sorted(primary))
         tables.append(TablePlan(name, tuple(names), rowid_alias, keys))
-    return SnapshotPlan(tuple(schema), tuple(tables), page_size)
+    return SnapshotPlan(tuple(schema), tuple(tables), page_size, profile_manifest, storage_rows)
 
 
 def count_sql(table: TablePlan) -> str:
@@ -382,11 +397,16 @@ def assemble_snapshot(plan: SnapshotPlan, pages: Any, counts: Any) -> dict[str, 
         tables[table.name] = {"columns": list(table.columns), "rows": rows, "rowids": rowids}
         _json(tables)
     result = {"schema": [list(row) for row in plan.schema], "tables": tables}
+    if plan.profile_manifest is not None:
+        result["profileManifest"] = plan.profile_manifest
+        result["tableList"] = plan.table_list
     _json(result)
     return result
 
 
-def collect_snapshot(query: Query, *, page_size: int = MAX_PAGE_ROWS) -> dict[str, Any]:
+def collect_snapshot(
+    query: Query, *, page_size: int = MAX_PAGE_ROWS, profile_manifest: Any = None
+) -> dict[str, Any]:
     """Issue only generated SELECTs through a caller-owned, bounded query seam.
 
     This function neither opens a connection nor returns provider diagnostics.
@@ -396,10 +416,14 @@ def collect_snapshot(query: Query, *, page_size: int = MAX_PAGE_ROWS) -> dict[st
     """
     wire_bytes = 0
     query_count = 0
+    queries: list[str] = []
+    if profile_manifest is not None:
+        profile_manifest = copy.deepcopy(profile_manifest)
 
     def read(sql: str) -> list[dict[str, Any]]:
         nonlocal wire_bytes, query_count
         query_count += 1
+        queries.append(sql)
         _require(query_count <= MAX_QUERIES, "query_bound_exceeded")
         try:
             rows = query(sql)
@@ -422,8 +446,15 @@ def collect_snapshot(query: Query, *, page_size: int = MAX_PAGE_ROWS) -> dict[st
             _require(_name(row["name"]), "unsupported_identifier")
             names.append(row["name"])
     _require(len(names) <= MAX_TABLES and len(set(names)) == len(names), "invalid_table_census")
+    if profile_manifest is not None:
+        from scripts.private_d1_snapshot_profile import EXCLUDED, validate_manifest
+
+        validate_manifest(profile_manifest, schema, storage)
+        names.remove(EXCLUDED)
     columns = {name: read(columns_sql(name)) for name in sorted(names)}
-    plan = build_plan(schema, storage, columns, page_size=page_size)
+    plan = build_plan(
+        schema, storage, columns, page_size=page_size, profile_manifest=profile_manifest
+    )
     pages = {}
     counts = {}
     total = 0
@@ -437,4 +468,18 @@ def collect_snapshot(query: Query, *, page_size: int = MAX_PAGE_ROWS) -> dict[st
             for offset in range(0, count, plan.page_size)
         ]
         pages[table.name].append(read(table_page_sql(table, count, 1)))
-    return assemble_snapshot(plan, pages, counts)
+    result = assemble_snapshot(plan, pages, counts)
+    if profile_manifest is not None:
+        from scripts.private_d1_snapshot_profile import binding, sources, validate_snapshot
+
+        provenance = {
+            "sourceSha256": sources(),
+            "queries": queries,
+            "pageSize": page_size,
+            "columns": columns,
+        }
+        result["provenance"] = provenance
+        result["profileBinding"] = binding(profile_manifest, provenance)
+        validate_snapshot(result, profile_manifest)
+    _json(result)
+    return result

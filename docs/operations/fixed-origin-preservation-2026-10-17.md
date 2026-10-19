@@ -230,6 +230,35 @@ and profile mismatch. Preserve strict-profile denial and existing finite,
 no-replay and cleanup controls. These are required future checks, not executed
 test or hosted results. The separate managed REAL capability gate remains open.
 
+### Source implementation interface
+
+The source implementation selects this boundary only with an explicit
+`profile_manifest` argument to `private_d1_snapshot_codec.collect_snapshot` and
+`fixed_origin_preservation.validate_preservation`. The finite reader requires
+both `profile` and `profileManifest` in its plan and matching explicit consent;
+the existing plan digest and source/evidence pins still bind that input. An
+omitted profile retains the original strict format and table-content reads.
+
+`private_d1_snapshot_profile.py` validates the closed private manifest. It binds
+the profile and contract revision, the official provider documentation, complete
+observed schema and table-list rows, every included table, the one exact
+exclusion, and source/migration/schema dependency-review digests. Those digests
+and a negative dependency attestation are reviewed inputs, not an implemented
+source-analysis proof or evidence that independent review occurred. Observable
+SQL references to excluded contents conservatively refuse, including comments
+and literals, rather than adding a permissive SQL parser.
+
+New private snapshots retain the manifest, complete table-list metadata, column
+metadata for included tables and exact ordered generated query/source provenance.
+The comparator requires the same profile binding in each envelope and the
+cleanup evidence. Its distinct version-2 application-state receipt explicitly
+sets `wholeProviderContentsEqualityVerified` false and labels excluded contents
+`unobserved`, `unfrozen` and `unverified`; public output contains labels and
+digests only. It cannot consume strict inputs or pass as a strict receipt.
+Source tests use synthetic in-memory SQLite and fake transports. Independent
+review, isolated hosted qualification and the separate REAL capability gate
+remain pending; this interface enables no new provider dispatch or authority.
+
 ## Stop, restore and cleanup receipts
 
 The comparator consumes receipts; it does not issue operations. It requires:

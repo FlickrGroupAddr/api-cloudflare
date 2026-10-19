@@ -239,8 +239,19 @@ def capture_sqlite(
             raise Refused("synthetic_snapshot_cleanup_failed_discard_connection") from None
 
 
-def _database(snapshot: Any, run: str, identity: str, timestamp: int) -> list[dict[str, Any]]:
-    _keys(snapshot, "mode run database observedAtMs consistency schema tables", "invalid_snapshot")
+def _database(
+    snapshot: Any, run: str, identity: str, timestamp: int, profile_manifest: Any = None
+) -> list[dict[str, Any]]:
+    extra = (
+        " profileManifest tableList provenance profileBinding"
+        if profile_manifest is not None
+        else ""
+    )
+    _keys(
+        snapshot,
+        "mode run database observedAtMs consistency schema tables" + extra,
+        "invalid_snapshot",
+    )
     _require(
         snapshot["mode"] == "synthetic-offline"
         and snapshot["run"] == run
@@ -269,7 +280,11 @@ def _database(snapshot: Any, run: str, identity: str, timestamp: int) -> list[di
         objects.add((row[0], row[1]))
         if row[0] == "table":
             names.append(row[1])
-    _require(len(set(names)) == len(names) and set(names) == set(tables), "schema_census_mismatch")
+    excluded = {"_cf_KV"} if profile_manifest is not None else set()
+    _require(
+        len(set(names)) == len(names) and set(names) - excluded == set(tables),
+        "schema_census_mismatch",
+    )
     total = 0
     for table in tables.values():
         _keys(table, "columns rows rowids", "invalid_table")
@@ -318,6 +333,10 @@ def _database(snapshot: Any, run: str, identity: str, timestamp: int) -> list[di
         else:
             pairs = list(zip(rows, rowids, strict=True))
             _require(pairs == sorted(pairs, key=_json), "noncanonical_rows")
+    if profile_manifest is not None:
+        from scripts.private_d1_snapshot_profile import validate_snapshot
+
+        validate_snapshot(snapshot, profile_manifest)
     _require("flickr_write_gates" in tables, "missing_durable_gates")
     gate_table = tables["flickr_write_gates"]
     _require(
@@ -330,11 +349,12 @@ def _database(snapshot: Any, run: str, identity: str, timestamp: int) -> list[di
     ]
 
 
-def _envelope(value: Any) -> None:
+def _envelope(value: Any, profile_manifest: Any = None) -> None:
+    extra = " profileBinding" if profile_manifest is not None else ""
     _keys(
         value,
         "mode run observedAtMs expiresAtMs admissionRevision captureIndexSha256 moduleSha256 "
-        "inventory continuity gates database ordinaryReads ownedResources",
+        "inventory continuity gates database ordinaryReads ownedResources" + extra,
         "invalid_envelope",
     )
     _json(value)
@@ -398,7 +418,14 @@ def _envelope(value: Any) -> None:
         == [("deployment", "*"), ("user", "synthetic-user")],
         "gate_scope_mismatch",
     )
-    db_gates = _database(value["database"], run, continuity["d1Identity"], value["observedAtMs"])
+    db_gates = _database(
+        value["database"], run, continuity["d1Identity"], value["observedAtMs"], profile_manifest
+    )
+    if profile_manifest is not None:
+        _require(
+            value["profileBinding"] == value["database"]["profileBinding"],
+            "profile_envelope_mismatch",
+        )
     _require(db_gates == gates, "gate_snapshot_contradiction")
     reads = value["ordinaryReads"]
     _require(type(reads) is list and len(reads) == len(READ_CHECKS), "incomplete_ordinary_reads")
@@ -440,10 +467,16 @@ def validate_preservation(
     cleanup: dict[str, Any],
     *,
     now_ms: int,
+    profile_manifest: Any = None,
 ) -> dict[str, Any]:
-    """Compare exact synthetic evidence; never initiate, retry or repair an operation."""
+    """Compare synthetic evidence; never initiate, retry or repair an operation.
+
+    The default remains the original strict format. An explicit ADR0064 manifest
+    requires new profile-bound inputs and cleanup evidence and returns a distinct
+    limited receipt that explicitly denies whole-provider contents verification.
+    """
     for value in (baseline, refreshed, restored):
-        _envelope(value)
+        _envelope(value, profile_manifest)
     start = baseline["observedAtMs"]
     end = baseline["expiresAtMs"]
     _require(end - start == LIFETIME_MS, "lifecycle_bound_mismatch")
@@ -460,7 +493,14 @@ def validate_preservation(
         normalized["observedAtMs"] = start
         normalized["database"]["observedAtMs"] = start
         _require(normalized == baseline, "unexplained_preservation_drift")
-    _keys(cleanup, "mode run stop restore resources local completedAtMs", "incomplete_cleanup")
+    extra = " profileBinding" if profile_manifest is not None else ""
+    _keys(
+        cleanup, "mode run stop restore resources local completedAtMs" + extra, "incomplete_cleanup"
+    )
+    if profile_manifest is not None:
+        _require(
+            cleanup["profileBinding"] == baseline["profileBinding"], "profile_cleanup_mismatch"
+        )
     _json(cleanup)
     run = baseline["run"]
     _require(
@@ -541,7 +581,7 @@ def validate_preservation(
             and restored["observedAtMs"] <= receipt["observedAtMs"] <= cleanup["completedAtMs"],
             "cleanup_order_mismatch",
         )
-    return {
+    result = {
         "schemaVersion": 1,
         "kind": "synthetic_offline_preservation_contract",
         "comparisonPassed": True,
@@ -556,6 +596,14 @@ def validate_preservation(
         "deploymentAllowed": False,
         "missingSourceSeams": list(MISSING_SOURCE_SEAMS),
     }
+    if profile_manifest is not None:
+        result.update(
+            schemaVersion=2,
+            kind="synthetic_offline_application_state_preservation_contract",
+            profileBinding=baseline["profileBinding"],
+            wholeProviderContentsEqualityVerified=False,
+        )
+    return result
 
 
 def synthetic_example() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
