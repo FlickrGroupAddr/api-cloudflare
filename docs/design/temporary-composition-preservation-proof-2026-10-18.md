@@ -7,6 +7,14 @@ Alternatives A and C remain Proposed and unselected. No account, capture or run
 access, production query, deployment, SQL, credential access or native action is
 authorized by that direction. No production values were inspected.
 
+On 2026-10-19 Terry accepted the narrow source-work boundary in architecture
+[ADR0064](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/decisions/0064-scope-private-d1-preservation-to-application-state.md).
+The owning [preservation profile](../operations/fixed-origin-preservation-2026-10-17.md#accepted-private-d1-application-state-source-profile)
+now permits only exact-manifest `main._cf_KV` contents outside equality, with
+actual contents explicitly unobserved, unfrozen and unverified. Observable
+schema/census metadata and all application facts remain exact. Implementation,
+independent review and qualification remain pending; no live authority follows.
+
 ## Result
 
 The current metadata-only collection permission cannot produce the required full
@@ -47,12 +55,15 @@ unselected Proposed alternative; no witness/trust amendment has been accepted.
   [assembly packet](../operations/temporary-fixed-origin-composition-2026-10-18.md)
   does not authenticate supplied full-state evidence.
 
-Preserving the local full-equality bar is the proposed course. Allowing drift,
-ignoring tables/columns, treating only monotonic safety facts as sufficient, or
-replacing full comparison with a bare attestation would change that bar. Any such
-change needs an explicit proposed amendment at the owning contract, linked to the
-canonical authority and accepted by Terry before implementation relies on it.
-No such amendment is adopted or recommended here.
+Preserve the local full-equality bar within the expressly selected profile.
+ADR0064 and its owning contract narrow only the original no-ignored-table clause
+for exact `_cf_KV` contents. Other ignored tables/columns, drift, monotonic-only
+safety comparison or bare attestations remain unaccepted. Unknown/unmanifested
+names fail closed. The strict historical all-table profile and earlier evidence
+remain unchanged; the accepted source amendment supplies no retroactive pass.
+No provider preservation guarantee, REAL exception or application-writer barrier
+waiver follows. Any further semantic change still requires explicit acceptance
+at the owning authority and contract before implementation relies on it.
 
 ## Why the available sources do not close the gap
 
@@ -106,7 +117,7 @@ No current source supplies it, and no operational step is authorized by this not
    reopen writes. If the retained original lacks that mechanism, adding it means
    a changed artifact and cannot silently satisfy exact original restoration.
 4. **Capture complete actual state consistently.** Discover the actual production
-   schema with the same boundary protecting the data reads. Retain the newer
+   schema with the same application-writer boundary protecting the data reads. Retain the newer
    comparison semantics: all schema objects, typed cells, duplicates, table/column
    identity, hidden rowids or WITHOUT ROWID keys, sequences/bookkeeping and gate
    rows. Refuse unsupported objects/types and exhausted row/byte/time/query
@@ -118,7 +129,8 @@ No current source supplies it, and no operational step is authorized by this not
    each observation to exact run, resource, artifact, barrier generation, time,
    completeness and independently retained provenance. Preserve the existing
    freshness/window bounds or explicitly review a replacement before reliance.
-   Compare full state with no drift exclusions and pin the two durable gate
+   Compare complete state within the expressly bound preservation profile,
+   with no other drift exclusions, and pin the two durable gate
    revisions unchanged. A failed, stale or ambiguous read refuses the attempt;
    it does not imply empty state or authorize a repair write.
 6. **Keep ordinary read checks inside the same safety claim.** The exact restored

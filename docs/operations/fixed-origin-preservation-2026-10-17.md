@@ -6,6 +6,13 @@ was performed. #0044 remains NO-GO, #0037 unqualified and #0043 negative for
 provider restoration. Completed #0045 records a NO-GO disposition; it grants no
 live authority.
 
+Source amendment accepted by Terry on 2026-10-19 under architecture
+[ADR0064](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/decisions/0064-scope-private-d1-preservation-to-application-state.md):
+the [private D1 application-state profile](#accepted-private-d1-application-state-source-profile)
+below permits only exact-manifest `_cf_KV` contents outside equality. Its
+implementation and hosted qualification remain pending. The original strict
+synthetic helper and historical evidence keep their original all-table scope.
+
 `scripts/fixed_origin_preservation.py` implements the exact-comparison and
 cleanup-receipt rejection rules below using synthetic evidence. Its CLI always
 refuses execution. It has no HTTP, provider, credential, production-path reader,
@@ -141,6 +148,87 @@ consistency/accounting protocol must replace this exact-equality design.
 Paused Flickr write gates alone do not prove sessions, read maintenance,
 schedulers or other writers are quiescent. This implementation accepts no drift
 exception, ignored table, monotonic-only substitute or automatic repair write.
+
+## Accepted private D1 application-state source profile
+
+Status: **accepted source contract amendment on 2026-10-19; implementation,
+independent review and hosted qualification pending**. Canonical ADR0064 owns
+the consequential boundary decision; this section owns its detailed evidence
+semantics. Source profile identifier: `adr0064-private-d1-application-state-v1`.
+
+This profile narrows only the preceding blanket requirement to read every
+enumerated table and accept no ignored table. Its one exception is the
+inaccessible contents of exact `main._cf_KV`, documented by
+[Cloudflare](https://developers.cloudflare.com/d1/best-practices/import-export-data/)
+as reserved underlying storage. It is not a general drift allowance. The
+existing strict all-table helper, old evidence formats, packets, stopped
+attempts and historical NO-GO dispositions remain strict; no retrospective
+selection, compatibility default or successful relabeling is permitted.
+
+1. **Complete application state.** Discover the actual captured schema and
+   retain every FGA-owned logical fact and every addressable table/cell,
+   including authentication/session/CSRF state, credentials, revocations,
+   permanent suppression, append-only history, intents, admission, dispatch,
+   queue order, leases, fencing, gate values/revisions, migration history,
+   SQLite sequences and addressable statistics. Retain exact schema, SQL
+   guards, indexes, views, triggers, typed values, duplicates and hidden rowids
+   or WITHOUT ROWID keys. No application fact may be lost through this boundary.
+2. **Closed exact exclusion.** Bind an explicit exclusion manifest to this
+   profile/contract revision, exact main-schema table name `_cf_KV`, object kind,
+   official provider documentation and actual observed schema/table-list
+   metadata. Review source, migrations and observable schema relationships for
+   application dependence. Any application-owned fact or dependency that would
+   be omitted refuses the profile. Never infer ownership from a prefix.
+3. **Full census remains evidence.** Retain and exactly compare every observable
+   schema/table-list entry, including `_cf_KV`. Missing, changed, conflicting,
+   duplicate or malformed identity/classification metadata refuses. Do not
+   manufacture empty contents, counts, row identities or hashes for excluded
+   contents, and do not query inaccessible contents just to manufacture a denial.
+4. **No unknown omissions.** Reconcile the full discovered schema/table census
+   against the finite reviewed query/classification manifest before data reads.
+   Unknown or unmanifested names refuse. A new ordinary table requires a new
+   complete reviewed inclusion plan; a new provider-like name or changed
+   reserved identity needs new evidence and review and never inherits this
+   exclusion. No `_cf_*` or `sqlite_*` filter is allowed. Unsupported objects,
+   values or inaccessible application state still refuse the whole capture.
+5. **Truthful receipt boundary.** Bind profile, contract revision, exclusion
+   manifest and ordered query/source provenance into each new input/output and
+   comparison receipt. Declare excluded contents explicitly `unobserved`,
+   `unfrozen` and `unverified`. Keep actual excluded identity/reason and retained
+   observable metadata in private evidence. Public receipts expose only approved
+   bounded metadata/digests. A scoped result must not satisfy or be labeled as
+   whole-D1/provider-content equality; missing/mismatched profiles or manifests
+   refuse. Exact metadata equality says nothing about reserved content equality.
+6. **Preserve application barriers.** The complete application-writer freeze or
+   separately accepted consistency/accounting protocol remains mandatory across
+   baseline and readback. Authentication/read maintenance, administration,
+   schedulers and ordinary checks that write application state remain writers.
+   Never classify such writes as excluded provider background activity. The
+   barrier makes no claim to freeze inaccessible provider internals. Matching
+   sweeps still cannot rule out mutate-and-revert behavior.
+7. **Keep independent gates.** All finite bounds, private custody, provenance,
+   primary-consistent reading, exact independent equality, no replay, unknown
+   retention, equality-before-cleanup, resource/configuration continuity and
+   unchanged gate revisions remain. REAL extraction and UTF-8 representation,
+   backup/restore, atomicity, authentication, least privilege, protected history,
+   guards and production/release qualification remain required independently.
+
+The excluded actual contents may change without observation or prevention;
+provider internals can affect service behavior. No harmlessness or provider
+preservation guarantee follows. This is Terry's accepted managed-service
+visibility boundary for source work. It authorizes source implementation,
+independent review and qualification preparation, not production reads,
+account/credential access, provider operations, deployment, migration,
+live/native action or new provider contact. Every production/hosted verification
+flag remains false until its own applicable evidence and acceptance gates pass.
+
+Before relying on an implementation, independently test exact `_cf_KV`
+classification with retained census metadata; rejection of unknown/similar names,
+application dependence and malformed/mismatched manifests; census drift;
+application/history/authentication/sequence/guard/rowid drift; unsupported values;
+and profile mismatch. Preserve strict-profile denial and existing finite,
+no-replay and cleanup controls. These are required future checks, not executed
+test or hosted results. The separate managed REAL capability gate remains open.
 
 ## Stop, restore and cleanup receipts
 
