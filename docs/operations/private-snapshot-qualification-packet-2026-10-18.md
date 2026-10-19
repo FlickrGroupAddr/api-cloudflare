@@ -250,3 +250,64 @@ gap, not an observed D1 creation response or a prediction of a failed request.
 Do not borrow the metadata exception implicitly. Any resulting source change
 requires freshly prepared source/recipe pins and independent review; the current
 closed draft cannot silently adopt it.
+
+## Explicit ADR0064 preparation path (2026-10-19)
+
+The source preparer and bounded synthetic caller now support the accepted
+`adr0064-private-d1-application-state-v1` profile explicitly. This is source
+preparation under #0221, following accepted #0219 and reviewed #0220. Historical
+recipes, packets, stopped attempts and receipts retain their strict meaning.
+Omitting the profile continues to select the original all-table path.
+
+For a new private preparation, supply both `--profile` with that exact identifier
+and `--profile-manifest` with the independently reviewed closed manifest. Repeat
+both inputs during `--verify` and retain the independent recipe digest. The
+manifest must describe the actual intended complete census after the fixed
+synthetic seed, classify only exact `main._cf_KV` contents as excluded, and bind
+the dependency review of actual applicable source, migrations and schema.
+Preparation neither generates this manifest from discovery nor performs its
+independent review. Dependency attestations and hashes are reviewed inputs;
+their syntactic validity supplies no review or execution authority.
+
+The source recipe, packet and false-consent template carry the same profile,
+manifest and actual checkout Git `runtimeCommit`. Exact source byte pins remain
+separate and mandatory. A commit change requires fresh preparation and review;
+do not guess a future revision. Scoped stage files include the supplied private
+census/dependency manifest and must remain in the qualified private destination.
+The unchanged default preparation still reads only its public source allowlist.
+
+The caller requires the same context in its genuine packet-bound consent, checks
+the actual Git revision before credential delivery and throughout the finite
+attempt, and reconciles discovery against the reviewed manifest before content
+reads. It passes that explicit profile/manifest into both capture and reader
+plan/consent. The generated ordered query/source provenance and context bind the
+scoped receipt digest. Readback must match both the exact reader plan and
+snapshot before deletion of the acknowledged fresh UUID is permitted.
+Unknown names, dependencies, manifest/source/runtime drift or strict/scoped
+context confusion refuse. No SQL operation or finite allowance was added.
+
+The scoped result labels application-state equality and returns its binding and
+receipt digest with `wholeProviderContentsEqualityVerified=false`. Exact excluded
+contents remain `unobserved`, `unfrozen` and `unverified`; no reserved content,
+count, empty value or harmlessness guarantee is manufactured. An injected
+transport remains synthetic evidence only. `productionQualified=false` and
+`cleanupVerified=false` remain, including after the exact-ID not-found response.
+
+Actual #0172 operation still needs the final reviewed committed-source packet,
+current independently reviewed effective grant and credential delivery, finite
+window, private custody/disposition and genuine applicable owner-action record.
+The existing no-replay tombstones, uncertain-outcome retention, exact identity,
+equality-before-cleanup and accepted request/row/byte/deadline bounds remain.
+REAL extraction, UTF-8, complete application facts and writer consistency,
+production preservation, backup/restore and release gates remain separate.
+This source change records no account request, credential read, new database,
+native action, deployment, provider contact or hosted qualification.
+
+Local source verification passed 146 tests across preparation, caller, profile,
+codec, reader, preservation and restore, plus scoped Ruff check/format and
+Pyright. Coverage includes the actual JSON preparer outputs passed to the actual
+qualifier with genuine checkout HEAD and real clocks; exact source pins,
+reserved-content denial, strict defaults, context/consent/runtime mismatch,
+census/application drift and equality-before-cleanup refusal. These are synthetic
+local checks; fresh independent review and final committed-source preparation
+remain required before #0172 can consume this handoff.

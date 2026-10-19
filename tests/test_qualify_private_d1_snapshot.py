@@ -1,5 +1,6 @@
 """Source-only synthetic caller tests. No provider or private inputs."""
 
+import copy
 import hashlib
 import sqlite3
 import tempfile
@@ -108,6 +109,177 @@ class QualificationTests(unittest.TestCase):
             clock=lambda: 1.0,
             **kwargs,
         )
+
+    def select_scoped_profile(self):
+        from scripts import private_d1_snapshot_profile as profile
+        from tests.test_private_d1_snapshot_profile import manifest_for
+
+        self.db.execute("CREATE TABLE _cf_KV(key TEXT PRIMARY KEY, value BLOB) WITHOUT ROWID")
+        self.db.execute(q.SEED_SQL)
+
+        def rows(sql):
+            return [dict(row) for row in self.db.execute(sql)]
+
+        manifest = manifest_for(rows)
+        self.db.execute("DROP TABLE probe")
+        context = {
+            "profile": profile.PROFILE,
+            "profileManifest": manifest,
+            "runtimeCommit": q.runtime_commit(),
+        }
+        self.packet.update(copy.deepcopy(context))
+        self.consent.update(copy.deepcopy(context), packetSha256=digest(self.packet))
+        return manifest
+
+    def test_scoped_qualification_binds_manifest_receipt_and_never_reads_reserved_contents(self):
+        from scripts import private_d1_snapshot_codec as codec
+        from scripts import private_d1_snapshot_profile as profile
+
+        manifest = self.select_scoped_profile()
+        sql_calls = []
+
+        def denied_reserved(request, *_args, **_kwargs):
+            if request.url.endswith("/query"):
+                sql = _json(request.wire.split(b"\r\n\r\n", 1)[1])["sql"]
+                sql_calls.append(sql)
+                if sql not in (codec.SCHEMA_SQL, codec.TABLE_LIST_SQL):
+                    self.assertNotIn("_cf_KV", sql)
+            return self.transport(request)
+
+        with (
+            patch.object(q, "_pinned_https", denied_reserved),
+            patch("scripts.hosted_publisher_execution_provider._pinned_https", denied_reserved),
+        ):
+            result = self.run_qualifier()
+        actual = _json(Path(self.packet["outputPath"]).read_bytes())
+        self.assertEqual(result["profileBinding"], actual["snapshot"]["profileBinding"])
+        self.assertEqual(result["profileBinding"]["excludedContents"], profile.CONTENTS)
+        self.assertEqual(actual["plan"]["profileManifest"], manifest)
+        self.assertEqual(result["runtimeCommit"], q.runtime_commit())
+        self.assertTrue(result["applicationStateEqualityVerified"])
+        self.assertFalse(result["wholeProviderContentsEqualityVerified"])
+        self.assertFalse(result["productionQualified"])
+        self.assertFalse(result["cleanupVerified"])
+        self.assertEqual(result["requests"], 18)
+        self.assertEqual(sql_calls[1:8], sql_calls[8:])
+        self.assertEqual(self.methods[-2:], ["DELETE", "GET"])
+
+    def test_profile_packet_consent_and_runtime_confusion_refuse_before_credentials(self):
+        self.select_scoped_profile()
+        original_packet, original_consent = copy.deepcopy(self.packet), copy.deepcopy(self.consent)
+        cases = (
+            lambda p, c: p.pop("profile"),
+            lambda p, c: p.pop("profileManifest"),
+            lambda p, c: p.update(profile="strict"),
+            lambda p, c: p.update(runtimeCommit="0" * 40),
+            lambda p, c: c.pop("profile"),
+            lambda p, c: c["profileManifest"]["includedTables"].append("unknown"),
+            lambda p, c: p["profileManifest"]["dependencyReview"].update(
+                applicationDependsOnExcludedContents=True
+            ),
+        )
+        for change in cases:
+            self.packet, self.consent = (
+                copy.deepcopy(original_packet),
+                copy.deepcopy(original_consent),
+            )
+            change(self.packet, self.consent)
+            self.consent["packetSha256"] = digest(self.packet)
+            called = []
+            with self.assertRaises(q.QualificationError):
+                q.qualify(
+                    self.packet,
+                    digest(self.packet),
+                    self.consent,
+                    lambda called=called: called.append(True),
+                    self.packet["journalPath"],
+                    now=lambda: self.now,
+                    transport=self.transport,
+                )
+            self.assertEqual(called, [])
+            self.assertEqual(self.methods, [])
+
+    def test_scoped_census_drift_retains_exact_database_before_data_or_cleanup(self):
+        from scripts import private_d1_snapshot_codec as codec
+
+        self.select_scoped_profile()
+        self.db.execute("CREATE TABLE _cf_unknown(value)")
+        sql_calls = []
+
+        def record(request):
+            if request.url.endswith("/query"):
+                sql_calls.append(_json(request.wire.split(b"\r\n\r\n", 1)[1])["sql"])
+            return self.transport(request)
+
+        with self.assertRaises(q.QualificationError):
+            self.run_qualifier(transport=record)
+        self.assertNotIn("DELETE", self.methods)
+        self.assertEqual(sql_calls, [q.SEED_SQL, codec.SCHEMA_SQL])
+
+    def test_scoped_result_context_confusion_prevents_cleanup(self):
+        from scripts import private_d1_snapshot_reader as reader
+
+        self.select_scoped_profile()
+        original = reader.collect
+
+        def confused(*args, **kwargs):
+            result = original(*args, **kwargs)
+            path = Path(self.packet["outputPath"])
+            actual = _json(path.read_bytes())
+            actual["plan"].pop("profile")
+            path.write_bytes(canonical(actual))
+            return result
+
+        with patch.object(reader, "collect", confused), self.assertRaises(q.QualificationError):
+            self.run_qualifier(transport=self.transport)
+        self.assertNotIn("DELETE", self.methods)
+
+    def test_existing_strict_packet_keeps_reserved_table_denial(self):
+        self.select_scoped_profile()
+        for key in ("profile", "profileManifest", "runtimeCommit"):
+            self.packet.pop(key)
+            self.consent.pop(key)
+        self.consent["packetSha256"] = digest(self.packet)
+
+        def denied(request):
+            if request.url.endswith("/query"):
+                sql = _json(request.wire.split(b"\r\n\r\n", 1)[1])["sql"]
+                if "_cf_KV" in sql:
+                    raise sqlite3.DatabaseError("synthetic reserved denial")
+            return self.transport(request)
+
+        with self.assertRaises(q.QualificationError):
+            self.run_qualifier(transport=denied)
+        self.assertNotIn("DELETE", self.methods)
+
+    def test_scoped_application_mutation_between_sweeps_prevents_cleanup(self):
+        self.select_scoped_profile()
+
+        def mutate(request):
+            if self.query_count == 8:
+                self.db.execute("UPDATE probe SET v='changed' WHERE rowid=1")
+            return self.transport(request)
+
+        with self.assertRaises(q.QualificationError):
+            self.run_qualifier(transport=mutate)
+        self.assertNotIn("DELETE", self.methods)
+
+    def test_scoped_runtime_drift_stops_after_dispatch_without_cleanup(self):
+        self.select_scoped_profile()
+        commit = q.runtime_commit()
+        changed = []
+
+        def mutate(request):
+            response = self.transport(request)
+            changed.append(True)
+            return response
+
+        with (
+            patch.object(q, "runtime_commit", side_effect=lambda: "0" * 40 if changed else commit),
+            self.assertRaises(q.QualificationError),
+        ):
+            self.run_qualifier(transport=mutate)
+        self.assertEqual(self.methods, ["POST"])
 
     def test_roundtrip_reader_and_delete_only_acknowledged_new_database(self):
         # Exercise the actual permit/collect_isolated route with network fully patched.

@@ -56,6 +56,100 @@ class PrivateSnapshotPreparationTests(unittest.TestCase):
             with self.subTest(pin=wrong), self.assertRaises(ValueError):
                 p.verify(self.stage, wrong)
 
+    def test_scoped_preparation_requires_explicit_manifest_and_binds_current_commit(self):
+        from scripts import private_d1_snapshot_profile as profile
+        from tests.test_qualify_private_d1_snapshot import QualificationTests
+
+        fixture = QualificationTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        manifest = fixture.select_scoped_profile()
+        selected = {"profile": profile.PROFILE, "profile_manifest": manifest}
+        result = p.prepare(self.stage, **selected)
+        self.assertEqual(result["runtimeCommit"], q.runtime_commit())
+        self.assertEqual(result["profileManifest"], manifest)
+        self.assertEqual(p.verify(self.stage, digest(result), **selected), result)
+        packet, consent = (
+            self.document("packet-template.json"),
+            self.document("consent-template.json"),
+        )
+        for key in ("profile", "profileManifest", "runtimeCommit"):
+            self.assertEqual(packet[key], result[key])
+            self.assertEqual(consent[key], result[key])
+        self.assertFalse(consent["approved"])
+        self.assertFalse(result["liveExecutionGranted"])
+        # A scoped stage cannot verify through strict defaults or altered context.
+        with self.assertRaises(ValueError):
+            p.verify(self.stage)
+        manifest["dependencyReview"]["sourceSha256"]["synthetic-application.py"] = "c" * 64
+        with self.assertRaises(ValueError):
+            p.verify(self.stage, **selected)
+        with (
+            patch.object(p, "runtime_commit", return_value="0" * 40),
+            self.assertRaises(ValueError),
+        ):
+            p.verify(self.stage, **selected)
+
+    def test_profile_or_manifest_alone_and_unknown_profile_refuse_before_stage_creation(self):
+        for selected in (
+            {"profile": "adr0064-private-d1-application-state-v1"},
+            {"profile_manifest": {}},
+            {"profile": "unknown", "profile_manifest": {}},
+        ):
+            with self.subTest(selected=selected), self.assertRaises(ValueError):
+                p.prepare(
+                    self.stage,
+                    profile=selected.get("profile"),
+                    profile_manifest=selected.get("profile_manifest"),
+                )
+            self.assertFalse(self.stage.exists())
+
+    def test_actual_scoped_preparer_to_qualifier_uses_current_commit_and_real_clocks(self):
+        from scripts import private_d1_snapshot_profile as profile
+        from tests.test_qualify_private_d1_snapshot import QualificationTests
+
+        fixture = QualificationTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        manifest = fixture.select_scoped_profile()
+        prepared = p.prepare(self.stage, profile=profile.PROFILE, profile_manifest=manifest)
+        packet, consent = (
+            self.document("packet-template.json"),
+            self.document("consent-template.json"),
+        )
+        # Only fill the deliberately unset private action inputs. Retain actual
+        # preparer source/context fields, including the genuine checkout HEAD.
+        packet.update({key: fixture.packet[key] for key, value in packet.items() if value is None})
+        now = datetime.now(UTC)
+        packet.update(
+            startsAt=now.isoformat().replace("+00:00", "Z"),
+            expiresAt=(now + timedelta(minutes=10)).isoformat().replace("+00:00", "Z"),
+            providerTokenExpiresAt=(now + timedelta(minutes=15)).isoformat().replace("+00:00", "Z"),
+        )
+        consent.update(
+            approved=True, decisionRef="synthetic-only test approval", packetSha256=digest(packet)
+        )
+        self.assertEqual(packet["runtimeCommit"], q.runtime_commit())
+        self.assertEqual(packet["sourceSha256"], q.source_sha256())
+        result = q.qualify(
+            packet,
+            digest(packet),
+            consent,
+            lambda: fixture.token,
+            packet["journalPath"],
+            transport=fixture.transport,
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["syntheticTransport"])
+        self.assertEqual(result["runtimeCommit"], prepared["runtimeCommit"])
+        self.assertFalse(result["productionQualified"])
+        self.assertFalse(result["cleanupVerified"])
+
+    def test_copied_source_beneath_checkout_cannot_borrow_ancestor_commit(self):
+        with tempfile.TemporaryDirectory(dir=p.ROOT) as directory:
+            with self.assertRaisesRegex(q.QualificationError, "qualification_runtime_commit"):
+                q.runtime_commit(Path(directory))
+
     def test_source_change_invalidates_existing_stage_and_new_identity(self):
         root = self.synthetic_root()
         before = p.prepare(self.stage, root=root)
