@@ -137,7 +137,7 @@ def validate_inputs(inputs, *, now, initial=True):
         or plan["schema_version"] != 1
         or plan["purpose"] != "work_plan_local_token_admin"
         or plan["profile"] != PROFILE
-        or plan["operation"] not in ("issue", "revoke")
+        or plan["operation"] not in ("issue", "revoke", "revoke_expired")
         or (plan["request_limit"], plan["request_byte_limit"], plan["response_byte_limit"])
         != (MAX_REQUESTS, MAX_REQUEST_BYTES, MAX_TOTAL_RESPONSE_BYTES)
         or any(
@@ -147,7 +147,7 @@ def validate_inputs(inputs, *, now, initial=True):
     ):
         raise OperatorRefused("issuer_exact_plan_required")
     _text(plan["account_id"], 32, metadata._ID)
-    if plan["parent_id"] is not None or plan["operation"] == "revoke":
+    if plan["parent_id"] is not None or plan["operation"] != "issue":
         _text(plan["parent_id"], 32, metadata._ID)
     _text(plan["parent_sha2_256"], 64, metadata._HASH)
     _text(plan["source_commit"], 40, r"[0-9a-f]{40}")
@@ -161,6 +161,8 @@ def validate_inputs(inputs, *, now, initial=True):
     if not start <= now < end or not 0 < end - start <= MAX_WINDOW * _SCALE:
         raise OperatorRefused("issuer_window_closed")
     child_end = _timestamp(plan["child_expires_at"])
+    if plan["operation"] == "revoke_expired" and child_end > now:
+        raise OperatorRefused("issuer_expired_child_required")
     cleanup = _timestamp(plan["cleanup_at"])
     if not child_end <= cleanup or not cleanup <= start + 4 * 3600 * _SCALE:
         raise OperatorRefused("issuer_child_cleanup_bound_required")
@@ -212,7 +214,10 @@ def validate_inputs(inputs, *, now, initial=True):
         if plan["issuance"] is not None:
             raise OperatorRefused("issuer_no_adoption")
     else:
-        ref = _closed(plan["issuance"], {"journal", "plan_digest", "child_id"})
+        ref_fields = {"journal", "plan_digest", "child_id"}
+        if plan["operation"] == "revoke_expired":
+            ref_fields |= {"child_details", "historical_validation_at"}
+        ref = _closed(plan["issuance"], ref_fields)
         paths["issuance_journal"] = metadata._path(ref["journal"])
         paths["issuance_owner"] = Path(ref["journal"] + ".owner")
         paths["issuance_sidecar"] = Path(ref["journal"] + "-journal")
@@ -220,6 +225,16 @@ def validate_inputs(inputs, *, now, initial=True):
         _text(ref["child_id"], 32, metadata._ID)
         if ref["child_id"] == plan["parent_id"]:
             raise OperatorRefused("issuer_parent_not_child")
+        if plan["operation"] == "revoke_expired":
+            historical = ref["child_details"]
+            verified = {
+                key: historical[key] for key in ("id", "status", "expires_on", "not_before")
+            }
+            metadata._validate_details(
+                historical, verified, _timestamp(ref["historical_validation_at"])
+            )
+            if historical["id"] != ref["child_id"] or historical["status"] != "active":
+                raise OperatorRefused("issuer_historical_child_required")
     all_paths = [*paths.values(), inputs.plan, inputs.approval, inputs.human_evidence]
     names = [os.path.normcase(str(path.resolve())) for path in all_paths]
     if len(set(names)) != len(names):
@@ -244,7 +259,7 @@ def validate_inputs(inputs, *, now, initial=True):
             ):
                 raise OperatorRefused("issuer_fresh_sinks_required")
     _assert_private(paths["parent_credential"])
-    if plan["operation"] == "revoke":
+    if plan["operation"] != "issue":
         _assert_private(paths["issuance_journal"])
         _assert_private(paths["issuance_owner"])
     if initial and plan["operation"] == "issue" and paths["child_credential"].exists():
@@ -326,7 +341,15 @@ def _policies(plan, ids, *, parent=False):
 
 def _match_details(result, plan, ids, now, *, parent=False):
     verified = {key: result[key] for key in ("id", "status", "expires_on", "not_before")}
-    metadata._validate_details(result, verified, now)
+    expired = not parent and plan["operation"] == "revoke_expired"
+    metadata._validate_details(result, verified, now, expired=expired)
+    if expired:
+        original = plan["issuance"]["child_details"]
+        fields = ("id", "name", "issued_on", "expires_on", "not_before", "policies")
+        if any(result[key] != original[key] for key in fields) or result.get(
+            "condition", {}
+        ) != original.get("condition", {}):
+            raise OperatorRefused("issuer_expired_child_changed")
     normalized = []
     for policy in result["policies"]:
         normalized.append(
