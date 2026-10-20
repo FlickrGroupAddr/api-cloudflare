@@ -13,6 +13,17 @@ export const ACTION = 'invoke_characterize_synthetic_post_v1_once';
 export const COMMAND = 'Characterize synthetic POST v1';
 export const NATIVE_ROOT = 'C:\\Temp\\FGA-group-post-v1';
 const MAX_BYTES = 4096;
+// Boundary labels describe where success stopped, never an API failure cause.
+const FAILURE_CLASSES = Object.freeze({
+  request_guard: 'local_guard_or_coordination_failure',
+  attempted_publication: 'local_guard_or_coordination_failure',
+  dispatch_checkpoint: 'local_guard_or_coordination_failure',
+  final_guard: 'local_guard_or_coordination_failure',
+  click_pending: 'click_call_did_not_return',
+  post_click_window_check: 'post_click_window_check_failed',
+  refresh_pending: 'refresh_call_did_not_return',
+  ack_publication: 'ack_publication_failed',
+});
 const ID_KEYS = ['schemaVersion', 'planVersion', 'runId', 'owner', 'generation'];
 function requireValue(ok, code) { if (!ok) throw new Error(code); }
 function exact(value, keys) {
@@ -122,6 +133,9 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
   let capturedAt = -Infinity;
   let capturedRequest = null;
   let observationStarted = false;
+  let failureDiagnostic = null;
+  // Memory only: no identity, input, UI data or exception properties are retained.
+  const getFailureDiagnostic = () => failureDiagnostic;
   function time() {
     const now = clock();
     requireValue(Number.isFinite(now) && now >= lastTime, 'clock_invalid_or_reversed');
@@ -291,6 +305,7 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
     busy = true;
     let actualInputCount = 0;
     let attempted = false;
+    let stage = 'request_guard';
     try {
       requireValue(exact(input, ['observation', 'elementIndex', 'commandLabel']), 'observed_action_schema');
       const { observation, elementIndex, commandLabel } = input;
@@ -312,24 +327,36 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
       capturedRequest = null;
       session.fgaPostAttempt = { ...identity, attempted: true, stopped: false };
       attempted = true;
+      stage = 'attempted_publication';
       await publish('attempted.json', { action: ACTION, deadlineUnix: request.deadlineUnix, requestedInputCount: 1 });
+      stage = 'dispatch_checkpoint';
       const checkpointDeadline = await checkpoint('dispatch', request.deadlineUnix);
+      stage = 'final_guard';
       const finalRequest = await active({ invocation: true, allowAttempt: true });
       requireValue(sameRequest(finalRequest, savedRequest), 'request_changed');
       requireValue(!session.fgaPostAttempt.stopped && session.state === null
         && unchanged(observation, saved) && time() - capturedAt <= 30
         && time() < savedRequest.deadlineUnix && time() < checkpointDeadline, 'session_or_deadline_lost');
       // No waits or further file operations intervene between this final check and input.
+      stage = 'click_pending';
       actualInputCount = null;
       await sky.click({ window: saved.window, element_index: elementIndex });
       actualInputCount = 1;
+      stage = 'post_click_window_check';
       requireValue(unchangedWindow(saved), 'window_changed_after_input');
+      stage = 'refresh_pending';
       const state = await sky.get_window_state({ window: saved.window,
         include_screenshot: true, include_text: true });
       session.state = state;
+      stage = 'ack_publication';
       await publish('ack.json', { outcome: 'dispatched', requestedInputCount: 1, actualInputCount });
       return { outcome: 'dispatched', actualInputCount, state };
     } catch {
+      // Freeze the original boundary before any cleanup awaits. Rejected replay
+      // calls and cleanup failures cannot replace an attempted failure. A prior
+      // pre-attempt refusal must not hide a later attempted failure.
+      if (failureDiagnostic === null || attempted) failureDiagnostic = Object.freeze({ stage,
+        failureClass: FAILURE_CLASSES[stage] ?? 'unclassified' });
       if (attempted || session.fgaPostAttempt?.stopped) {
         session.fgaPostAttempt.stopped = true;
         try { await stop('unknown'); } catch { /* memory latch remains authoritative locally */ }
@@ -341,5 +368,5 @@ export function createNativeDispatchController({ binding, sky, files = nodeFiles
       throw new Error(attempted ? 'dispatch_stopped_or_unknown_no_retry' : 'dispatch_refused');
     } finally { busy = false; }
   }
-  return Object.freeze({ prewarm, observe, dispatchObserved, stop });
+  return Object.freeze({ prewarm, observe, dispatchObserved, stop, getFailureDiagnostic });
 }

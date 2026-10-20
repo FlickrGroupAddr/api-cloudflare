@@ -37,14 +37,14 @@ function fixture() {
       assert.deepEqual(input, { window: originalWindow, element_index: 12 });
       assert.equal(session.fgaPostAttempt.attempted, true); assert.equal(session.state, null);
       assert.equal(JSON.parse(records.get(c('attempted.json'))).requestedInputCount, 1);
-      events.push('click'); if (clickError) throw Error('private click detail'); await afterClick?.();
+      events.push('click'); if (clickError) throw clickError; await afterClick?.();
     },
     async get_window_state(input) {
       assert.deepEqual(input, { window: originalWindow, include_screenshot: true, include_text: true });
       captures += 1; events.push('capture');
       if (captures === 1) { now += captureDelay; await afterCapture?.(); return observation; }
       assert.equal(records.has(c('ack.json')), false);
-      if (refreshError) throw Error('private screenshot detail');
+      if (refreshError) throw refreshError;
       return { window: originalWindow, screenshots: [{ id: 'shot-2', width: 800, height: 600 }] };
     },
   };
@@ -57,7 +57,8 @@ function fixture() {
   return { binding, identity, c, n, records, events, put, session, observation, options, controller, invoke, dispatch, ready,
     setNow: (value) => { now = value; }, live: (value) => { live = value; },
     fail: (name) => { failPublish = c(name); }, after: (fn) => { afterPublish = fn; },
-    clickError: () => { clickError = true; }, refreshError: () => { refreshError = true; },
+    clickError: (error = Error('private click detail')) => { clickError = error; },
+    refreshError: (error = Error('private screenshot detail')) => { refreshError = error; },
     captureDelay: (value) => { captureDelay = value; }, afterClick: (fn) => { afterClick = fn; },
     afterCapture: (fn) => { afterCapture = fn; }, sleeps: () => sleeps };
 }
@@ -427,4 +428,106 @@ test('post-click session state replacement still refreshes original Window immed
   const start = f.events.length; const result = await f.dispatch(); assert.equal(result.outcome, 'dispatched');
   assert.deepEqual(f.events.slice(start), ['attempted.json', 'challenge-dispatch.json', 'click', 'capture', 'ack.json']);
   assert.equal(f.session.state.window.id, 5);
+});
+
+
+// These errors deliberately carry forbidden dynamic fields. No property may be
+// read, retained or forwarded by the diagnostic path (including during cleanup).
+function hostileFailure() {
+  const secret = 'Bearer synthetic-secret-token C:\\private\\photo.jpg';
+  const error = { secret };
+  for (const key of ['message', 'stack', 'cause', 'code', 'title', 'path']) {
+    Object.defineProperty(error, key, { get() { throw Error(secret); } });
+  }
+  return error;
+}
+
+for (const [name, inject, stage, failureClass, count] of [
+  ['click', (f) => f.clickError(hostileFailure()), 'click_pending', 'click_call_did_not_return', null],
+  ['refresh', (f) => f.refreshError(hostileFailure()), 'refresh_pending', 'refresh_call_did_not_return', 1],
+  ['window check', (f) => f.afterClick(() => { f.observation.window.title = 'private-title'; }),
+    'post_click_window_check', 'post_click_window_check_failed', 1],
+  ['ack', (f) => f.fail('ack.json'), 'ack_publication', 'ack_publication_failed', 1],
+  ['attempt', (f) => f.fail('attempted.json'), 'attempted_publication', 'local_guard_or_coordination_failure', 0],
+  ['checkpoint', (f) => f.live(false), 'dispatch_checkpoint', 'local_guard_or_coordination_failure', 0],
+  ['final guard', (f) => f.after((file) => {
+    if (file === f.c('challenge-dispatch.json')) f.observation.window.title = 'private-title';
+  }), 'final_guard', 'local_guard_or_coordination_failure', 0],
+]) test(`closed ${name} diagnostic preserves counts and its original failure boundary`, async () => {
+  const f = fixture(); await f.ready();
+  assert.equal(f.controller.getFailureDiagnostic(), null);
+  inject(f);
+  await assert.rejects(f.dispatch(), /^Error: dispatch_stopped_or_unknown_no_retry$/);
+  const diagnostic = f.controller.getFailureDiagnostic();
+  assert.deepEqual(diagnostic, { stage, failureClass });
+  assert.equal(Object.isFrozen(diagnostic), true);
+  assert.throws(() => { diagnostic.stage = 'private-title'; }, TypeError);
+  if (name !== 'ack') {
+    const ack = JSON.parse(f.records.get(f.c('ack.json')));
+    assert.equal(ack.actualInputCount, count);
+    assert.equal(ack.outcome, count === 0 ? 'stopped' : 'unknown');
+  } else assert.equal(f.records.has(f.c('ack.json')), false);
+  await assert.rejects(f.dispatch());
+  assert.equal(f.controller.getFailureDiagnostic(), diagnostic);
+  assert.equal(f.events.filter((event) => event === 'click').length, count === 0 ? 0 : 1);
+  // Receipts retain their exact existing schemas; diagnostic data is memory only.
+  for (const [file, bytes] of f.records) {
+    const record = JSON.parse(bytes);
+    assert.equal(Object.hasOwn(record, 'stage'), false);
+    assert.equal(Object.hasOwn(record, 'failureClass'), false);
+    assert.doesNotMatch(bytes.toString(), /synthetic-secret-token|private-title|private.click.detail/);
+  }
+});
+
+test('failed stop and unknown ack cleanup cannot overwrite click diagnostic or retry input', async () => {
+  const f = fixture(); await f.ready(); f.clickError(hostileFailure());
+  const publish = f.options.files.publish;
+  f.options.files.publish = async (file, value) => {
+    if (file === f.c('operator-stop.json') || file === f.c('ack.json')) throw hostileFailure();
+    await publish(file, value);
+  };
+  await assert.rejects(f.dispatch(), /^Error: dispatch_stopped_or_unknown_no_retry$/);
+  const diagnostic = f.controller.getFailureDiagnostic();
+  assert.deepEqual(diagnostic, { stage: 'click_pending', failureClass: 'click_call_did_not_return' });
+  assert.equal(f.session.fgaPostAttempt.stopped, true);
+  assert.equal(f.records.has(f.c('ack.json')), false);
+  assert.equal(f.records.has(f.c('operator-stop.json')), false);
+  await assert.rejects(f.dispatch());
+  assert.equal(f.controller.getFailureDiagnostic(), diagnostic);
+  assert.equal(f.events.filter((event) => event === 'click').length, 1);
+});
+
+test('pre-attempt refusal has a closed guard diagnostic and cannot hide later input uncertainty', async () => {
+  const f = fixture(); await f.ready();
+  await assert.rejects(f.dispatch({ elementIndex: -1 }), /^Error: dispatch_refused$/);
+  assert.deepEqual(f.controller.getFailureDiagnostic(), {
+    stage: 'request_guard', failureClass: 'local_guard_or_coordination_failure',
+  });
+  assert.equal(f.records.has(f.c('attempted.json')), false);
+  f.clickError(hostileFailure());
+  await assert.rejects(f.dispatch(), /no_retry/);
+  assert.deepEqual(f.controller.getFailureDiagnostic(), {
+    stage: 'click_pending', failureClass: 'click_call_did_not_return',
+  });
+  assert.equal(JSON.parse(f.records.get(f.c('ack.json'))).actualInputCount, null);
+});
+
+test('successful dispatch leaves failure diagnostic unavailable', async () => {
+  const f = fixture(); await f.ready(); await f.dispatch();
+  assert.equal(f.controller.getFailureDiagnostic(), null);
+});
+
+
+for (const thrown of [null, undefined, 'Bearer synthetic-secret-token',
+  Object.assign(Error('Bearer synthetic-secret-token'), {
+    code: 'invented-Sky-code', cause: { path: 'C:\\private\\photo.jpg' },
+  })]) test('arbitrary thrown input values do not supply diagnostic causes or fields', async () => {
+  const f = fixture(); await f.ready();
+  f.afterClick(() => { throw thrown; });
+  await assert.rejects(f.dispatch(), /^Error: dispatch_stopped_or_unknown_no_retry$/);
+  assert.deepEqual(f.controller.getFailureDiagnostic(), {
+    stage: 'click_pending', failureClass: 'click_call_did_not_return',
+  });
+  const ack = JSON.parse(f.records.get(f.c('ack.json')));
+  assert.equal(ack.outcome, 'unknown'); assert.equal(ack.actualInputCount, null);
 });

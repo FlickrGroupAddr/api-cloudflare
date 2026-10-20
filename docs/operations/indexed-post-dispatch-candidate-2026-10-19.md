@@ -123,3 +123,43 @@ consumption, case output, receiver rows, cleanup, or production qualification.
 Keep the existing cancellation, owned cleanup, terminal-state checks and final
 supported Node-kernel handback. An intentional Escape ends native input for
 that turn. Do not initialize native control for source preparation or review.
+
+
+## Closed dispatch failure diagnostics (#0224, source-only)
+
+After a rejected `dispatchObserved` call, the primary may read
+`controller.getFailureDiagnostic()`. It returns `null` when no dispatch failure
+has been recorded, or a frozen memory-only object with exactly `stage` and
+`failureClass`. The existing generic thrown errors and strict receipt schemas
+are unchanged. This accessor performs no input, observation, file access or retry.
+
+| Stage | Failure class |
+| --- | --- |
+| `request_guard`, `attempted_publication`, `dispatch_checkpoint`, `final_guard` | `local_guard_or_coordination_failure` |
+| `click_pending` | `click_call_did_not_return` |
+| `post_click_window_check` | `post_click_window_check_failed` |
+| `refresh_pending` | `refresh_call_did_not_return` |
+| `ack_publication` | `ack_publication_failed` |
+
+Only fixed labels may enter a sanitized evidence handoff. An unavailable label
+must remain unavailable (`null`); an unrecognized internal stage is classified
+`unclassified`. No error property, message, stack, cause, arbitrary code, UI text,
+screenshot, title, path or credential is copied into diagnostics. The stage is
+frozen before cleanup; failed stop/ack cleanup and subsequent replay refusals
+cannot overwrite an attempted failure. A pre-attempt refusal does not hide a
+later attempted failure. Prewarm/observation/readiness errors outside dispatch's
+caught region have no diagnostic from this accessor.
+
+These labels identify the boundary that failed to return normally, not the API's
+cause or delivered input count. `click_pending` still means unknown delivery and
+`actualInputCount=null`; one is recorded only after normal click return. Window,
+refresh and acknowledgement failures after that return retain one and unknown
+outcome. Use the existing receipts to establish counts, stop state and ownership.
+Do not treat a stage or normal click return as fixture-entry proof. No probe,
+new route, replay, fallback or old-attempt reuse is authorized by this source work.
+
+Offline verification uses pinned Node 24.22.0:
+`node --test tests/group_post_native_dispatch.test.mjs`. Injected click, window,
+refresh, ack, checkpoint and cleanup failures cover closed labels, frozen original
+stage, hostile secret-shaped thrown values, count uncertainty and no replay.
+These synthetic checks establish no native qualification.
