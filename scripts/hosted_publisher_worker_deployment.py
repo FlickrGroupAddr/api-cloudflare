@@ -41,6 +41,7 @@ def deployment_diagnostic(value):
     """Return only closed metadata; no provider values or exception prose."""
     if (
         type(value) is not dict
+        or any(type(key) is not str for key in value)
         or set(value) != {"stage", "field", "status"}
         or type(value["stage"]) is not str
         or value["stage"]
@@ -63,6 +64,69 @@ def deployment_diagnostic(value):
     ):
         return None
     return value.copy()
+
+
+_DEPLOYMENT_SHAPE_FIELDS = (
+    "result",
+    "id",
+    "created_on",
+    "strategy",
+    "versions",
+    "metadata",
+    "metadata.created_on",
+)
+_SHAPE_TYPES = {"null", "boolean", "number", "string", "array", "object", "other"}
+
+
+def deployment_response_shape(value):
+    """Validate a separate closed supplement; never retain values or arbitrary keys."""
+    if (
+        type(value) is not dict
+        or any(type(key) is not str for key in value)
+        or set(value) != set(_DEPLOYMENT_SHAPE_FIELDS)
+    ):
+        return None
+    for field in _DEPLOYMENT_SHAPE_FIELDS:
+        allowed = _SHAPE_TYPES if field == "result" else _SHAPE_TYPES | {"missing", "unavailable"}
+        if type(value[field]) is not str or value[field] not in allowed:
+            return None
+    if value["result"] != "object":
+        if any(value[field] != "unavailable" for field in _DEPLOYMENT_SHAPE_FIELDS[1:]):
+            return None
+    else:
+        if any(value[field] == "unavailable" for field in _DEPLOYMENT_SHAPE_FIELDS[1:-1]):
+            return None
+        nested = value["metadata.created_on"]
+        if value["metadata"] == "object" and nested == "unavailable":
+            return None
+        if value["metadata"] != "object" and nested != "unavailable":
+            return None
+    return value.copy()
+
+
+def _response_shape(result):
+    def classify(value):
+        return {
+            type(None): "null",
+            bool: "boolean",
+            int: "number",
+            float: "number",
+            str: "string",
+            list: "array",
+            dict: "object",
+        }.get(type(value), "other")
+
+    def field_shape(container, field):
+        if type(container) is not dict:
+            return "unavailable"
+        return classify(container[field]) if field in container else "missing"
+
+    shape = {"result": classify(result)}
+    for field in _DEPLOYMENT_SHAPE_FIELDS[1:-1]:
+        shape[field] = field_shape(result, field)
+    metadata = result.get("metadata") if type(result) is dict else None
+    shape["metadata.created_on"] = field_shape(metadata, "created_on")
+    return shape
 
 
 def _exclusive(method):
@@ -99,12 +163,17 @@ class BetaPublisherProvider(CloudflareProvider):
         self._deployments = {}
         self._deployment_intents = set()
         self.last_deployment_diagnostic = None
+        self.last_deployment_response_shape = None
         self._deployment_diagnostic_active = False
         self._deployment_request_key = None
 
     def _deployment_stage(self, stage, field="none", status="not_checked"):
         if self._deployment_diagnostic_active:
             self.last_deployment_diagnostic = {"stage": stage, "field": field, "status": status}
+
+    def _deployment_rejection_shape(self, result):
+        if self._deployment_diagnostic_active:
+            self.last_deployment_response_shape = _response_shape(result)
 
     def _guard(self):
         if self._concrete:
@@ -113,10 +182,12 @@ class BetaPublisherProvider(CloudflareProvider):
     def _request(self, method, path, body=None, *, key, media="application/json", raw=False):
         self._guard()
         stage = None
+        request_key = self._deployment_request_key
         if self._deployment_diagnostic_active:
-            if key == self._deployment_request_key:
+            assert request_key is not None
+            if key == request_key:
                 stage = "deployment"
-            elif key == self._deployment_request_key + ":after":
+            elif key == request_key + ":after":
                 stage = "post_identity"
         if stage is not None:
             self._deployment_stage(stage + "_admission")
@@ -368,6 +439,7 @@ class BetaPublisherProvider(CloudflareProvider):
     def _deployment(self, result, identity, version, expected=None):
         if not isinstance(result, dict):
             self._deployment_stage("response_validation", "result", "invalid")
+            self._deployment_rejection_shape(result)
             self._unknown("worker_deployment_unknown_or_drift")
         for field, valid in (
             ("id", _uuid(result.get("id"))),
@@ -382,6 +454,7 @@ class BetaPublisherProvider(CloudflareProvider):
                 self._deployment_stage(
                     "response_validation", field, "invalid" if field in result else "missing"
                 )
+                self._deployment_rejection_shape(result)
                 self._unknown("worker_deployment_unknown_or_drift")
         receipt = {
             "id": result["id"],
@@ -396,6 +469,7 @@ class BetaPublisherProvider(CloudflareProvider):
     @_exclusive
     def deploy_version(self, identity, version, *, key):
         self.last_deployment_diagnostic = None
+        self.last_deployment_response_shape = None
         self._deployment_diagnostic_active = True
         self._deployment_request_key = key
         try:
@@ -431,6 +505,7 @@ class BetaPublisherProvider(CloudflareProvider):
         self._deployment_stage("post_identity_admission")
         self._observe(identity, key=key + ":after")
         self.last_deployment_diagnostic = None
+        self.last_deployment_response_shape = None
         return receipt
 
     @_exclusive

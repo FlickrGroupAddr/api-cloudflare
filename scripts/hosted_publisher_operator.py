@@ -424,6 +424,7 @@ class HostedPublisherOperator:
         if method.__name__ == "deploy_version":
             # A previous operation's diagnostic must never be attributed here.
             self.provider.last_deployment_diagnostic = None
+            self.provider.last_deployment_response_shape = None
         if not self.journal.reserve("operation:" + key, {"operation": key}):
             raise OperatorRefused("operator_operation_already_reserved")
         request_started = response_received = None
@@ -570,7 +571,10 @@ class HostedPublisherOperator:
                     },
                 )
             elif method.__name__ == "deploy_version":
-                from scripts.hosted_publisher_worker_deployment import deployment_diagnostic
+                from scripts.hosted_publisher_worker_deployment import (
+                    deployment_diagnostic,
+                    deployment_response_shape,
+                )
 
                 closed = deployment_diagnostic(
                     getattr(self.provider, "last_deployment_diagnostic", None)
@@ -586,14 +590,24 @@ class HostedPublisherOperator:
                     self.journal.unknown("operation:" + key, "operation_outcome_unknown")
                 else:
                     # Observation time is local, never the untrusted provider timestamp.
+                    receipt = {
+                        "reason": "operation_outcome_unknown",
+                        "deploymentDiagnostic": closed,
+                        "diagnosticObservedAt": observed,
+                    }
+                    if closed["stage"] == "response_validation" and closed["status"] in {
+                        "missing",
+                        "invalid",
+                    }:
+                        shape = deployment_response_shape(
+                            getattr(self.provider, "last_deployment_response_shape", None)
+                        )
+                        if shape is not None:
+                            receipt["deploymentResponseShape"] = shape
                     self.journal._finish(
                         "operation:" + key,
                         "unknown",
-                        {
-                            "reason": "operation_outcome_unknown",
-                            "deploymentDiagnostic": closed,
-                            "diagnosticObservedAt": observed,
-                        },
+                        receipt,
                     )
             else:
                 self.journal.unknown("operation:" + key, "operation_outcome_unknown")
