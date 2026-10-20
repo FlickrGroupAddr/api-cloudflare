@@ -35,6 +35,55 @@ class UnknownOutcome(RuntimeError):
     """Dispatch may have happened. Never replay this phase."""
 
 
+FAILURE_CODES = {
+    "admission": "local_admission_failed",
+    "reservation": "phase_reservation_failed",
+    "pre_dispatch": "local_pre_dispatch_failed",
+    "transport": "transport_failed",
+    "response_accounting": "response_accounting_failed",
+    "response_fence": "response_fence_failed",
+    "response_status": "http_status_refused",
+    "response_headers": "response_headers_refused",
+    "response_oracle": "response_oracle_refused",
+    "activity_accounting": "activity_accounting_failed",
+    "journal_complete": "journal_completion_failed",
+    "journal_unknown": "journal_unknown_failed",
+    "operator": "lifecycle_failed",
+}
+
+
+def validate_failure_diagnostic(value: dict) -> dict:
+    """Copy only a closed local category and optional exact parsed HTTP status.
+
+    Never derive these fields from exception text, response bodies or headers.
+    This describes where local progress stopped, not a remote root cause.
+    """
+    if (
+        type(value) is not dict
+        or set(value) not in ({"stage", "code"}, {"stage", "code", "parsedHttpStatus"})
+        or type(value.get("stage")) is not str
+        or value["stage"] not in FAILURE_CODES
+        or type(value.get("code")) is not str
+        or value["code"] != FAILURE_CODES[value["stage"]]
+        or (
+            "parsedHttpStatus" in value
+            and (
+                type(value["parsedHttpStatus"]) is not int
+                or not 100 <= value["parsedHttpStatus"] <= 599
+            )
+        )
+    ):
+        raise Refused("invalid local failure diagnostic")
+    return dict(value)
+
+
+def failure_diagnostic(stage: str, status: int | None = None) -> dict:
+    value: dict = {"stage": stage, "code": FAILURE_CODES[stage]}
+    if type(status) is int and 100 <= status <= 599:
+        value["parsedHttpStatus"] = status
+    return validate_failure_diagnostic(value)
+
+
 @dataclass(frozen=True)
 class ClientIdentity:
     endpoint: str
@@ -157,7 +206,7 @@ class Response:
 class Journal(Protocol):
     def reserve(self, key: str, payload: dict) -> bool: ...
     def complete(self, key: str, receipt: dict) -> None: ...
-    def unknown(self, key: str, reason: str) -> None: ...
+    def unknown(self, key: str, reason: str, diagnostic: dict | None = None) -> None: ...
 
 
 class _DeadlineReader(io.RawIOBase):
@@ -274,10 +323,12 @@ def _strict_object(pairs):
     return value
 
 
-def validate_response(response: Response, phase: str, scenario: str) -> dict:
-    """Validate the exact immutable Worker success shape, never an error body."""
+def _validate_status(response: Response) -> None:
     if type(response.status) is not int or response.status != 200:
         raise UnknownOutcome("non-success response")
+
+
+def _validate_headers(response: Response) -> None:
     headers = {key.lower(): value for key, value in response.headers.items()}
     if len(headers) != len(response.headers):
         raise UnknownOutcome("duplicate response header")
@@ -288,6 +339,9 @@ def validate_response(response: Response, phase: str, scenario: str) -> dict:
         or "location" in headers
     ):
         raise UnknownOutcome("response headers refused")
+
+
+def _validate_oracle(response: Response, phase: str, scenario: str) -> dict:
     try:
         value = json.loads(
             response.body.decode("utf-8"),
@@ -360,6 +414,13 @@ def validate_response(response: Response, phase: str, scenario: str) -> dict:
     return value
 
 
+def validate_response(response: Response, phase: str, scenario: str) -> dict:
+    """Validate the exact immutable Worker success shape, never an error body."""
+    _validate_status(response)
+    _validate_headers(response)
+    return _validate_oracle(response, phase, scenario)
+
+
 class FiniteClient:
     def __init__(
         self,
@@ -395,6 +456,8 @@ class FiniteClient:
         if self.started:
             return result
         self.started = True
+        stage = "admission"
+        parsed_status = None
         try:
             run_deadline = min(self.budget.deadline, self.clock() + 1800)
             self._fence()
@@ -408,9 +471,11 @@ class FiniteClient:
                 key = phase
                 metadata = {**self.identity.receipt_identity(), "phase": phase}
                 # Durable once-only reservation precedes any possible endpoint dispatch.
+                stage = "reservation"
                 if not self.journal.reserve(key, metadata):
                     raise Refused("phase already reserved")
                 try:
+                    stage = "pre_dispatch"
                     timeout = min(timeout, self._fence())
                     host = urlsplit(self.identity.endpoint).hostname
                     path = f"/__publisher/{phase}"
@@ -455,7 +520,11 @@ class FiniteClient:
                     # Unknown outcomes retain the worst-case activity reservation.
                     self.budget.provider_calls += reserved_calls
                     self.budget.synthetic_posts += reserved_posts
+                    stage = "transport"
                     response = self.transport(request)
+                    # Only an exact, bounded parser status may enter diagnostics.
+                    parsed_status = response.status
+                    stage = "response_accounting"
                     used = response.wire_bytes
                     if used is None:
                         used = (
@@ -466,10 +535,17 @@ class FiniteClient:
                     if type(used) is not int or used < len(response.body) or used > limit:
                         raise UnknownOutcome("invalid response accounting")
                     self.budget.charge_response(used)
+                    stage = "response_fence"
                     self._fence()
                     if self.clock() >= request.deadline:
                         raise UnknownOutcome("late response")
-                    checked = validate_response(response, phase, self.identity.scenario)
+                    stage = "response_status"
+                    _validate_status(response)
+                    stage = "response_headers"
+                    _validate_headers(response)
+                    stage = "response_oracle"
+                    checked = _validate_oracle(response, phase, self.identity.scenario)
+                    stage = "activity_accounting"
                     calls, posts = checked.get("providerCalls", 0), checked.get("syntheticPosts", 0)
                     self.budget.provider_calls += calls - reserved_calls
                     self.budget.synthetic_posts += posts - reserved_posts
@@ -483,17 +559,27 @@ class FiniteClient:
                         **checked,
                         "responseSha256": hashlib.sha256(response.body).hexdigest(),
                     }
+                    stage = "journal_complete"
                     self.journal.complete(key, receipt)
                     result["phaseReceipts"].append(receipt)
+                    parsed_status = None
+                    stage = "admission"
                 except Exception:
                     # Never persist exception text, headers, body, or token.
-                    self.journal.unknown(key, "phase_outcome_unknown")
                     result["status"] = "unknown"
+                    result["diagnostic"] = failure_diagnostic(stage, parsed_status)
+                    try:
+                        self.journal.unknown(key, "phase_outcome_unknown", result["diagnostic"])
+                    except Exception:
+                        # Persistence can remain an intent. Never downgrade to a
+                        # pre-dispatch refusal or replay after a failed seal.
+                        result["diagnostic"] = failure_diagnostic("journal_unknown", parsed_status)
                     return result
             result["status"] = "complete"
         except Exception:
             # A reservation failure or pre-dispatch fence refuses the entire sequence.
             result["status"] = "refused"
+            result["diagnostic"] = failure_diagnostic(stage, parsed_status)
         return result
 
 

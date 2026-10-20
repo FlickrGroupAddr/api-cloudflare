@@ -171,10 +171,15 @@ class DurableJournal:
     def complete(self, key: str, receipt: dict[str, Any]) -> None:
         self._finish(key, "complete", receipt)
 
-    def unknown(self, key: str, reason: str) -> None:
+    def unknown(self, key: str, reason: str, diagnostic: dict | None = None) -> None:
         if not _KEY.fullmatch(reason):
             raise OperatorRefused("journal_invalid_reason")
-        self._finish(key, "unknown", {"reason": reason})
+        receipt: dict[str, Any] = {"reason": reason}
+        if diagnostic is not None:
+            from scripts.hosted_publisher_finite_client import validate_failure_diagnostic
+
+            receipt["diagnostic"] = validate_failure_diagnostic(diagnostic)
+        self._finish(key, "unknown", receipt)
 
     def snapshot(self) -> dict[str, Any]:
         with self._mutex:
@@ -222,8 +227,8 @@ class CaseJournal:
     def complete(self, key: str, receipt: dict[str, Any]) -> None:
         self.journal.complete(self.prefix + key, receipt)
 
-    def unknown(self, key: str, reason: str) -> None:
-        self.journal.unknown(self.prefix + key, reason)
+    def unknown(self, key: str, reason: str, diagnostic: dict | None = None) -> None:
+        self.journal.unknown(self.prefix + key, reason, diagnostic)
 
 
 class HostedPublisherOperator:
@@ -858,6 +863,8 @@ class HostedPublisherOperator:
             ClientIdentity,
             FiniteClient,
             SharedBudget,
+            failure_diagnostic,
+            validate_failure_diagnostic,
         )
         from scripts.hosted_publisher_operator_plan import (
             CreationReceipt,
@@ -885,6 +892,7 @@ class HostedPublisherOperator:
             "revocation": "external_owner_required",
             "querySettlement": "unproved",
         }
+        diagnostic = failure_diagnostic("operator")
         try:
             bundle = self.bundle_path.read_bytes()
             manifest_raw = (self.source_root / "manifest.json").read_bytes()
@@ -1027,16 +1035,23 @@ class HostedPublisherOperator:
                 # This is submitted-operation/statement capacity, not rows written.
                 self._charge_sql(key + ":phases", 7 * 264, 7 * (256 * 128 + 8))
                 receipt = client.run()
-                result["cases"].append(receipt)
                 if receipt["status"] != "complete":
+                    diagnostic = validate_failure_diagnostic(receipt["diagnostic"])
+                    result["cases"].append(receipt)
                     raise OperatorRefused("client_outcome_unknown")
+                result["cases"].append(receipt)
                 self._stop_case(case, entry)
             result["status"] = "phases_complete_cleanup_pending"
+            diagnostic = failure_diagnostic("journal_complete")
             self.journal.complete("operator:run", {"status": result["status"]})
         except Exception:
             self._stopped = True
-            self.journal.unknown("operator:run", "lifecycle_outcome_unknown")
             result["status"] = "unknown"
+            result["diagnostic"] = diagnostic
+            try:
+                self.journal.unknown("operator:run", "lifecycle_outcome_unknown", diagnostic)
+            except Exception:
+                result["diagnostic"] = failure_diagnostic("journal_unknown")
         finally:
             # Stop each definitely uploaded identity. Unknown upload/create remains
             # explicitly unresolved; no same-name mutation guesses its identity.

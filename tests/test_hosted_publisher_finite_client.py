@@ -143,6 +143,155 @@ class FiniteClientTests(unittest.TestCase):
         self.assertEqual(self.journal.snapshot()["http"]["state"], "unknown")
         self.assert_sanitized(result)
 
+    def test_failure_stage_matrix_is_local_bounded_and_never_replayed(self):
+        faults = (
+            ("pre_dispatch", None, "reserve_request", None),
+            ("transport", None, None, ConnectionResetError("SYNTHETIC-PRIVATE-RESPONSE")),
+            ("response_accounting", None, None, None),
+            ("response_status", 503, None, None),
+            ("response_headers", 200, None, None),
+            ("response_oracle", 200, None, None),
+            ("journal_complete", 200, "complete", None),
+        )
+        for index, (stage, status, patched, error) in enumerate(faults):
+            with self.subTest(stage=stage):
+                journal = operator.DurableJournal(
+                    self.path.with_name(f"stage-{index}.sqlite"), "a" * 64
+                )
+                self.addCleanup(journal.close)
+                http = ScriptedHTTP()
+
+                def transport(request, http=http, error=error, stage=stage, status=status):
+                    response = http(request)
+                    if error:
+                        raise error
+                    if stage == "response_accounting":
+                        return replace(response, wire_bytes=-1)
+                    if stage == "response_status":
+                        return replace(response, status=status, body=b"SYNTHETIC-PRIVATE-RESPONSE")
+                    if stage == "response_headers":
+                        return replace(response, headers={})
+                    if stage == "response_oracle":
+                        return replace(response, body=b'{"code":"SYNTHETIC-PRIVATE-RESPONSE"}')
+                    return response
+
+                finite = self.make(transport)
+                finite.journal = journal
+                target = finite.budget if patched == "reserve_request" else journal
+                if patched:
+                    with patch.object(
+                        target, patched, side_effect=OSError("SYNTHETIC-PRIVATE-RESPONSE")
+                    ):
+                        result = finite.run()
+                else:
+                    result = finite.run()
+                expected_status = None if stage in ("pre_dispatch", "transport") else 200
+                if stage == "response_status":
+                    expected_status = status
+                expected = client.failure_diagnostic(stage, expected_status)
+                self.assertEqual(result["status"], "unknown")
+                self.assertEqual(result["diagnostic"], expected)
+                self.assertEqual(journal.snapshot()["seed"]["receipt"]["diagnostic"], expected)
+                self.assertEqual(len(http.requests), 0 if stage == "pre_dispatch" else 1)
+                replacement = self.make(http)
+                replacement.journal = journal
+                count = len(http.requests)
+                self.assertEqual(replacement.run()["status"], "refused")
+                self.assertEqual(len(http.requests), count)
+                self.assertNotIn("SYNTHETIC-PRIVATE-RESPONSE", json.dumps(result))
+                self.assertNotIn(TOKEN, json.dumps(result))
+
+    def test_journal_unknown_failure_keeps_unknown_and_unresolved_intent(self):
+        http = ScriptedHTTP(lambda r, b, s, h: (503, h, b"private"))
+        finite = self.make(http)
+        with patch.object(self.journal, "unknown", side_effect=OSError("private")):
+            result = finite.run()
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("journal_unknown", 503))
+        self.assertEqual(self.journal.snapshot()["seed"]["state"], "intent")
+        replacement = self.make(http)
+        self.assertEqual(replacement.run()["status"], "refused")
+        self.assertEqual(len(http.requests), 1)
+
+    def test_completion_acknowledgement_loss_preserves_durable_completion(self):
+        finite = self.make()
+        complete = self.journal.complete
+
+        def lose_acknowledgement(key, receipt):
+            complete(key, receipt)
+            raise OSError("private")
+
+        with patch.object(self.journal, "complete", side_effect=lose_acknowledgement):
+            result = finite.run()
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("journal_unknown", 200))
+        self.assertEqual(self.journal.snapshot()["seed"]["state"], "complete")
+        replacement = self.make(self.http)
+        self.assertEqual(replacement.run()["status"], "refused")
+        self.assertEqual(len(self.http.requests), 1)
+
+    def test_unknown_materialize_post_is_never_repeated(self):
+        class PoisonedTimeout(TimeoutError):
+            diagnostic = {"stage": "private", "code": "private"}
+
+        def fault(request, body, status, headers):
+            if body["phase"] == "materialize":
+                raise PoisonedTimeout("SYNTHETIC-PRIVATE-RESPONSE")
+            return status, headers, body
+
+        http = ScriptedHTTP(fault)
+        result = self.make(http).run()
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("transport"))
+        self.assertEqual(self.budget.synthetic_posts, 1)
+        self.assertEqual(self.budget.provider_calls, 16)
+        self.assertEqual(self.make(http).run()["status"], "refused")
+        self.assertEqual([r.url.rsplit("/", 1)[-1] for r in http.requests], list(PHASES[:3]))
+
+    def test_admission_and_reservation_faults_are_pre_dispatch_refusals(self):
+        finite = self.make(stop_check=lambda: True)
+        result = finite.run()
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("admission"))
+        self.assertEqual(self.http.requests, [])
+        finite = self.make()
+        with patch.object(self.journal, "reserve", side_effect=OSError("private")):
+            result = finite.run()
+        self.assertEqual(result["status"], "refused")
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("reservation"))
+        self.assertEqual(self.http.requests, [])
+
+    def test_diagnostic_validator_and_journal_reject_untrusted_fields(self):
+        good = client.failure_diagnostic("response_status", 503)
+        bad = (
+            {**good, "stage": "private"},
+            {**good, "code": "private"},
+            {**good, "code": client.FAILURE_CODES["transport"]},
+            {**good, "endpoint": "private"},
+            {**good, "parsedHttpStatus": True},
+            {**good, "parsedHttpStatus": "503"},
+            {**good, "parsedHttpStatus": 503.0},
+            {**good, "parsedHttpStatus": 99},
+            {**good, "parsedHttpStatus": 600},
+            {**good, "parsedHttpStatus": None},
+        )
+        self.journal.reserve("test", {})
+        for value in bad:
+            with self.subTest(value=value), self.assertRaises(client.Refused):
+                self.journal.unknown("test", "phase_outcome_unknown", value)
+            self.assertEqual(self.journal.snapshot()["test"]["state"], "intent")
+
+    def test_invalid_status_is_never_coerced_or_retained(self):
+        for index, status in enumerate((True, "503", 503.0, -1, 600)):
+            journal = operator.DurableJournal(
+                self.path.with_name(f"status-{index}.sqlite"), "a" * 64
+            )
+            self.addCleanup(journal.close)
+            finite = self.make(ScriptedHTTP(lambda r, b, s, h, status=status: (status, h, b)))
+            finite.journal = journal
+            result = finite.run()
+            self.assertEqual(result["status"], "unknown")
+            self.assertEqual(result["diagnostic"], client.failure_diagnostic("response_status"))
+
     def test_stop_and_expiry_before_dispatch_send_nothing(self):
         for identity, stopped in (
             (self.identity, True),
@@ -163,6 +312,7 @@ class FiniteClientTests(unittest.TestCase):
 
         result = self.make(ScriptedHTTP(stop), stop_check=lambda: stopped).run()
         self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("response_fence", 200))
         self.assertEqual(len(self.http.requests), 1)
 
     def test_late_response_cannot_complete_phase(self):
@@ -172,6 +322,7 @@ class FiniteClientTests(unittest.TestCase):
 
         result = self.make(ScriptedHTTP(late)).run()
         self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], client.failure_diagnostic("response_fence", 200))
         self.assertEqual(len(self.http.requests), 1)
 
     def test_request_count_budget_is_shared_across_clients(self):

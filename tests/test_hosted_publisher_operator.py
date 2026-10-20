@@ -492,6 +492,58 @@ class HostedOperatorIntegrationTests(unittest.TestCase):
             self.run_synthetic(instance)
         self.assertNotIn("SYNTHETIC-PRIVATE-RESPONSE", json.dumps(self.journal.snapshot()))
 
+    def test_client_diagnostic_reaches_terminal_operator_unknown_receipt(self):
+        instance = self.make()
+
+        def refuse(request):
+            self.requests.append(request)
+            return finite_client.Response(503, {}, b"SYNTHETIC-PRIVATE-RESPONSE")
+
+        instance.client_transport = refuse
+        result = self.run_synthetic(instance)
+        expected = finite_client.failure_diagnostic("response_status", 503)
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], expected)
+        snapshot = self.journal.snapshot()
+        self.assertEqual(snapshot["operator:run"]["receipt"]["diagnostic"], expected)
+        self.assertEqual(snapshot["client:happy:seed"]["receipt"]["diagnostic"], expected)
+        self.assertEqual(len(self.requests), 1)
+        with self.assertRaises(operator.OperatorRefused):
+            self.run_synthetic(instance)
+        self.assertEqual(len(self.requests), 1)
+        self.assertNotIn("SYNTHETIC-PRIVATE-RESPONSE", json.dumps(result))
+
+    def test_operator_unknown_journal_failure_returns_unknown_without_replay(self):
+        instance = self.make()
+        instance.client_transport = lambda request: finite_client.Response(503, {}, b"private")
+        with patch.object(self.journal, "unknown", side_effect=OSError("private")):
+            result = self.run_synthetic(instance)
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], finite_client.failure_diagnostic("journal_unknown"))
+        snapshot = self.journal.snapshot()
+        self.assertEqual(snapshot["operator:run"]["state"], "intent")
+        self.assertEqual(snapshot["client:happy:seed"]["state"], "intent")
+        with self.assertRaises(operator.OperatorRefused):
+            self.run_synthetic(instance)
+
+    def test_operator_rejects_malicious_client_diagnostic_before_retention(self):
+        instance = self.make()
+        with patch.object(
+            finite_client.FiniteClient,
+            "run",
+            return_value={
+                "status": "unknown",
+                "diagnostic": {"stage": "private", "code": "private"},
+            },
+        ):
+            result = self.run_synthetic(instance)
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(result["diagnostic"], finite_client.failure_diagnostic("operator"))
+        self.assertEqual(result["cases"], [])
+        self.assertEqual(
+            self.journal.snapshot()["operator:run"]["receipt"]["diagnostic"], result["diagnostic"]
+        )
+
     def test_private_binding_drift_prevents_enable_and_client_dispatch(self):
         instance = self.make(fault="private_drift")
         self.assertEqual(self.run_synthetic(instance)["status"], "unknown")

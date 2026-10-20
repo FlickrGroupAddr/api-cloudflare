@@ -90,6 +90,30 @@ each case its own journal namespace and share one cumulative budget across all
 four cases. The HTTP response contains no deployed identity attestation; client
 receipt identities refer to the separately verified target.
 
+### Local failure diagnostics — 2026-10-20
+
+The finite client records a closed `diagnostic` object on terminal failures and
+passes it through the caller's terminal unknown receipt. `stage` and `code` must
+match the fixed `FAILURE_CODES` table; optional `parsedHttpStatus` is an exact
+integer from 100 through 599. The journal rejects extra fields, unknown codes,
+mismatched pairs and coerced status values before writing them. Diagnostics
+contain no exception text, headers, bodies, credentials, resource IDs or origins.
+
+Stages distinguish admission, durable reservation, local preparation before
+dispatch, the transport call, response accounting/fences/status/headers/oracle,
+activity accounting and journal completion/unknown persistence. A transport
+failure means the local call failed; it does not prove the endpoint was reached
+or identify a Worker/provider cause. Failure bodies are never interpreted.
+Response acceptance, deadlines, worst-case reservations and no replay remain
+unchanged. This source update supplies no hosted qualification or live authority.
+
+If unknown persistence fails, the returned result remains `unknown` with a
+`journal_unknown` diagnostic. The durable row can remain an unresolved intent;
+an already committed completion is preserved if its acknowledgement was lost.
+Neither condition permits replay. The in-memory diagnostic does not attest
+that a durable diagnostic was written. A later hosted attempt needs a wholly
+fresh reviewed candidate, packet, identities, credentials, windows and run.
+
 `HttpsTransport(address, enabled=False)` is a concrete, default-disabled TLS
 transport. A later approved operator must supply the reviewed numeric address;
 the transport connects there while verifying the exact endpoint hostname. It
