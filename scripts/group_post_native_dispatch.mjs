@@ -35,7 +35,14 @@ export function observedCommandIndex(tree) {
     const match = /^\s*(?:\[(0|[1-9][0-9]*)\]|(0|[1-9][0-9]*)[.:)]?)\s+(.+)$/.exec(line);
     return match && { index: Number(match[1] ?? match[2]), label: match[3] };
   }).filter(Boolean);
-  const matches = entries.filter((entry) => labels.includes(entry.label));
+  const matches = entries.filter((entry) => {
+    if (labels.includes(entry.label)) return true;
+    // Sky may append only this generated ID annotation. It is not the click
+    // index or evidence of enabled state; unknown/disabled annotations refuse.
+    const suffix = /^(.+) ID: ([1-9][0-9]{0,15})$/.exec(entry.label);
+    return suffix !== null && suffix[0] === entry.label && labels.includes(suffix[1])
+      && Number.isSafeInteger(Number(suffix[2]));
+  });
   requireValue(matches.length === 1 && Number.isSafeInteger(matches[0].index)
     && entries.filter((entry) => entry.index === matches[0].index).length === 1,
   'observed_command_mismatch');

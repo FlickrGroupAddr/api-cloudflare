@@ -65,9 +65,11 @@ function fixture() {
 for (const prefix of ['[12]', '12:', '12.', '12)', '12']) {
   for (const label of [`MenuItem ${COMMAND}`, `MenuItem "${COMMAND}"`,
     `menu item ${COMMAND}`, `menu item "${COMMAND}"`]) {
-    test(`exact synthetic tree subset ${prefix} ${label} yields its index`, () => {
-      assert.equal(observedCommandIndex(`\t${prefix} ${label}\r\n[1] MenuItem FGA-LrC15 disabled`), 12);
-    });
+    for (const suffix of ['', ' ID: 1', ' ID: 345', ' ID: 9007199254740991']) {
+      test(`exact synthetic tree subset ${prefix} ${label}${suffix} yields its index`, () => {
+        assert.equal(observedCommandIndex(`\t${prefix} ${label}${suffix}\r\n[1] MenuItem FGA-LrC15 disabled`), 12);
+      });
+    }
   }
 }
 for (const [name, tree] of [
@@ -86,6 +88,30 @@ for (const [name, tree] of [
   ['invented malformed index', `[12) MenuItem "${COMMAND}"`],
 ]) test(`${name} cannot establish a command target`, () => {
   assert.throws(() => observedCommandIndex(tree));
+});
+
+for (const suffix of [' ID: ', ' ID: 0', ' ID: -1', ' ID: +1', ' ID: 01',
+  ' ID: 1.0', ' ID: 1e2', ' ID: 0x12', ' ID: NaN', ' ID: Infinity',
+  ' ID: 9007199254740992', ` ID: ${'9'.repeat(100)}`, ' ID: １２',
+  ' ID: 1 ', ' ID: 1\t', ' ID: 1\r', ' ID: 1\u2028', ' ID: 1\u2029',
+  ' ID: 1 disabled', ' disabled ID: 1', ' ID: 1 enabled', ' enabled ID: 1',
+  ' ID: 1 ID: 2', ' ID: 1 other', ' ID:1', ' ID:  1', ' id: 1']) {
+  test(`hostile ID suffix ${JSON.stringify(suffix)} cannot establish a target`, () => {
+    assert.throws(() => observedCommandIndex(`12 menu item ${COMMAND}${suffix}`));
+  });
+}
+
+for (const other of [`13 menu item ${COMMAND} ID: 7`,
+  `13 menu item ${COMMAND} disabled ID: 7`, `13 menu item ${COMMAND} ID: -1`,
+  `MenuItem(name=${COMMAND}, index=13)`, '12 Button other ID: 7']) {
+  test(`annotated target rejects duplicate command or reused index: ${other}`, () => {
+    assert.throws(() => observedCommandIndex(`12 menu item ${COMMAND} ID: 7\n${other}`));
+  });
+}
+
+test('ID annotation does not replace the safe unique click index', () => {
+  assert.equal(observedCommandIndex(`0 menu item ${COMMAND} ID: 345`), 0);
+  assert.throws(() => observedCommandIndex(`9007199254740992 menu item ${COMMAND} ID: 1`));
 });
 
 test('observation requires an active correlated invocation before capture', async () => {
@@ -159,14 +185,25 @@ for (const expire of [false, true]) test(`request replacement during checkpoint 
   await assert.rejects(f.dispatch());
 });
 
-test('fresh exact menu item dispatches once after durable intent, then immediate capture and ack', async () => {
-  const f = fixture(); await f.ready(); const start = f.events.length;
+for (const suffix of ['', ' ID: 345']) test(`fresh exact menu item${suffix} dispatches once after durable intent, then immediate capture and ack`, async () => {
+  const f = fixture();
+  f.observation.accessibility.tree = `12 menu item ${COMMAND}${suffix}`;
+  await f.ready(); const start = f.events.length;
   const result = await f.dispatch(); assert.equal(result.outcome, 'dispatched');
   assert.deepEqual(f.events.slice(start), ['attempted.json', 'challenge-dispatch.json', 'click', 'capture', 'ack.json']);
   assert.equal(JSON.parse(f.records.get(f.c('ack.json'))).actualInputCount, 1);
   await assert.rejects(f.dispatch());
   assert.equal(f.events.filter((x) => x === 'click').length, 1);
 });
+
+for (const suffix of [' ID: -1', ' ID: 345 disabled', ' disabled ID: 345', ' ID: 345 unknown']) {
+  test(`unsupported annotated target${suffix} refuses before durable intent or input`, async () => {
+    const f = fixture(); f.observation.accessibility.tree = `12 menu item ${COMMAND}${suffix}`;
+    await f.ready(); await assert.rejects(f.dispatch());
+    assert.equal(f.records.has(f.c('attempted.json')), false);
+    assert.equal(f.events.includes('click'), false);
+  });
+}
 
 for (const [name, params] of [
   ['old coordinate action', { screenshotId: 'shot-1', x: 100, y: 200 }],
