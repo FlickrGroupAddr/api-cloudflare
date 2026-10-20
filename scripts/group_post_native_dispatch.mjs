@@ -25,15 +25,16 @@ function exact(value, keys) {
 // real format needs a reviewed adaptation; these examples prove no host route.
 export function observedCommandIndex(tree) {
   requireValue(typeof tree === 'string' && tree.length > 0, 'observed_accessibility_required');
-  // Count target-bearing evidence before parsing the supported subset. A second
-  // disabled/unsupported-format occurrence cannot be silently discarded as if
-  // the supported line were the only command in the observation.
-  requireValue(tree.split(COMMAND).length === 2, 'observed_command_ambiguous');
+  // Count every target occurrence, including unsupported or disabled rows. Only
+  // exact repeated references with an ID may describe one indexed element; do
+  // not deduplicate the tree or discard evidence that fails this grammar.
+  const occurrences = tree.split(COMMAND).length - 1;
+  requireValue(occurrences > 0, 'observed_command_ambiguous');
   const labels = ['MenuItem ' + COMMAND, 'MenuItem ' + JSON.stringify(COMMAND),
     'menu item ' + COMMAND, 'menu item ' + JSON.stringify(COMMAND)];
   const entries = tree.split(/\r?\n/).map((line) => {
     const match = /^\s*(?:\[(0|[1-9][0-9]*)\]|(0|[1-9][0-9]*)[.:)]?)\s+(.+)$/.exec(line);
-    return match && { index: Number(match[1] ?? match[2]), label: match[3] };
+    return match && { index: Number(match[1] ?? match[2]), label: match[3], line };
   }).filter(Boolean);
   const matches = entries.filter((entry) => {
     if (labels.includes(entry.label)) return true;
@@ -43,10 +44,23 @@ export function observedCommandIndex(tree) {
     return suffix !== null && suffix[0] === entry.label && labels.includes(suffix[1])
       && Number.isSafeInteger(Number(suffix[2]));
   });
-  requireValue(matches.length === 1 && Number.isSafeInteger(matches[0].index)
-    && entries.filter((entry) => entry.index === matches[0].index).length === 1,
+  requireValue(matches.length === occurrences && Number.isSafeInteger(matches[0]?.index),
+    'observed_command_mismatch');
+  const target = matches[0];
+  // A repeated reference must retain the exact row bytes (index notation, role,
+  // full enabled label and positive ID annotation). ID-less duplicates or even
+  // semantically similar spellings cannot establish this narrow representation.
+  requireValue((matches.length === 1 || / ID: [1-9][0-9]{0,15}$/.test(target.label))
+    && matches.every((entry) => entry.line === target.line)
+    && tree.split(/\r?\n/).every((line) => {
+      // Recognize potential collisions more broadly than accepted command rows:
+      // malformed closing brackets, whitespace and leading zeroes cannot hide
+      // the same leading index. This only refuses; it never supplies a target.
+      const prefix = /^\s*\[?\s*([0-9]+)/.exec(line);
+      return !prefix || Number(prefix[1]) !== target.index || line === target.line;
+    }),
   'observed_command_mismatch');
-  return matches[0].index;
+  return target.index;
 }
 
 // Bounded reads use one handle and parse the same bytes. Final-path exclusive

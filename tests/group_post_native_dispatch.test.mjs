@@ -114,6 +114,84 @@ test('ID annotation does not replace the safe unique click index', () => {
   assert.throws(() => observedCommandIndex(`9007199254740992 menu item ${COMMAND} ID: 1`));
 });
 
+for (const row of [`12 menu item ${COMMAND} ID: 40228`,
+  `\t[12] MenuItem "${COMMAND}" ID: 9007199254740991`]) {
+  for (const count of [2, 3]) test(`${count} byte-identical ID-bearing references identify one index: ${row}`, () => {
+    const tree = ['[1] MenuItem other', ...Array(count).fill(row), '[99] Button other'].join('\r\n');
+    assert.equal(observedCommandIndex(tree), 12);
+  });
+}
+
+const repeatedRow = `12 menu item ${COMMAND} ID: 40228`;
+const repeatedConflicts = [
+  ['different index', `13 menu item ${COMMAND} ID: 40228`],
+  ['different role', `12 Button ${COMMAND} ID: 40228`],
+  ['different role spelling', `12 MenuItem ${COMMAND} ID: 40228`],
+  ['different full label', `12 menu item ${COMMAND} extra ID: 40228`],
+  ['different quoting', `12 menu item "${COMMAND}" ID: 40228`],
+  ['different ID', `12 menu item ${COMMAND} ID: 40229`],
+  ['missing ID', `12 menu item ${COMMAND}`],
+  ['disabled reference', `${repeatedRow} disabled`],
+  ['disabled before ID', `12 menu item ${COMMAND} disabled ID: 40228`],
+  ['unknown annotation', `${repeatedRow} unknown`],
+  ['unknown target format', `MenuItem(name=${COMMAND}, index=12, ID=40228)`],
+  ['different indentation', `\t${repeatedRow}`],
+  ['different index notation', `[12] menu item ${COMMAND} ID: 40228`],
+  ['index collision with distinct row', '12 Button other ID: 40228'],
+  ['index collision without ID', '[12] MenuItem other'],
+  ['unsupported index collision', '[12]Button other'],
+  ['mismatched bracket index collision', '[12) Button other'],
+  ['space before bracket index collision', '[12 ] Button other'],
+  ['space after bracket index collision', '[ 12] Button other'],
+  ['leading zero index collision', '[012] Button other'],
+  ['unclosed bracket index collision', '[12 Button other'],
+  ['unknown bracket suffix collision', '[12unknown Button other'],
+  ['empty index collision', '12'],
+  ['unindexed target context', `Menu ${COMMAND}`],
+  ['second occurrence in row', `${repeatedRow} ${COMMAND}`],
+];
+for (const [name, conflict] of repeatedConflicts) {
+  test(`repeated references reject ${name} before durable intent or input`, async () => {
+    const f = fixture(); f.observation.accessibility.tree = `${repeatedRow}\n${repeatedRow}\n${conflict}`;
+    assert.throws(() => observedCommandIndex(f.observation.accessibility.tree));
+    await f.ready(); await assert.rejects(f.dispatch());
+    assert.equal(f.records.has(f.c('attempted.json')), false);
+    assert.equal(f.events.includes('click'), false);
+  });
+}
+
+test('identical references without an ID cannot establish one element', () => {
+  const row = `12 menu item ${COMMAND}`;
+  assert.throws(() => observedCommandIndex(`${row}\n${row}`));
+});
+
+test('malformed non-command references to a different index do not become target collisions', () => {
+  assert.equal(observedCommandIndex(`${repeatedRow}\n[13) Button other\n${repeatedRow}`), 12);
+});
+
+test('repeated-reference dispatch retains the whole observation and performs one indexed input without replay', async () => {
+  const f = fixture();
+  const tree = `[1] MenuItem other\n${repeatedRow}\n[40] Button other\n${repeatedRow}`;
+  f.observation.accessibility.tree = tree;
+  await f.ready(); assert.equal(f.session.state, f.observation);
+  const start = f.events.length;
+  const result = await f.dispatch(); assert.equal(result.actualInputCount, 1);
+  assert.equal(f.observation.accessibility.tree, tree);
+  assert.deepEqual(f.events.slice(start), ['attempted.json', 'challenge-dispatch.json', 'click', 'capture', 'ack.json']);
+  await assert.rejects(f.dispatch()); await assert.rejects(f.controller.observe(f.observation.window));
+  assert.equal(f.events.filter((event) => event === 'click').length, 1);
+  assert.equal(f.events.filter((event) => event === 'capture').length, 2);
+});
+
+test('editing the captured repeated tree during checkpoint permanently refuses input', async () => {
+  const f = fixture(); f.observation.accessibility.tree = `${repeatedRow}\n${repeatedRow}`;
+  await f.ready();
+  f.after((file) => { if (file === f.c('challenge-dispatch.json')) f.observation.accessibility.tree = repeatedRow; });
+  await assert.rejects(f.dispatch(), /no_retry/); await assert.rejects(f.dispatch());
+  assert.equal(f.events.includes('click'), false);
+  assert.equal(f.session.fgaPostAttempt.stopped, true);
+});
+
 test('observation requires an active correlated invocation before capture', async () => {
   const f = fixture(); await f.controller.prewarm();
   await assert.rejects(f.controller.observe(f.observation.window));

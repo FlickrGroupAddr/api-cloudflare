@@ -1,6 +1,6 @@
 # #0216 proposed indexed native dispatch
 
-Revision r2; source/synthetic candidate only, 2026-10-19. Not accepted or executed.
+Revision r3; source/synthetic candidate only, 2026-10-20. Not accepted or executed.
 actionReady=false; nativeRouteReady=false; productionQualified=false.
 
 This proposal replaces the final coordinate action in a NEW #0161 successor
@@ -33,17 +33,31 @@ evidence, owned local cleanup, no in-flight attempt, and the final action scope
 must first be established. Never reuse the spent actual161 markers to do it.
 No native action or marker write is authorized by this document.
 
-The parser requires exactly one occurrence of the exact command text across
-the whole tree before parsing any supported line. A second command-bearing
-context is ambiguous even if it is disabled, annotated, or uses unsupported
-formatting. It then supports only the explicit historical indexed-line subset in the
-candidate tests. Sky documents formatted tree text without a universal line
-grammar. Unsupported actual formatting, disabled/state annotations, duplicate
-exact commands or a reused index fail closed. A changed format requires a
-reviewed source adaptation. An exact line lacking a disabled annotation is
+The parser counts every occurrence of the exact command text across the whole
+tree. Each must belong to a supported indexed menu-item row. A single row may
+omit its ID annotation or use the exact suffix ` ID: <positive safe integer>`.
+Repeated references are supported only when every command-bearing row is
+byte-identical, including indentation, index notation, role, full label and the
+same required positive ID annotation. Line endings delimit rows; CRLF and LF
+are supported. ID-less repetitions, changed IDs, different indices, equivalent
+but differently quoted labels, disabled/unknown annotations, unsupported target
+contexts and distinct rows reusing the target index refuse, including malformed
+bracket/whitespace notation or leading-zero aliases. This broader collision
+recognition only refuses rows; it cannot establish a command target. The ID corroborates
+the repeated representation; the inspected index remains the click argument.
+
+The controller retains and checks the original whole observation; it never
+deduplicates or rewrites its tree. Sky documents formatted tree text without a
+universal line grammar. A changed format requires a reviewed source adaptation.
+An exact line lacking a disabled annotation is
 not independent proof of enabled/actionable state; inspect the real menu and
 obtain the positive rehearsal evidence. There is no coordinate fallback,
 offset compensation, guessed index, keyboard fallback, or retry after input.
+
+JavaScript remains necessary for this module because the supported Computer Use
+Node REPL owns the returned Window/observation objects and indexed input. Moving
+this parser to Python would require crossing that live object boundary. Python
+continues to own the external request, deadline and cleanup orchestration.
 
 ## New packet integration, after independent source review
 
@@ -97,8 +111,9 @@ After inspecting F, replacement G is a distinct cell:
 }
 ```
 
-This cell cannot accept coordinates. The index must match the unique exact
-MenuItem label in the controller's unchanged capture. Durable attempted intent
+This cell cannot accept coordinates. The index must match the single element
+established by the exact MenuItem row or supported identical references in the
+controller's unchanged capture. Durable attempted intent
 still precedes the owner dispatch checkpoint and one supported click; immediate
 refresh still precedes the acknowledgement. Input/refresh/ack uncertainty
 remains terminal, with zero/one/unknown counts recorded honestly and no replay.
