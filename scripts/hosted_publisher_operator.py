@@ -278,6 +278,9 @@ class HostedPublisherOperator:
         self._calls = self._mutations = self._sql_calls = self._sql_statements = 0
         self._request_bytes = self._response_bytes = 0
         self._ledger: dict[str, dict[str, Any]] = {}
+        # A recovered complete proof fact cannot establish that the original
+        # process passed its post-sync live publication fence.
+        self._published_record_operations: set[str] = set()
         self._active_request: str | None = None
         self._execution_lock = threading.Lock()
         for key, event in journal.snapshot().items():
@@ -298,6 +301,13 @@ class HostedPublisherOperator:
         if provider.before_request is not None or provider.after_request is not None:
             raise OperatorRefused("provider_hooks_already_owned")
         provider.before_request, provider.after_request = self._before_request, self._after_request
+        if getattr(provider, "deployment_record_proof", None) is not None:
+            raise OperatorRefused("provider_proof_hook_already_owned")
+        provider.deployment_record_proof = self._seal_deployment_record
+        self._deployment_key: str | None = None
+        self._deployment_observations: dict[str, datetime] = {}
+        self._record_proof_attempt = False
+        self._record_proof_candidate_id: str | None = None
 
     def _now(self) -> datetime:
         return datetime.fromtimestamp(self.wall_clock(), UTC)
@@ -340,6 +350,9 @@ class HostedPublisherOperator:
     def _before_request(self, key: str, mutation: bool, metadata: dict[str, Any]) -> None:
         from scripts.hosted_publisher_operator_plan import validate_operator_grant
 
+        if self._deployment_key is not None and key == self._deployment_key + ":record":
+            self._record_proof_attempt = True
+            self._check_proof_observations(self._proof_observation())
         self._window(cleanup=getattr(self, "_cleanup_mode", False))
         validate_operator_grant(self.plan, self.operator_grant, self._now())
         if mutation:
@@ -398,8 +411,114 @@ class HostedPublisherOperator:
             timing = getattr(self, "_create_timing", None)
             if timing is not None:
                 timing["request_started"] = admitted
+        if self._deployment_key is not None and key in {
+            self._deployment_key,
+            self._deployment_key + ":record",
+        }:
+            self._deployment_observations[key + ":start"] = (
+                self._now() if key == self._deployment_key else self._proof_observation()
+            )
+            if key != self._deployment_key:
+                self._check_proof_observations()
+
+    def _proof_observation(self) -> datetime:
+        from scripts.hosted_publisher_operator_plan import validate_operator_grant
+
+        self._fence()
+        observed = self._case_window()
+        validate_operator_grant(self.plan, self.operator_grant, observed)
+        return observed
+
+    def _check_proof_observations(self, extra: datetime | None = None) -> None:
+        from scripts.hosted_publisher_operator_plan import utc_time, validate_operator_grant
+
+        case = self._request_case
+        if case is None:
+            raise OperatorRefused("deployment_case_required")
+        observations = list(self._deployment_observations.values())
+        if extra is not None:
+            observations.append(extra)
+        if observations != sorted(observations):
+            raise OperatorRefused("deployment_observation_reversal")
+        for observed in observations:
+            if (
+                not max(utc_time(case.starts_at), utc_time(self.plan.starts_at))
+                <= observed
+                < min(utc_time(case.expires_at), utc_time(self.plan.expires_at))
+            ):
+                raise OperatorRefused("deployment_observation_window")
+            validate_operator_grant(self.plan, self.operator_grant, observed)
+
+    def _seal_deployment_record(self, key, identity, version, result) -> None:
+        """Persist only closed, canonically bound proof before receipt registration."""
+        from scripts.hosted_publisher_operator_plan import utc_time
+
+        self._record_proof_attempt = True
+        self._record_proof_candidate_id = result["id"]
+        case = self._request_case
+        if key != self._deployment_key or case is None or identity["name"] != case.worker_name:
+            raise OperatorRefused("deployment_proof_binding")
+        self._proof_observation()
+        keys = [key + ":start", key + ":end", key + ":record:start", key + ":record:end"]
+        observations = [self._deployment_observations[k] for k in keys]
+        self._check_proof_observations()
+        if (
+            not utc_time(case.starts_at)
+            <= datetime.fromisoformat(result["created_on"])
+            < min(utc_time(case.expires_at), utc_time(self.plan.expires_at))
+        ):
+            raise OperatorRefused("deployment_provider_time_outside_case")
+        snapshot = self.journal.snapshot()
+        references = ["provider:" + key, "provider:" + key + ":record"]
+        if any(
+            snapshot[ref]["state"] != "complete"
+            or not 200 <= snapshot[ref]["receipt"]["status"] < 300
+            for ref in references
+        ):
+            raise OperatorRefused("deployment_request_proof_unknown")
+        proof = {
+            "proofKind": "id-only-exact-record-v1",
+            "planDigest": self._plan_digest,
+            "scenario": case.scenario,
+            "operationRef": "operation:" + key,
+            "postRequestRef": references[0],
+            "recordRequestRef": references[1],
+            "accountId": self.plan.account_id,
+            "workerName": case.worker_name,
+            "workerId": identity["id"],
+            "versionId": version["id"],
+            "moduleSha2_256": version["moduleSha2_256"],
+            "databaseId": snapshot["operation:" + case.scenario + ":create"]["receipt"]["result"][
+                "uuid"
+            ],
+            "versionReadbackRef": "provider:" + key + ":version",
+            "beforeIdentityRef": "provider:" + key + ":before",
+            "afterIdentityRef": "provider:" + key + ":after",
+            "acknowledgedId": result["id"],
+            "returnedId": result["id"],
+            "providerCreatedOn": result["created_on"],
+            **{
+                label: observed.isoformat()
+                for label, observed in zip(
+                    ("postStartedAt", "postResponseAt", "recordStartedAt", "recordResponseAt"),
+                    observations,
+                    strict=True,
+                )
+            },
+        }
+        if not self.journal.reserve("proof:" + key, {"operationRef": "operation:" + key}):
+            raise OperatorRefused("deployment_proof_already_reserved")
+        self.journal.complete("proof:" + key, proof)
+        self._proof_observation()
 
     def _after_request(self, key: str, receipt: dict[str, Any]) -> None:
+        if self._deployment_key is not None and key in {
+            self._deployment_key,
+            self._deployment_key + ":record",
+        }:
+            self._deployment_observations[key + ":end"] = (
+                self._now() if key == self._deployment_key else self._proof_observation()
+            )
         # Observe once before validation or durable receipt persistence can
         # consume time. Provider field validation may raise after this callback.
         timing = getattr(self, "_create_timing", None)
@@ -439,6 +558,10 @@ class HostedPublisherOperator:
                 (case for case in self.plan.cases if getattr(case, field) == args[0]), None
             )
         self._create_timing = {} if method.__name__ == "create_database" else None
+        self._deployment_key = key if method.__name__ == "deploy_version" else None
+        self._deployment_observations = {}
+        self._record_proof_attempt = False
+        self._record_proof_candidate_id = None
         try:
             request_started = self._now()
             if method.__name__ in {"create_database", "create_worker"}:
@@ -521,13 +644,46 @@ class HostedPublisherOperator:
                 elif result["versionId"] != args[1]["id"]:
                     raise OperatorRefused("deployment_version_drift")
                 receipt = {"result": result}
+                if method.__name__ == "deploy_version":
+                    proof = self.journal.snapshot().get("proof:" + key)
+                    receipt["proofKind"] = (
+                        "id-only-exact-record-v1" if proof is not None else "complete-post-v1"
+                    )
+                    if proof is not None:
+                        self._proof_observation()
+                        receipt["proofRef"] = "proof:" + key
             elif method.__name__ in {"delete_worker", "delete_database"}:
                 if type(result) is not dict or result.get("deletionAcknowledged") is not True:
                     raise OperatorRefused("deletion_acknowledgement_unknown")
                 receipt = {"result": {"deletionAcknowledged": True}}
             self.journal.complete("operation:" + key, receipt)
+            if method.__name__ == "deploy_version" and receipt.get("proofRef") is not None:
+                self._check_proof_observations(self._proof_observation())
+                self._published_record_operations.add(key)
+                self.provider._deployments[result["id"]] = result.copy()
             return result
         except Exception:
+            if method.__name__ == "deploy_version" and self._record_proof_attempt:
+                # Sealing the closed proof does not publish the operation. A
+                # failure in that final durable write still consumes intent and
+                # must not leave an in-memory receipt available for adoption.
+                self.provider._closed = True
+                self._stopped = True
+                self.provider._deployments.pop(self._record_proof_candidate_id, None)
+                self._published_record_operations.discard(key)
+                try:
+                    if self.journal.snapshot()["operation:" + key]["state"] == "complete":
+                        # Completion remains an immutable proof fact, not evidence
+                        # that a usable receipt crossed the publication fence.
+                        publication = "publication:" + key
+                        if self.journal.reserve(publication, {"operationRef": "operation:" + key}):
+                            self.journal.unknown(publication, "deployment_publication_unknown")
+                    else:
+                        self.journal.unknown("operation:" + key, "operation_outcome_unknown")
+                except Exception:
+                    # Failed audit storage cannot reopen dispatch/publication.
+                    pass
+                raise OperatorRefused("operation_outcome_unknown") from None
             if self._active_request is not None:
                 self.journal.unknown(self._active_request, "provider_outcome_unknown")
                 self._active_request = None
@@ -613,10 +769,32 @@ class HostedPublisherOperator:
                 self.journal.unknown("operation:" + key, "operation_outcome_unknown")
             raise OperatorRefused("operation_outcome_unknown") from None
         finally:
+            self._deployment_key = None
+            self._deployment_observations = {}
+            self._record_proof_attempt = False
+            self._record_proof_candidate_id = None
             self._request_case = previous_case
             self._create_timing = previous_timing
 
+    def _deployment_published(self, key: str, operation: dict[str, Any] | None) -> bool:
+        if (
+            type(operation) is not dict
+            or operation.get("state") != "complete"
+            or type(operation.get("receipt")) is not dict
+        ):
+            return False
+        kind = operation["receipt"].get("proofKind")
+        return type(kind) is str and (
+            kind == "complete-post-v1"
+            or (kind == "id-only-exact-record-v1" and key in self._published_record_operations)
+        )
+
     def _check_deployment(self, case: Any, entry: dict[str, Any], prefix: str) -> None:
+        operation_key = case.scenario + ":deploy"
+        if not self._deployment_published(
+            operation_key, self.journal.snapshot().get("operation:" + operation_key)
+        ):
+            raise OperatorRefused("deployment_publication_unproved")
         version = self._call(
             self.provider.inspect_version,
             entry["worker"],
@@ -1015,7 +1193,7 @@ class HostedPublisherOperator:
                 and version is not None
                 and version["state"] == "complete"
                 and deployment is not None
-                and deployment["state"] == "complete"
+                and self._deployment_published(key + ":deploy", deployment)
             )
             if verified_binding:
                 assert version is not None and deployment is not None

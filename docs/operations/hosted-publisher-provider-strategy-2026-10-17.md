@@ -22,6 +22,13 @@ separate gates; no provider/API qualification is supplied.
 
 ## Original strategy â€” 2026-10-17
 
+The accepted [deployment-record proof supplement](hosted-publisher-deployment-record-proof-2026-10-20.md)
+records Terry's 2026-10-20 #0228 approval of the narrowly bounded ID-only
+acknowledgement plus exact-ID GET branch. It preserves the complete-POST path,
+all original proof requirements, finite windows, provenance and cleanup limits.
+
+## Original strategy — 2026-10-17
+
 Status: **Proposed offline strategy; no hosted action authorized.** Ticket #0157
 narrows the #0155 provider gaps without changing the sealed #0121 candidate.
 The recommendation is immutable Worker identity plus an explicit owner decision

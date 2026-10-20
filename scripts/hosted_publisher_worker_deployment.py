@@ -162,6 +162,10 @@ class BetaPublisherProvider(CloudflareProvider):
         self._version_intents = set()
         self._deployments = {}
         self._deployment_intents = set()
+        self._acknowledged_deployments = set()
+        # Only the canonical operator can supply case/plan/grant observations
+        # and durable proof persistence. An ID alone is never a receipt.
+        self.deployment_record_proof = None
         self.last_deployment_diagnostic = None
         self.last_deployment_response_shape = None
         self._deployment_diagnostic_active = False
@@ -284,6 +288,7 @@ class BetaPublisherProvider(CloudflareProvider):
             ):
                 raise ProviderError("worker_restore_deployment_invalid")
             self._deployments[deployment["id"]] = deployment.copy()
+            self._acknowledged_deployments.add(deployment["id"])
 
     def _observe(self, identity, *, key):
         if self.inspect_worker(identity, key=key) is None:
@@ -499,11 +504,42 @@ class BetaPublisherProvider(CloudflareProvider):
             key=key,
         )
         self._deployment_stage("response_validation")
+        record_proof = type(result) is dict and set(result) == {"id"}
+        if record_proof:
+            acknowledged = result["id"]
+            if not _uuid(acknowledged) or acknowledged in self._acknowledged_deployments:
+                self._unknown("worker_deployment_identity_reused_or_invalid")
+            self._acknowledged_deployments.add(acknowledged)
+            if self.deployment_record_proof is None:
+                self._unknown("worker_deployment_proof_context_required")
+            try:
+                result = self._request(
+                    "GET",
+                    self._worker(identity["name"]) + "/deployments/" + acknowledged,
+                    key=key + ":record",
+                )
+            except Exception:
+                self._unknown("worker_deployment_record_unknown")
+            if type(result) is not dict or result.get("id") != acknowledged:
+                self._unknown("worker_deployment_record_identity_drift")
         receipt = self._deployment(result, identity, version)
-        self._deployment_stage("receipt_registration")
-        self._deployments[receipt["id"]] = receipt.copy()
+        if not record_proof:
+            self._acknowledged_deployments.add(receipt["id"])
+            self._deployment_stage("receipt_registration")
+            self._deployments[receipt["id"]] = receipt.copy()
         self._deployment_stage("post_identity_admission")
         self._observe(identity, key=key + ":after")
+        if record_proof:
+            try:
+                proof = self.deployment_record_proof
+                if proof is None:
+                    self._unknown("worker_deployment_proof_context_required")
+                proof(key, identity, version, receipt.copy())
+            except Exception:
+                self._unknown("worker_deployment_provenance_unknown")
+            # This is a verified candidate. The operator must finish its own
+            # durable operation and pass the live publication fence before
+            # adding it to the usable receipt registry.
         self.last_deployment_diagnostic = None
         self.last_deployment_response_shape = None
         return receipt
