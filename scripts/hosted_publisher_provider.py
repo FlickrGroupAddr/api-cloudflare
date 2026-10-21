@@ -304,11 +304,7 @@ class CloudflareProvider:
         self.worker_names, self.database_names = frozenset(worker_names), frozenset(database_names)
         if not 1 <= len(self.worker_names) <= 4 or not 1 <= len(self.database_names) <= 4:
             raise ProviderError("provider_scope_invalid")
-        if any(
-            not isinstance(n, str) or not re.fullmatch(r"fga-publisher-[a-z0-9-]{1,48}", n)
-            for n in self.worker_names | self.database_names
-        ):
-            raise ProviderError("provider_name_invalid")
+        self._validate_names()
         caps = Limits()
         limits = caps if limits is None else limits
         for name in caps.__dataclass_fields__:
@@ -340,6 +336,13 @@ class CloudflareProvider:
         self._databases = {}
         self._created_names = set()
         self._lock = threading.Lock()
+
+    def _validate_names(self):
+        if any(
+            not isinstance(n, str) or not re.fullmatch(r"fga-publisher-[a-z0-9-]{1,48}", n)
+            for n in self.worker_names | self.database_names
+        ):
+            raise ProviderError("provider_name_invalid")
 
     def _worker(self, name):
         if name not in self.worker_names:

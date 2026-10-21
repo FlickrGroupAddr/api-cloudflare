@@ -85,6 +85,7 @@ class BetaPublisherProvider(CloudflareProvider):
     provider_qualified = False
     beta_identity = True
     selected_strategy = "beta-synthetic-disposal-v1"
+    module_name = "worker.js"
 
     def __init__(
         self, account, token, worker_names, database_names, *, exclusive_owner=False, **kwargs
@@ -116,7 +117,10 @@ class BetaPublisherProvider(CloudflareProvider):
         if self._deployment_diagnostic_active:
             if key == self._deployment_request_key:
                 stage = "deployment"
-            elif key == self._deployment_request_key + ":after":
+            elif (
+                self._deployment_request_key is not None
+                and key == self._deployment_request_key + ":after"
+            ):
                 stage = "post_identity"
         if stage is not None:
             self._deployment_stage(stage + "_admission")
@@ -301,7 +305,7 @@ class BetaPublisherProvider(CloudflareProvider):
                     not isinstance(modules, list)
                     or len(modules) != 1
                     or set(modules[0]) != {"name", "content_type", "content_base64"}
-                    or modules[0]["name"] != "worker.js"
+                    or modules[0]["name"] != self.module_name
                     or modules[0]["content_type"] != "application/javascript+module"
                 ):
                     raise ValueError
@@ -312,11 +316,20 @@ class BetaPublisherProvider(CloudflareProvider):
                 self._unknown("worker_version_module_drift")
         return result["id"]
 
+    def _validate_projection(self, module, sha2, metadata, access_token):
+        return validate_worker_projection(module, sha2, metadata, access_token)
+
+    def _upload_bindings(self, private, configuration, access_token):
+        return [
+            {**b, "text": access_token} if b["type"] == "secret_text" else b.copy()
+            for b in configuration["bindings"]
+        ]
+
     @_exclusive
     def create_version(self, identity, module, sha2, metadata, access_token, *, key):
         self._guard()
         path = self.identity._path(identity)
-        private = validate_worker_projection(module, sha2, metadata, access_token)
+        private = self._validate_projection(module, sha2, metadata, access_token)
         db = next(b["id"] for b in metadata["bindings"] if b["type"] == "d1")
         if db not in self._databases:
             raise ProviderError("worker_database_not_created")
@@ -329,7 +342,7 @@ class BetaPublisherProvider(CloudflareProvider):
         configuration["bindings"] = self._bindings(configuration["bindings"])
         modules = [
             {
-                "name": "worker.js",
+                "name": self.module_name,
                 "content_type": "application/javascript+module",
                 "content_base64": base64.b64encode(module).decode("ascii"),
             }
@@ -339,10 +352,7 @@ class BetaPublisherProvider(CloudflareProvider):
             "modules": modules,
             "cache_options": {"enabled": False, "cross_version_cache": False},
         }
-        payload["bindings"] = [
-            {**b, "text": access_token} if b["type"] == "secret_text" else b.copy()
-            for b in configuration["bindings"]
-        ]
+        payload["bindings"] = self._upload_bindings(private, configuration, access_token)
         self._version_intents.add(identity["id"])
         result = self._request("POST", path + "/versions?deploy=false", payload, key=key)
         expected = {"configuration": configuration, "modules": modules}
