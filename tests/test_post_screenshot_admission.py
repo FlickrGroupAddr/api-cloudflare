@@ -211,6 +211,8 @@ class Fixture:
             "expires_on": timestamp(NOW + 1500),
             "not_before": self.plan["starts_at"],
             "policies": admission.issuer._policies(self.plan, ids),
+            "modified_on": timestamp(NOW - 99),
+            "last_used_on": None,
         }
         self.ownership = {
             "childId": child["id"],
@@ -248,7 +250,7 @@ class Fixture:
             {"phase": "parent_details", "response": envelope(parent)},
             {
                 "phase": "create_acknowledged",
-                "response": envelope({"id": child["id"]}),
+                "response": envelope(child | {"modified_on": timestamp(NOW - 100)}),
                 "ownership": self.ownership,
                 "child_sha2_256": self.config["credentialSha2_256"],
             },
@@ -273,6 +275,8 @@ class Fixture:
                 }
             ),
         )
+        # A later verification/use can advance observations, never security fields.
+        child = child | {"modified_on": timestamp(NOW - 98), "last_used_on": timestamp(NOW - 1)}
         self.put(
             "grant",
             {
@@ -362,7 +366,7 @@ class Fixture:
         ):
             Path(path).unlink(missing_ok=True)
         responses = [event["response"] for event in self.events[1:6]]
-        responses[3] = envelope({"id": self.ownership["childId"], "value": TOKEN.decode()})
+        responses[3] = envelope(responses[3]["result"] | {"value": TOKEN.decode()})
         pending = iter(responses)
 
         def transport(_request):
@@ -384,7 +388,7 @@ class Fixture:
             patch.object(execution, "_windows_private"),
         ):
             result = admission.issuer.run(
-                inputs, wall_clock=lambda: NOW - 100, monotonic=lambda: 100.0, transport=transport
+                inputs, wall_clock=lambda: NOW - 90, monotonic=lambda: 100.0, transport=transport
             )
         if result["status"] != "finished":
             raise AssertionError("actual synthetic issuer did not finish")
@@ -548,6 +552,102 @@ class AdmissionTests(unittest.TestCase):
         return admission.admit(
             self.fixture.packet, self.fixture.approved, config=self.fixture.config
         )
+
+    def replace_details(self, stage, details):
+        """Rebind retained test copies, including the exact collector projection."""
+        if stage in ("creation", "issuer_details"):
+            index = 4 if stage == "creation" else 5
+            self.fixture.events[index]["response"]["result"] = copy.deepcopy(details)
+            self.fixture.rebind_issuer_evidence()
+        else:
+            grant = self.fixture.documents["grant"]
+            grant["childDetails"] = copy.deepcopy(details)
+            self.fixture.put("grant", grant)
+            collection = self.fixture.documents["grantCollection"]
+            collection["responses"][admission.metadata.ACTIONS[-1]]["result"] = details
+            self.fixture.put("grantCollection", collection)
+            self.fixture.config["credentialGrantSha2_256"] = self.fixture.references["grant"][
+                "sha2_256"
+            ]
+            self.fixture.rebind()
+
+    def test_full_producer_observations_may_change_without_rewriting_evidence(self):
+        creation = self.fixture.events[4]["response"]["result"]
+        details = self.fixture.events[5]["response"]["result"]
+        grant = self.fixture.documents["grant"]["childDetails"]
+        self.assertEqual(creation["modified_on"], timestamp(NOW - 100))
+        self.assertEqual(details["modified_on"], timestamp(NOW - 99))
+        self.assertEqual(grant["last_used_on"], timestamp(NOW - 1))
+        originals = {
+            name: Path(self.fixture.references[name]["path"]).read_bytes()
+            for name in ("issuerEvidence", "grant", "grantCollection")
+        }
+        self.admit().close()
+        for name, raw in originals.items():
+            self.assertEqual(Path(self.fixture.references[name]["path"]).read_bytes(), raw)
+        self.assertNotIn(Path(self.fixture.config["tokenFile"]), self.reads)
+
+    def test_sparse_creation_receipt_and_optional_observation_presence_remain_valid(self):
+        self.replace_details("creation", {"id": self.fixture.ownership["childId"]})
+        grant = copy.deepcopy(self.fixture.documents["grant"]["childDetails"])
+        del grant["modified_on"]
+        grant["last_used_on"] = None
+        self.replace_details("grant", grant)
+        self.admit().close()
+
+    def test_invalid_observations_refused_in_every_original_and_current_record(self):
+        records = {
+            "creation": copy.deepcopy(self.fixture.events[4]["response"]["result"]),
+            "issuer_details": copy.deepcopy(self.fixture.events[5]["response"]["result"]),
+            "grant": copy.deepcopy(self.fixture.documents["grant"]["childDetails"]),
+        }
+        invalid = (
+            True,
+            1,
+            {},
+            [],
+            "",
+            "not-a-time",
+            "2026-02-30T16:00:00Z",
+            timestamp(NOW - 101),
+            timestamp(NOW + 1),
+        )
+        for stage, original in records.items():
+            for field in ("modified_on", "last_used_on"):
+                for value in invalid:
+                    with self.subTest(stage=stage, field=field, value=value):
+                        self.replace_details(stage, original | {field: value})
+                        with self.assertRaises(OperatorRefused):
+                            self.admit()
+                        self.replace_details(stage, original)
+        self.admit().close()
+
+    def test_security_identity_and_unknown_field_drift_refused_at_both_comparisons(self):
+        mutations = {
+            "id": "a" * 32,
+            "name": "different child",
+            "status": "disabled",
+            "issued_on": timestamp(NOW - 99),
+            "not_before": timestamp(NOW - 119),
+            "expires_on": timestamp(NOW + 1501),
+            "condition": {"request_ip": {"in": ["192.0.2.0/24"]}},
+            "policies": [],
+            "unknown_observation": timestamp(NOW - 1),
+        }
+        for stage, original in (
+            ("creation", copy.deepcopy(self.fixture.events[4]["response"]["result"])),
+            ("grant", copy.deepcopy(self.fixture.documents["grant"]["childDetails"])),
+        ):
+            # Even policy metadata accepted by the canonical validator stays exact.
+            policy_metadata = copy.deepcopy(original["policies"])
+            policy_metadata[0]["id"] = "b" * 32
+            for field, value in (mutations | {"policies": policy_metadata}).items():
+                with self.subTest(stage=stage, field=field):
+                    self.replace_details(stage, original | {field: value})
+                    with self.assertRaises(OperatorRefused):
+                        self.admit()
+                    self.replace_details(stage, original)
+        self.admit().close()
 
     def test_valid_facts_admit_without_read_then_exactly_one_claimed_token_read(self):
         permit = self.admit()

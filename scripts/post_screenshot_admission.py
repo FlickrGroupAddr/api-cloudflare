@@ -26,6 +26,7 @@ from scripts.hosted_publisher_operator import OperatorRefused
 
 HASH = r"[a-f0-9]{64}"
 ID = r"[a-f0-9]{32}"
+TOKEN_OBSERVATIONS = {"modified_on", "last_used_on"}
 REFERENCES = {
     "authority",
     "native",
@@ -343,17 +344,21 @@ def _issuance(documents, raw, refs, config, now):
     }
     if type(creation) is not dict or "id" not in creation or not creation.keys() <= allowed_created:
         raise OperatorRefused("post_exact_creation_receipt_required")
+    scaled_now = metadata._now(lambda: now)
+    issuer._match_details(parent_details, plan, ids, scaled_now, parent=True)
+    issuer._match_details(child_details, plan, ids, scaled_now)
+    # Creation may contain only an ID. Validate every retained creation value
+    # against the full details schema without modifying either original record.
+    issuer._match_details(child_details | creation, plan, ids, scaled_now)
     for key, value in creation.items():
-        _equal(value, child_details.get(key))
+        if key not in TOKEN_OBSERVATIONS:
+            _equal(value, child_details.get(key))
     if (
         not issuer._timestamp(approval["recorded_at"])
         <= issuer._timestamp(child_details["issued_on"])
         < issuer._timestamp(approval["expires_at"])
     ):
         raise OperatorRefused("post_actual_issuance_authority_time_required")
-    scaled_now = metadata._now(lambda: now)
-    issuer._match_details(parent_details, plan, ids, scaled_now, parent=True)
-    issuer._match_details(child_details, plan, ids, scaled_now)
     if issuer._timestamp(child_details["expires_on"]) > issuer._timestamp(
         parent_details["expires_on"]
     ):
@@ -488,7 +493,10 @@ def _issuance(documents, raw, refs, config, now):
         _equal(checked["errors"], [])
         _equal(checked["result"], grant[key])
     issuer._match_details(grant["childDetails"], plan, ids, scaled_now)
-    _equal(grant["childDetails"], child_details)
+    _equal(
+        {k: v for k, v in grant["childDetails"].items() if k not in TOKEN_OBSERVATIONS},
+        {k: v for k, v in child_details.items() if k not in TOKEN_OBSERVATIONS},
+    )
     for key, details in (("childVerify", child_details), ("parentVerify", parent_details)):
         _closed(grant[key], {"id", "status", "expires_on", "not_before"})
         _equal(grant[key]["status"], "active")

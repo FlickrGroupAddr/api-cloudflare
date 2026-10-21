@@ -104,6 +104,21 @@ closed; header retention/source/approval bindings, active parent verification,
 creation/detail identity/name fields and issue/approval/cleanup/retention windows
 agree with the actual producer plan. The child cannot outlive the parent.
 
+Full original child details, retained creation values and current grant details
+pass the existing strict issuer/details validators before comparison. Only
+`modified_on` and `last_used_on` may differ between observations, including their
+optional absence or null values. Cloudflare's [Token Details API](https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/get/)
+and [Create Token API](https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/create/)
+define these date-time fields as the last modification and last use times.
+Present nonnull values must still be valid timestamps within the token's issue
+time and current validation time. Every other retained creation field and every
+other full details field compare exactly, including identity, name, status,
+issue/not-before/expiry, condition and complete policy metadata. Sparse creation
+receipts retain their original supported shape: a temporary full validation view
+overlays their retained values on the validated details. No original record or
+evidence bytes are rewritten or discarded. Unknown fields and malformed values
+still refuse admission; a timestamp change grants no new scope or lifetime.
+
 For this dedicated child, `credentialExpiryUnix` equals `actionDeadlineUnix`,
 the final resource/provider-cleanup cutoff. Every required witness/authority
 expiry covers that full window. The declared revocation responsibility is due
