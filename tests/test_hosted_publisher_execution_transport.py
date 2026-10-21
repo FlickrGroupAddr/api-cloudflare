@@ -6,6 +6,7 @@ import ipaddress
 import socket
 import threading
 import unittest
+from dataclasses import replace
 from unittest.mock import Mock, patch
 
 from scripts import hosted_publisher_execution_provider as execution
@@ -165,6 +166,31 @@ class ExecutionTransportTests(unittest.TestCase):
                 dispatch(self.client_request())
         self.assertEqual(factory.call_count, 1)
         self.assertEqual(sock.sent, [self.client_request().wire])
+
+    def test_exhausted_response_wire_latches_without_retry(self):
+        dispatch = execution.ExecutionClientTransport(
+            "https://synthetic.workers.dev",
+            "1.1.1.1",
+            permit=self.permit(),
+            clock=lambda: 100,
+        )
+        wire = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}"
+        request = replace(self.client_request(), max_response_bytes=len(wire) - 1)
+        sock = FakeSocket(wire)
+        context = Mock()
+        context.wrap_socket.return_value = sock
+        with (
+            patch.object(execution.socket, "socket", return_value=sock) as factory,
+            patch.object(execution.ssl, "create_default_context", return_value=context),
+        ):
+            with self.assertRaisesRegex(client.UnknownOutcome, "execution_response_wire_limit"):
+                dispatch(request)
+            with self.assertRaises(provider.ProviderError):
+                dispatch(request)
+        self.assertEqual(factory.call_count, 1)
+        self.assertEqual(sock.sent, [request.wire])
+        self.assertEqual(sock.stream.tell(), request.max_response_bytes)
+        self.assertTrue(sock.closed)
 
     def test_interim_response_cannot_hide_conflicting_framing(self):
         raw = (

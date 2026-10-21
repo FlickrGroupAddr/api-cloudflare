@@ -218,17 +218,18 @@ class _DeadlineReader(io.RawIOBase):
         return True
 
     def readinto(self, buffer) -> int:
+        capacity = self.request.max_response_bytes - self.received
+        if capacity <= 0:
+            raise UnknownOutcome("response limit")
+        if not len(buffer):
+            return 0
         remaining = self.request.deadline - self.clock()
         if remaining <= 0:
             raise TimeoutError("deadline")
         self.connection.settimeout(remaining)
         # Count every HTTP wire byte, including headers and chunk framing.
-        data = self.connection.recv(
-            min(len(buffer), self.request.max_response_bytes - self.received + 1)
-        )
+        data = self.connection.recv(min(len(buffer), capacity))
         self.received += len(data)
-        if self.received > self.request.max_response_bytes:
-            raise UnknownOutcome("response limit")
         buffer[: len(data)] = data
         return len(data)
 

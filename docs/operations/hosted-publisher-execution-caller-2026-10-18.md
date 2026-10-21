@@ -196,6 +196,12 @@ Inherited provider action/byte/deadline guards and durable unknown handling
 remain active. Management request headers are capped at 8 KiB; response wire
 capacity is bounded payload plus the 64 KiB framing allowance. Client response
 wire capacity is at most 64 KiB including headers, chunks and trailers.
+Both concrete readers bound each socket read by the remaining inclusive wire
+capacity before receiving bytes. Exhaustion refuses any further read, including
+an EOF probe; it never substitutes a zero-length socket read for EOF. An explicit
+length or chunk terminator fully parsed within the capacity can complete at the
+exact boundary. A response needing another byte to finish framing or establish
+EOF is unknown at that boundary, even if the peer has closed the connection.
 The transport checks raw status/header/trailer syntax before accepting HTTP
 framing, refuses duplicate headers, malformed or conflicting lengths/transfer
 encoding, redirects, incomplete chunks and trailers that revise framing or

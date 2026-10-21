@@ -84,16 +84,17 @@ class _WireReader(io.RawIOBase):
         return True
 
     def readinto(self, buffer):
+        capacity = self.request.max_response_bytes - self.received
+        if capacity <= 0:
+            raise UnknownOutcome("execution_response_wire_limit")
+        if not len(buffer):
+            return 0
         remaining = self.request.deadline - self.clock()
         if remaining <= 0:
             raise UnknownOutcome("execution_response_deadline")
         self.connection.settimeout(min(self.request.timeout, remaining))
-        data = self.connection.recv(
-            min(len(buffer), self.request.max_response_bytes - self.received + 1)
-        )
+        data = self.connection.recv(min(len(buffer), capacity))
         self.received += len(data)
-        if self.received > self.request.max_response_bytes:
-            raise UnknownOutcome("execution_response_wire_limit")
         buffer[: len(data)] = data
         return len(data)
 
