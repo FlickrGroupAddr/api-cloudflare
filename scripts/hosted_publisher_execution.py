@@ -145,7 +145,9 @@ def _windows_private(path: Path) -> None:
             raise OperatorRefused("private_file_owner_or_acl_refused")
         # ACL header: revision/reserved/size followed by 16-bit ACE count.
         count = ctypes.c_ushort.from_address(dacl.value + 4).value
-        trusted = {current, "S-1-5-18", "S-1-5-32-544"}
+        # OWNER RIGHTS represents this object's owner, verified as current above.
+        # Microsoft [MS-DTYP] 2.4.2.4 defines S-1-3-4 with that exact meaning.
+        trusted = {current, "S-1-3-4", "S-1-5-18", "S-1-5-32-544"}
         for index in range(count):
             ace = pointer()
             if not advapi.GetAce(dacl, index, ctypes.byref(ace)) or ace.value is None:

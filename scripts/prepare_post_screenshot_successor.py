@@ -44,6 +44,7 @@ SOURCES = (
         "tests/test_group_post_characterization_runner.py",
         "tests/test_group_post_dispatch.py",
         "tests/test_hosted_publisher_execution_transport.py",
+        "tests/test_hosted_publisher_windows_private.py",
         "tests/test_hosted_publisher_finite_client.py",
         "tests/test_hosted_publisher_operator_plan.py",
         "tests/test_hosted_publisher_provider.py",
