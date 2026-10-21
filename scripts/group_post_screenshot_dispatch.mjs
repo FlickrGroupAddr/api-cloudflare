@@ -1,0 +1,349 @@
+// Node is required only for the supported Computer Use Node REPL integration.
+// Accepted #0218 screenshot-route amendment, source preparation only.
+// One inspected supported frame; never fall back to indexes or another route. It never initializes Sky, discovers windows, or runs an input loop.
+// Source preparation and synthetic tests establish no live route/consent.
+// See docs/operations/screenshot-post-dispatch-contract-2026-10-21.md.
+import { nodeFiles } from './group_post_native_dispatch.mjs';
+export { nodeFiles } from './group_post_native_dispatch.mjs';
+import path from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { setTimeout as pause } from 'node:timers/promises';
+
+export const ACTION = 'invoke_characterize_synthetic_post_v1_once';
+export const COMMAND = 'Characterize synthetic POST v1';
+export const NATIVE_ROOT = 'C:\\Temp\\FGA-group-post-v1';
+const MAX_BYTES = 4096;
+// Boundary labels describe where success stopped, never an API failure cause.
+const FAILURE_CLASSES = Object.freeze({
+  request_guard: 'local_guard_or_coordination_failure',
+  attempted_publication: 'local_guard_or_coordination_failure',
+  dispatch_checkpoint: 'local_guard_or_coordination_failure',
+  final_guard: 'local_guard_or_coordination_failure',
+  click_pending: 'click_call_did_not_return',
+  post_click_window_check: 'post_click_window_check_failed',
+  refresh_pending: 'refresh_call_did_not_return',
+  ack_publication: 'ack_publication_failed',
+});
+const ID_KEYS = ['schemaVersion', 'planVersion', 'runId', 'owner', 'generation'];
+function requireValue(ok, code) { if (!ok) throw new Error(code); }
+function exact(value, keys) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).sort().join('|') === [...keys].sort().join('|');
+}
+
+// Bounded reads use one handle and parse the same bytes. Final-path exclusive
+// writes never overwrite. A visible partial/uncertain file is retained and readers
+// fail closed; publication is not an atomic-complete JSON claim.
+/** All bindings/actions come from the primary's reviewed in-memory cell, never files.
+ * session defaults to globalThis so recreating a controller cannot clear its latch.
+ * observation must be the immediately preceding inspected supported Sky observation.
+ */
+export function createScreenshotDispatchController({ binding, sky, files = nodeFiles(),
+  clock = () => Date.now() / 1000,
+  sleep = pause, randomNonce = () => randomBytes(16).toString('hex'),
+  session = globalThis }) {
+  requireValue(exact(binding, ['coordinationRoot', 'nativeRoot', 'runId', 'owner', 'generation']), 'binding_schema');
+  const b = Object.freeze({ ...binding });
+  requireValue(typeof b.coordinationRoot === 'string' && path.win32.isAbsolute(b.coordinationRoot)
+    && !path.win32.normalize(b.coordinationRoot).toLowerCase().startsWith(NATIVE_ROOT.toLowerCase() + '\\')
+    && path.win32.normalize(b.coordinationRoot).toLowerCase() !== NATIVE_ROOT.toLowerCase()
+    && path.win32.normalize(b.nativeRoot) === NATIVE_ROOT, 'binding_paths');
+  requireValue(typeof b.runId === 'string' && typeof b.owner === 'string'
+    && typeof b.generation === 'string' && /^[0-9a-f]{24}$/.test(b.runId) && b.runId !== 'c01ba6d2c2754597aa311c9f'
+    && /^[1-9][0-9]*$/.test(b.owner) && Number.isSafeInteger(Number(b.owner))
+    && /^[0-9a-f]{32}$/.test(b.generation), 'binding_identity');
+  requireValue(sky && typeof sky.click === 'function' && typeof sky.get_window_state === 'function', 'sky_required');
+  const identity = Object.freeze({ schemaVersion: 1, planVersion: 'fga-group-post-v1',
+    runId: b.runId, owner: b.owner, generation: b.generation });
+  const coord = (name) => path.win32.join(b.coordinationRoot, name);
+  const native = (name) => path.win32.join(b.nativeRoot, name);
+  let ready = false;
+  let busy = false;
+  let lastTime = -Infinity;
+  let captured = null;
+  let capturedSnapshot = null;
+  let capturedAt = -Infinity;
+  let capturedRequest = null;
+  let observationStarted = false;
+  let failureDiagnostic = null;
+  // Memory only: no identity, input, UI data or exception properties are retained.
+  const getFailureDiagnostic = () => failureDiagnostic;
+  function time() {
+    const now = clock();
+    requireValue(Number.isFinite(now) && now >= lastTime, 'clock_invalid_or_reversed');
+    lastTime = now;
+    return now;
+  }
+  const correlated = (value) => ID_KEYS.every((key) => value[key] === identity[key]);
+  const requestKeys = [...ID_KEYS, 'action', 'deadlineUnix', 'requestedInputCount'];
+  const sameRequest = (value, saved) => saved !== null && exact(value, requestKeys)
+    && requestKeys.every((key) => Object.is(value[key], saved[key]));
+  async function read(name, keys) {
+    const bytes = await files.read(coord(name), MAX_BYTES);
+    requireValue(Buffer.byteLength(bytes) <= MAX_BYTES, 'coordination_byte_limit');
+    const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    requireValue(exact(value, [...ID_KEYS, ...keys]) && correlated(value), 'coordination_identity_or_schema');
+    return value;
+  }
+  async function absent(paths) {
+    for (const file of paths) requireValue(!await files.exists(file), 'coordination_not_fresh_or_stopped');
+  }
+  async function active({ invocation = false, allowAttempt = false } = {}) {
+    requireValue(!session.fgaPostAttempt?.stopped && (!session.fgaPostAttempt || allowAttempt), 'session_latched');
+    await absent([coord('operator-stop.json'), coord('operator-stop.json.tmp'), native('stop.json'), native('stop.json.tmp'),
+      native('status.json'), native('status.json.tmp'), coord('ack.json'), coord('ack.json.tmp')]);
+    const owner = await read('owner.json', ['state', 'deadlineUnix']);
+    requireValue(owner.state === 'active' && Number.isFinite(owner.deadlineUnix)
+      && time() < owner.deadlineUnix && owner.deadlineUnix <= time() + 960, 'owner_not_active');
+    if (!invocation) return owner;
+    const request = await read('invoke.json', ['action', 'deadlineUnix', 'requestedInputCount']);
+    const now = time();
+    requireValue(request.action === ACTION && request.requestedInputCount === 1
+      && Number.isFinite(request.deadlineUnix) && request.deadlineUnix > now
+      && request.deadlineUnix <= owner.deadlineUnix && request.deadlineUnix <= now + 30,
+    'request_not_active');
+    await absent([coord('operator-stop.json'), coord('operator-stop.json.tmp'), native('stop.json'), native('stop.json.tmp'),
+      native('status.json'), native('status.json.tmp'), coord('ack.json'), coord('ack.json.tmp')]);
+    requireValue(time() < owner.deadlineUnix
+      && time() < request.deadlineUnix, 'owner_or_deadline_lost');
+    return request;
+  }
+  async function publish(name, value) { await files.publish(coord(name), { ...identity, ...value }); }
+  // One fresh retained challenge per phase proves the attached owner executed a
+  // current checkpoint. It does not claim atomic OS process-lifetime knowledge.
+  async function checkpoint(phase, deadline) {
+    const challengeName = `challenge-${phase}.json`;
+    const responseName = `response-${phase}.json`;
+    await absent([coord(challengeName), coord(responseName)]);
+    const nonce = randomNonce();
+    requireValue(typeof nonce === 'string' && /^[0-9a-f]{32}$/.test(nonce), 'nonce_invalid');
+    const challenge = { phase, nonce, deadlineUnix: Math.min(time() + 10, deadline) };
+    await publish(challengeName, challenge);
+    for (let poll = 0; poll < 11; poll += 1) {
+      requireValue(!session.fgaPostAttempt?.stopped && time() < challenge.deadlineUnix, 'checkpoint_stopped_or_expired');
+      await active({ invocation: phase === 'dispatch', allowAttempt: phase === 'dispatch' });
+      if (await files.exists(coord(responseName))) {
+        const response = await read(responseName, ['phase', 'nonce', 'deadlineUnix']);
+        requireValue(response.phase === phase && response.nonce === nonce
+          && response.deadlineUnix === challenge.deadlineUnix && time() < response.deadlineUnix,
+        'checkpoint_response_invalid');
+        requireValue(!session.fgaPostAttempt?.stopped, 'session_latched');
+        return challenge.deadlineUnix;
+      }
+      if (poll < 10) await sleep(1000);
+    }
+    throw new Error('checkpoint_response_absent');
+  }
+  async function stop(reason = 'operator') {
+    requireValue(['operator', 'escape', 'unknown'].includes(reason), 'stop_reason');
+    session.fgaPostAttempt ??= { ...identity, attempted: false };
+    session.fgaPostAttempt.stopped = true;
+    session.fgaPostAttempt.reason ??= reason;
+    if (!await files.exists(coord('operator-stop.json'))) await publish('operator-stop.json',
+      { reason: session.fgaPostAttempt.reason });
+  }
+  async function prewarm() {
+    requireValue(!busy && !ready, 'controller_not_fresh');
+    busy = true;
+    try {
+      await active();
+      await absent(['ready.json', 'ready.json.tmp', 'attempted.json', 'attempted.json.tmp',
+        'invoke.json', 'writer-check.json', 'writer-check.json.tmp'].map(coord));
+      await absent(['target.json', 'target.json.tmp', 'target.used.json', 'target.used.json.tmp',
+        'status.json', 'status.json.tmp', 'stop.json', 'stop.json.tmp'].map(native));
+      // Retained bounded scratch proves the exact Node writer before cloud lifetime.
+      await publish('writer-check.json', { state: 'writer_checked' });
+      const probe = await read('writer-check.json', ['state']);
+      requireValue(probe.state === 'writer_checked', 'writer_check_failed');
+      const owner = await active();
+      const checkpointDeadline = await checkpoint('prewarm', owner.deadlineUnix);
+      await active();
+      requireValue(time() < checkpointDeadline && !session.fgaPostAttempt, 'session_latched');
+      await publish('ready.json', { state: 'ready' });
+      requireValue(!session.fgaPostAttempt, 'session_latched');
+      ready = true;
+      return { state: 'ready' };
+    } catch {
+      try { await stop('unknown'); } catch { /* memory latch survives failed publication */ }
+      throw new Error('prewarm_stopped_or_unknown_no_retry');
+    } finally { busy = false; }
+  }
+  // Call in an observation cell, then stop and inspect the automatically displayed
+  // screenshot before calling dispatchObserved in a distinct action cell. Window
+  // must be the real object selected by the primary from supported Sky discovery.
+  async function observe(window) {
+    requireValue(!busy && ready && !observationStarted && !session.fgaPostAttempt, 'controller_not_ready');
+    busy = true;
+    observationStarted = true;
+    captured = null;
+    capturedSnapshot = null;
+    capturedRequest = null;
+    session.state = null;
+    try {
+      const request = Object.freeze({ ...await active({ invocation: true }) });
+      const selectedId = window?.id; const selectedApp = window?.app;
+      requireValue(Number.isSafeInteger(selectedId) && typeof selectedApp === 'string' && selectedApp.length > 0,
+        'selected_window_required');
+      const startedAt = time();
+      const state = await sky.get_window_state({ window,
+        include_screenshot: true, include_text: false });
+      time(); // Reject a reversed clock even if state capture completed.
+      const currentRequest = await active({ invocation: true });
+      requireValue(sameRequest(currentRequest, request) && time() < request.deadlineUnix,
+        'observed_request_changed_or_expired');
+      capturedAt = startedAt;
+      requireValue(state?.window?.id === selectedId && state?.window?.app === selectedApp,
+        'returned_window_identity_changed');
+      capturedSnapshot = snapshot(state);
+      capturedRequest = request;
+      captured = state;
+      session.state = state;
+      return state;
+    } finally { busy = false; }
+  }
+  const windowKeys = ['id', 'app', 'title'];
+  const screenshotKeys = ['id', 'width', 'height', 'originX', 'originY', 'zIndex', 'url'];
+  const accessibilityKeys = ['tree', 'focused_element', 'selected_text', 'document_text'];
+  function fields(value, keys) {
+    return Object.freeze(keys.map((key) => value[key]));
+  }
+  function snapshot(state) {
+    requireValue(state?.window && Array.isArray(state.screenshots)
+      && state.screenshots.length > 0 && Number.isSafeInteger(state.window.id)
+      && typeof state.window.app === 'string' && state.window.app.length > 0,
+    'observed_state_required');
+    return Object.freeze({ state, window: state.window,
+      accessibility: state.accessibility, accessibilityFields: state.accessibility == null ? null : fields(state.accessibility, accessibilityKeys),
+      windowFields: fields(state.window, windowKeys), screenshots: state.screenshots,
+      shots: Object.freeze(state.screenshots.map((shot) => Object.freeze({
+        reference: shot, values: fields(shot, screenshotKeys),
+      }))),
+    });
+  }
+  function unchangedWindow(saved) {
+    return windowKeys.every((key, index) => Object.is(saved.window[key], saved.windowFields[index]));
+  }
+  function unchanged(observation, saved) {
+    return saved !== null && observation === saved.state
+      && observation.window === saved.window
+      && unchangedWindow(saved)
+      && observation.accessibility === saved.accessibility
+      && (saved.accessibility == null || accessibilityKeys.every((key, index) => Object.is(saved.accessibility[key], saved.accessibilityFields[index])))
+      && observation.screenshots === saved.screenshots
+      && saved.screenshots.length === saved.shots.length
+      && saved.shots.every((shot, index) => saved.screenshots[index] === shot.reference
+        && screenshotKeys.every((key, field) => Object.is(shot.reference[key], shot.values[field])));
+  }
+  function fresh(observation) {
+    return observation === captured && observation === session.state
+      && captured !== null && unchanged(observation, capturedSnapshot) && time() - capturedAt <= 30;
+  }
+  function validateFrame(observation, target, base, x, y, duplicateCrops) {
+    const shots = observation.screenshots;
+    requireValue(shots.includes(target) && shots.includes(base), 'frame_reference_required');
+    const ids = new Set();
+    for (const shot of shots) {
+      requireValue(typeof shot.id === 'string' && shot.id.length > 0 && !ids.has(shot.id), 'frame_id_ambiguous');
+      ids.add(shot.id);
+      requireValue(['width', 'height', 'originX', 'originY', 'zIndex'].every((key) => Number.isFinite(shot[key]))
+        && shot.width > 0 && shot.height > 0
+        && Number.isFinite(shot.originX + shot.width) && Number.isFinite(shot.originY + shot.height), 'frame_geometry_required');
+    }
+    // Current API has screen origins but no target-window screen origin or
+    // documented screen/logical conversion. Never subtract origins to invent
+    // a popup offset. Only a primary-established full target-window frame can
+    // use the documented window-relative logical point without a transform.
+    requireValue(target === base, 'popup_mapping_not_supported');
+    requireValue(Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0
+      && x < target.width && y < target.height, 'point_outside_window');
+    // No origin arithmetic: the primary must visually compare each extra image
+    // with the selected full-window image and identify a contained duplicate crop.
+    // Metadata can only reject contradictions; it cannot prove this relationship.
+    const extras = shots.filter((shot) => shot !== target);
+    requireValue(duplicateCrops.length === extras.length
+      && extras.every((shot, index) => duplicateCrops[index] === shot
+        && shot.zIndex > target.zIndex && shot.width <= target.width
+        && shot.height <= target.height
+        && (shot.width < target.width || shot.height < target.height)),
+    'related_frames_ambiguous');
+  }
+  async function dispatchObserved(input) {
+    requireValue(!busy && ready, 'controller_not_ready');
+    busy = true;
+    let actualInputCount = 0;
+    let attempted = false;
+    let stage = 'request_guard';
+    try {
+      requireValue(exact(input, ['observation', 'screenshot', 'windowFrame', 'commandLabel', 'x', 'y', 'inspection']), 'observed_action_schema');
+      // Snapshot action-cell fields before any await; later mutations cannot steer input.
+      const { observation, screenshot, windowFrame, commandLabel, x, y, inspection } = input;
+      const inspectionKeys = ['enabledCommand', 'pointInsideCommand', 'windowFrame', 'targetOwnership', 'mapping', 'soleControl', 'duplicateCrops'];
+      requireValue(commandLabel === COMMAND && fresh(observation)
+        && exact(inspection, inspectionKeys) && inspectionKeys.filter((key) => key !== 'duplicateCrops').every((key) => inspection[key] === true)
+        && Array.isArray(inspection.duplicateCrops),
+      'inspected_command_required');
+      const duplicateCrops = Object.freeze([...inspection.duplicateCrops]);
+      const click = Object.freeze({ window: observation.window, screenshotId: screenshot?.id, x, y });
+      validateFrame(observation, screenshot, windowFrame, x, y, duplicateCrops);
+      const saved = capturedSnapshot;
+      const savedRequest = capturedRequest;
+      const request = await active({ invocation: true });
+      requireValue(sameRequest(request, savedRequest) && time() < savedRequest.deadlineUnix,
+        'observed_request_changed_or_expired');
+      await absent([coord('attempted.json'), coord('attempted.json.tmp')]);
+      requireValue(!session.fgaPostAttempt && fresh(observation), 'session_or_observation_latched');
+      session.state = null;
+      captured = null;
+      capturedSnapshot = null;
+      capturedRequest = null;
+      session.fgaPostAttempt = { ...identity, attempted: true, stopped: false };
+      attempted = true;
+      stage = 'attempted_publication';
+      await publish('attempted.json', { action: ACTION, deadlineUnix: request.deadlineUnix, requestedInputCount: 1 });
+      stage = 'dispatch_checkpoint';
+      const checkpointDeadline = await checkpoint('dispatch', request.deadlineUnix);
+      stage = 'final_guard';
+      const finalRequest = await active({ invocation: true, allowAttempt: true });
+      requireValue(sameRequest(finalRequest, savedRequest), 'request_changed');
+      requireValue(!session.fgaPostAttempt.stopped && session.state === null
+        && unchanged(observation, saved) && time() - capturedAt <= 30
+        && time() < savedRequest.deadlineUnix && time() < checkpointDeadline, 'session_or_deadline_lost');
+      validateFrame(observation, screenshot, windowFrame, x, y, duplicateCrops);
+      // No waits or further file operations intervene between this final check and input.
+      stage = 'click_pending';
+      actualInputCount = null;
+      await sky.click(click);
+      actualInputCount = 1;
+      stage = 'post_click_window_check';
+      requireValue(unchangedWindow(saved), 'window_changed_after_input');
+      stage = 'refresh_pending';
+      const state = await sky.get_window_state({ window: saved.window,
+        include_screenshot: true, include_text: false });
+      session.state = state;
+      stage = 'ack_publication';
+      await publish('ack.json', { outcome: 'dispatched', requestedInputCount: 1, actualInputCount });
+      return { outcome: 'dispatched', actualInputCount, state };
+    } catch {
+      // Freeze the original boundary before any cleanup awaits. Rejected replay
+      // calls and cleanup failures cannot replace an attempted failure. A prior
+      // pre-attempt refusal must not hide a later attempted failure.
+      if (failureDiagnostic === null || attempted) failureDiagnostic = Object.freeze({ stage,
+        failureClass: FAILURE_CLASSES[stage] ?? 'unclassified' });
+      // Ambiguous/refused observations terminate this run too; correcting a
+      // point or inspection claim is not permission to replay the same capture.
+      if (!attempted && !session.fgaPostAttempt) {
+        try { await stop('unknown'); } catch { /* stop sets memory latch before file work */ }
+      }
+      if (attempted || session.fgaPostAttempt?.stopped) {
+        session.fgaPostAttempt.stopped = true;
+        try { await stop('unknown'); } catch { /* memory latch remains authoritative locally */ }
+        try {
+          if (!await files.exists(coord('ack.json'))) await publish('ack.json',
+            { outcome: actualInputCount === 0 ? 'stopped' : 'unknown', requestedInputCount: 1, actualInputCount });
+        } catch { /* never retry input after an acknowledgement failure */ }
+      }
+      throw new Error(attempted ? 'dispatch_stopped_or_unknown_no_retry' : 'dispatch_refused');
+    } finally { busy = false; }
+  }
+  return Object.freeze({ prewarm, observe, dispatchObserved, stop, getFailureDiagnostic });
+}
