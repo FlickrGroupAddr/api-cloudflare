@@ -432,3 +432,30 @@ Accepted-source follow-ups are #0185 (unregistered D1 candidate), #0186
 (unregistered object-local candidate), #0187 (exact isolated packet) and #0188
 (later exact action decision). Their dependencies remain explicit on #0182;
 this source-contract acceptance does not complete actual qualification.
+
+## Accepted prospective integer and no-REAL alternate profile — 2026-10-22
+
+Terry accepted the corrected prospective integer/accounting source contract on
+2026-10-22. Architecture
+[ADR0065](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/decisions/0065-accept-prospective-integer-accounting-and-no-real-profile.md)
+designates the [precise accounting and state-profile contract](https://github.com/FlickrGroupAddr/architecture-design/blob/main/docs/prospective-integer-accounting-and-state-profile.md)
+as normative. Select the new **`pmb1-private-application-no-real-v1`** profile
+explicitly for a future candidate; it is not an exact-REAL waiver.
+
+For that profile only, **Complete baseline and lifecycle** above admits actual
+NULL/INTEGER/TEXT/BLOB cells and rejects every included actual REAL. **REAL reader
+and qualification gates** above is supplemented by complete actual discovery,
+post-affinity guards, independent REAL rejection and exact signed-int64 transport
+under the new contract. All other exact schema/value/identity, SQL/KV/alarm,
+writer-closure, lifecycle and qualification requirements remain. ADR0064's only
+exact-manifest D1 `main._cf_KV` inaccessible-contents exclusion stays narrow.
+
+The earlier exact-REAL clauses, acceptance record and historical artifacts retain
+their original scope. #0192/#0195 require distinct successor scopes or precise
+accepted amendments before using the alternate profile; none of their gates or
+#0182 is passed here. No stored value is silently recast or omitted for equality.
+The new contract owns exact rates, watermark/atomicity/overflow rules and the
+separately gated E/R/X discussion, including original INTEGER watermarks and
+authentication expiry. Prospective acceptance authorizes bounded source work and
+packet preparation, with no actual census, legacy-balance retirement, migration,
+installation, deployment, account/native/provider action or live qualification.
