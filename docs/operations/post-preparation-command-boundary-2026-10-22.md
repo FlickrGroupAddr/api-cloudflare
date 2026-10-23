@@ -49,3 +49,30 @@ retained separately; the ZIP is not a self-contained runtime. The public note
 is excluded from the ZIP to avoid a circular digest. Historical attempt evidence
 remains private and immutable; expiry passage alone confirms neither provider
 expiry nor revocation.
+
+## October 23 source-only recovery proposal
+
+Proposed recovery amendment — pending owner acceptance and implementation
+
+The existing preparation controller preserves the original terminal-freshness
+and fixed-namespace rules. It cannot recover a historical stopped attempt by
+changing dates or reusing its preserved retirement packet.
+
+The independently reviewed source proposal would retain the original terminal
+attestation and timestamp as historical closure evidence, require an additional
+genuine current recovery witness and independent judgment within one new finite
+dispatch window, and use one separate exclusive recovery-only metadata namespace.
+That namespace would bind the unchanged original issuance and child identity,
+source/evidence pins, permanent stop and original single-use retirement latch.
+
+This is a proposed material contract amendment. Advance plan authority does not
+accept it. Acceptance would permit subsequent engineering and independent source
+review; it would supply no actual packet, current facts, credential validity,
+provider status or readiness. The existing runner does not implement the proposed
+semantics. Original evidence and clocks remain immutable; unknown outcomes forbid
+retry. A fresh POST attempt retains its separate readiness and qualification gates.
+
+Fresh independent High review passed six package hashes, seventeen source pins
+and eleven combined offline checks. The concrete proposal and review are retained
+privately with implementation-board card 0161. Provider expiry and revocation
+remain unconfirmed. No account, credential, native or execution action occurred.
