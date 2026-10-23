@@ -1,7 +1,7 @@
 import type { SqlStore } from './admission.ts';
 
-// Prospective SOURCE ONLY under architecture ADR0065. No current writer imports
-// this module. Callers must place these statements and ALL other budget checks,
+// Prospective SOURCE ONLY under architecture ADR0065. Authentication/status
+// writers require the reviewed prospective schema before use. Place ALL budgets,
 // charges/events/cleanup in ONE D1 batch; never execute a fragment separately.
 // This fixture is neither an actual migration nor a complete no-REAL profile.
 export const INTEGER_QUOTA_SCHEMA_VERSION = 'fga-prospective-integer-quota-v1';

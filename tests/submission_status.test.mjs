@@ -1,17 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {mkdtempSync,rmSync,realpathSync} from "node:fs";
+import {mkdtempSync,rmSync,realpathSync,readFileSync} from "node:fs";
+import {createHash} from "node:crypto";
 import {tmpdir} from "node:os";
 import {join,dirname} from "node:path";
 import {sqlStore} from "./sql_store.mjs";
 import {createWorker} from "../src/worker.ts";
 import {digest} from "../src/browser_sessions.ts";
-import {NOW_US_SQL} from "../src/installations.ts";
-import {admitStatusRead,parseStatusQuery,statusTimestamp} from "../src/submission_status.ts";
+import {QUOTA_CLOCK_SQL,INTEGER_QUOTA_FIXTURE_SHA2_256} from "../src/quota_credit.ts";
+import {admitStatusRead,cleanupStatusReads,readSubmissionStatus,statusFailure,parseStatusQuery,statusTimestamp} from "../src/submission_status.ts";
 const origin="https://flickrgroupaddr.com",code=Array(13).fill("0000").join("-");
-function fixture(t){
+const integerFixture=readFileSync(new URL("./integer_quota_fixture.sql",import.meta.url),"utf8");
+function fixture(t,prospective=true){
  const base=realpathSync(tmpdir()),directory=mkdtempSync(join(base,"fga-status-")),db=sqlStore(join(directory,"db.sqlite"));
  t.after(()=>{db.raw.close();assert.equal(dirname(realpathSync(directory)),base);rmSync(directory,{recursive:true,force:true});});
+ // Explicit synthetic selection only: historical migrations remain unchanged.
+ if(prospective){assert.equal(createHash("sha256").update(integerFixture).digest("hex"),INTEGER_QUOTA_FIXTURE_SHA2_256);db.raw.exec("DROP TABLE auth_source_buckets;DROP TABLE status_read_buckets;"+integerFixture);}
  const token="C".repeat(42)+"A",csrf="A".repeat(43),now=Date.now()*1000;
  db.raw.exec("INSERT INTO fga_users VALUES('owner'),('foreign');INSERT INTO admin_principals VALUES('owner','https://accounts.google.com','owner-sub',1);");
  db.raw.prepare("INSERT INTO admin_sessions(session_id,token_digest,user_id,csrf_token,created_at_us,recent_authentication_at_us,expires_at_us,last_activity_at_us,correlation_id) VALUES('session',?,'owner',?,?,?,?,?,'correlation')").run(digest(token),csrf,now,now,now+86400000000,now);
@@ -78,14 +82,129 @@ test("unknown outcome or block contradiction rejects the entire page instead of 
  const response=await f.call("/api/v001/group-submission-intents?view=history");assert.equal(response.status,500);const body=await response.json();assert.equal(body.error.code,"status_projection_invalid");assert(!Object.hasOwn(body,"intents"));
 });
 
-test("polling quota allows one burst, rejects overdraw atomically and admits after refill",async t=>{
- const f=fixture(t);let now=f.now;const clock={...f.db,prepare:sql=>f.db.prepare(sql.replaceAll(NOW_US_SQL,String(now)))};
- const auth={family:"installation",userId:"owner",subjectId:"installation",proof:digest(code)};
+const auth={family:"installation",userId:"owner",subjectId:"installation",proof:digest(code)};
+function scalar(db,sql){const statement=db.raw.prepare(sql);statement.setReadBigInts(true);return statement.get();}
+function bucket(db,family=auth.family,subject=auth.subjectId){const statement=db.raw.prepare("SELECT rowid,credit_us,updated_at_us,typeof(credit_us) qt,typeof(updated_at_us) st FROM status_read_buckets WHERE family=? AND subject_id=?");statement.setReadBigInts(true);return statement.get(family,subject);}
+function quotaSnapshot(db){return ["status_read_buckets","status_read_events","quota_credit_clocks","quota_credit_guards"].map(table=>{const statement=db.raw.prepare("SELECT rowid,* FROM "+table+" ORDER BY rowid");statement.setReadBigInts(true);return statement.all();});}
+function clockStore(db,now){ // Exact synthetic source clock; never a runtime override.
+ db.raw.function("status_test_clock",()=>now.value);
+ return {...db,prepare:sql=>db.prepare(sql===QUOTA_CLOCK_SQL?"INSERT INTO quota_credit_clocks(batch_id,now_us) SELECT ?,status_test_clock()":sql)};
+}
+function seedBucket(db,q,s,family=auth.family,subject=auth.subjectId){db.raw.prepare("INSERT INTO status_read_buckets(family,subject_id,credit_us,updated_at_us) VALUES(?,?,?,?)").run(family,subject,q,s);}
+function unavailable(error){assert.equal(error.status,503);assert.equal(error.message,"status_unavailable");const response=statusFailure(error);assert.equal(response.headers.get("Cache-Control"),"no-store");assert.equal(response.headers.get("Retry-After"),"5");return true;}
+function exhausted(error){assert.equal(error.status,429);assert.equal(error.message,"status_rate_limited");const response=statusFailure(error);assert.equal(response.headers.get("Cache-Control"),"no-store");assert.equal(response.headers.get("Retry-After"),"5");return true;}
+
+test("integer polling burst20, one-credit edge and exact refill roll back refused work",async t=>{
+ const {db}=fixture(t),now={value:100n},clock=clockStore(db,now);
  for(let n=0;n<20;n++)await admitStatusRead(clock,auth);
- await assert.rejects(admitStatusRead(clock,auth),error=>error.status===429);
- assert.equal(f.db.raw.prepare("SELECT COUNT(*) n FROM status_read_events").get().n,20);
- now+=5_000_000;await admitStatusRead(clock,auth);
- assert.equal(f.db.raw.prepare("SELECT COUNT(*) n FROM status_read_events").get().n,21);
+ assert.equal(bucket(db).credit_us,0n);const before=quotaSnapshot(db);
+ await assert.rejects(admitStatusRead(clock,auth),exhausted);assert.deepEqual(quotaSnapshot(db),before);
+ now.value+=4_999_999n;await assert.rejects(admitStatusRead(clock,auth),exhausted);assert.deepEqual(quotaSnapshot(db),before);
+ now.value++;await admitStatusRead(clock,auth);
+ assert.equal(bucket(db).credit_us,0n);assert.equal(bucket(db).updated_at_us,now.value);
+ assert.equal(scalar(db,"SELECT COUNT(*) n FROM status_read_events").n,21n);
+ assert.equal(bucket(db).qt,"integer");assert.equal(bucket(db).st,"integer");
+ assert.equal(scalar(db,"SELECT COUNT(*) n FROM quota_credit_clocks").n,0n);
+ assert.equal(scalar(db,"SELECT COUNT(*) n FROM quota_credit_guards").n,0n);
+});
+
+test("tiny accrual, equal/backward clocks and saturation preserve exact credits and watermark",async t=>{
+ const {db}=fixture(t),now={value:101n},clock=clockStore(db,now);seedBucket(db,100_000_000n,100n);
+ await admitStatusRead(clock,auth);assert.equal(bucket(db).credit_us,95_000_000n);
+ now.value=102n;await admitStatusRead(clock,auth);assert.equal(bucket(db).credit_us,90_000_001n);
+ for(const value of [102n,101n,0n]){now.value=value;await admitStatusRead(clock,auth);}
+ assert.equal(bucket(db).credit_us,75_000_001n);assert.equal(bucket(db).updated_at_us,102n);
+ now.value=103n;await admitStatusRead(clock,auth);assert.equal(bucket(db).credit_us,70_000_002n);
+ now.value=9223372036854775807n;await admitStatusRead(clock,auth);
+ assert.equal(bucket(db).credit_us,95_000_000n);assert.equal(bucket(db).updated_at_us,now.value);assert.equal(bucket(db).qt,"integer");
+ const identity=bucket(db).rowid;now.value=0n;await admitStatusRead(clock,auth);
+ assert.equal(bucket(db).credit_us,90_000_000n);assert.equal(bucket(db).updated_at_us,9223372036854775807n);assert.equal(bucket(db).rowid,identity);
+});
+
+test("family and subject identities have independent buckets and one deployment window",async t=>{
+ const {db}=fixture(t),now={value:0n},clock=clockStore(db,now);
+ for(let n=0;n<20;n++)await admitStatusRead(clock,auth);
+ await assert.rejects(admitStatusRead(clock,auth),exhausted);
+ for(const identity of [{...auth,family:"admin"},{...auth,subjectId:"other"}])await admitStatusRead(clock,identity);
+ assert.equal(bucket(db,"admin","installation").credit_us,95_000_000n);assert.equal(bucket(db,"installation","other").credit_us,95_000_000n);
+ assert.equal(scalar(db,"SELECT COUNT(*) n FROM status_read_buckets").n,3n);
+});
+
+test("deployment600 window uses strict boundary and rolls back new/existing subject changes",async t=>{
+ const {db}=fixture(t),now={value:600_000_000n},clock=clockStore(db,now);
+ const insert=db.raw.prepare("INSERT INTO status_read_events VALUES(?,?)");
+ for(let n=0;n<599;n++)insert.run("prior-"+n,1n);
+ // Future-dated entries remain conservatively counted.
+ insert.run("future",9223372036854775807n);seedBucket(db,1n,0n);
+ for(const identity of [auth,{...auth,subjectId:"absent"}]){const before=quotaSnapshot(db);await assert.rejects(admitStatusRead(clock,identity),exhausted);assert.deepEqual(quotaSnapshot(db),before);}
+ db.raw.exec("DELETE FROM status_read_events WHERE event_id='prior-0'");await admitStatusRead(clock,auth);
+ assert.equal(bucket(db).credit_us,95_000_000n);const full=quotaSnapshot(db);
+ await assert.rejects(admitStatusRead(clock,auth),exhausted);assert.deepEqual(quotaSnapshot(db),full);
+ now.value=600_000_001n;await admitStatusRead(clock,auth);
+ assert.equal(bucket(db).credit_us,90_000_001n);assert.equal(bucket(db).updated_at_us,now.value);
+});
+
+test("invalid clock and malformed persisted state fail unavailable before ordinary exhaustion",async t=>{
+ const {db}=fixture(t),now={value:0n},clock=clockStore(db,now);
+ for(const value of [-1n,1.5,"0",null]){now.value=value;const before=quotaSnapshot(db);await assert.rejects(admitStatusRead(clock,auth),unavailable);assert.deepEqual(quotaSnapshot(db),before);}
+ now.value=0n;
+ db.raw.exec("DROP TABLE status_read_buckets;CREATE TABLE status_read_buckets(family TEXT,subject_id TEXT,credit_us ANY,updated_at_us ANY,UNIQUE(family,subject_id)) STRICT");
+ for(const [q,s] of [[1.5,0n],["5000000",0n],[null,0n],[-1n,0n],[100_000_001n,0n],[5_000_000n,-1n],[5_000_000n,0.5],[5_000_000n,"0"],[5_000_000n,null]]){
+  db.raw.exec("DELETE FROM status_read_buckets");seedBucket(db,q,s);const before=quotaSnapshot(db);
+  await assert.rejects(admitStatusRead(clock,auth),unavailable);assert.deepEqual(quotaSnapshot(db),before);
+ }
+});
+
+test("native clock is sampled once, validated before CAST and reused for subject and event",async t=>{
+ const {db}=fixture(t);let seconds=0,fractions=0;
+ db.raw.function("unixepoch",(_now)=>{seconds++;return 123n;});db.raw.function("strftime",(_format,_now)=>{fractions++;return "03.007";});
+ await admitStatusRead(db,auth);assert.equal(seconds,1);assert.equal(fractions,1);
+ assert.equal(bucket(db).updated_at_us,123007000n);assert.equal(scalar(db,"SELECT created_at_us FROM status_read_events").created_at_us,123007000n);
+ for(const [second,fraction] of [[1.5,"01.000"],["1","01.000"],[-1n,"00.000"],[253402300800n,"00.000"],[1n,"00.000\u0000junk"],[1n,null]]){
+  db.raw.function("unixepoch",(_now)=>second);db.raw.function("strftime",(_format,_now)=>fraction);const before=quotaSnapshot(db);
+  await assert.rejects(admitStatusRead(db,auth),unavailable);assert.deepEqual(quotaSnapshot(db),before);
+ }
+});
+
+test("every later statement fault rolls back absent/existing charge, refill, watermark and event",async t=>{
+ const {db}=fixture(t),now={value:9223372036854775807n},clock=clockStore(db,now);
+ for(const initial of [null,[5_000_000n,0n]]){
+  db.raw.exec("DELETE FROM status_read_buckets");if(initial)seedBucket(db,...initial);
+  for(const fault of [4,5,6,7]){db.fault=fault;const before=quotaSnapshot(db);await assert.rejects(admitStatusRead(clock,auth),unavailable);assert.deepEqual(quotaSnapshot(db),before);}
+ }
+ db.fault=-1;
+});
+
+test("lost success acknowledgement charges once but authorizes no projection or retry/refund",async t=>{
+ const {db}=fixture(t),now={value:0n},clock=clockStore(db,now);let batches=0,projections=0;
+ const lost={...clock,prepare:sql=>{if(sql.startsWith("SELECT json_object('authorized'"))projections++;return clock.prepare(sql);},batch:async statements=>{batches++;await db.batch(statements);throw Error("lost acknowledgement");}};
+ await assert.rejects(readSubmissionStatus(lost,auth,new URL(origin+"/")),unavailable);
+ assert.equal(batches,1);assert.equal(projections,0);assert.equal(bucket(db).credit_us,95_000_000n);
+ assert.equal(scalar(db,"SELECT COUNT(*) n FROM status_read_events").n,1n);
+});
+
+test("unrelated CHECK/schema/guard failures stay unavailable and historical schema is incompatible",async t=>{
+ const {db}=fixture(t),clock=clockStore(db,{value:0n});
+ db.raw.exec("CREATE TRIGGER unrelated_status_failure BEFORE INSERT ON status_read_events BEGIN SELECT RAISE(ABORT,'CHECK constraint failed: unrelated_invariant');END");
+ const before=quotaSnapshot(db);await assert.rejects(admitStatusRead(clock,auth),unavailable);assert.deepEqual(quotaSnapshot(db),before);
+ db.raw.exec("DROP TRIGGER unrelated_status_failure;INSERT INTO quota_credit_clocks VALUES('occupied',0);INSERT INTO quota_credit_guards VALUES('occupied','status',1,1)");
+ // A malformed/missing guard table cannot be mistaken for quota exhaustion.
+ db.raw.exec("DROP TABLE quota_credit_guards");await assert.rejects(admitStatusRead(clock,auth),unavailable);
+ const legacy=fixture(t,false);await assert.rejects(admitStatusRead(legacy.db,auth),unavailable);
+ assert.equal(scalar(legacy.db,"SELECT COUNT(*) n FROM status_read_buckets").n,0n);
+ assert.equal(scalar(legacy.db,"SELECT COUNT(*) n FROM status_read_events").n,0n);
+});
+
+test("event cleanup retains buckets and boundary, is bounded and rolls back on failure",async t=>{
+ const {db}=fixture(t),now={value:86_400_000_000n},clock=clockStore(db,now);seedBucket(db,0n,0n);
+ const insert=db.raw.prepare("INSERT INTO status_read_events VALUES(?,?)"),boundary=now.value-600_000_000n;
+ for(let n=0;n<1001;n++)insert.run("old-"+n,0n);
+ insert.run("boundary",boundary);insert.run("future",now.value+1n);
+ const before=quotaSnapshot(db);db.fault=2;await assert.rejects(cleanupStatusReads(clock));assert.deepEqual(quotaSnapshot(db),before);db.fault=-1;
+ await cleanupStatusReads(clock);assert.equal(scalar(db,"SELECT COUNT(*) n FROM status_read_events").n,3n);assert.equal(bucket(db).updated_at_us,0n);assert.equal(bucket(db).credit_us,0n);
+ await cleanupStatusReads(clock);assert.equal(scalar(db,"SELECT COUNT(*) n FROM status_read_events").n,2n);
+ assert.equal(scalar(db,"SELECT COUNT(*) n FROM quota_credit_clocks").n,0n);assert.equal(scalar(db,"SELECT COUNT(*) n FROM quota_credit_guards").n,0n);
+ now.value=-1n;const retained=quotaSnapshot(db);await assert.rejects(cleanupStatusReads(clock));assert.deepEqual(quotaSnapshot(db),retained);
 });
 
 test("an active row with a permanent block is rejected rather than rendered eligible",async t=>{

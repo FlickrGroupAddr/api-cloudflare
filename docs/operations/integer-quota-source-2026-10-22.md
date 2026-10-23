@@ -4,7 +4,11 @@ Date: 2026-10-22. Source/fixture evidence only.
 
 The FGA API backend contains fixed quota statement builders in
 [`src/quota_credit.ts`](../../src/quota_credit.ts), under accepted architecture
-ADR0065. Existing authentication/status writers do not import this module.
+ADR0065. At the October 22 source handoff, authentication/status writers did not
+import this module. The October 23 prospective integrations are recorded in
+[authentication](integer-auth-admission-source-2026-10-23.md) and
+[status](integer-status-admission-source-2026-10-23.md); they require the prospective
+schema and cannot be deployed against the historical REAL schema.
 The source does not select a deployed schema or activate a new profile.
 
 Authentication capacity/charge is 240,000,000/120,000,000 microsecond credits;

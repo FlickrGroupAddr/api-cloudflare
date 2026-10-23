@@ -1,5 +1,6 @@
 import type {SqlStore} from "./admission.ts";
 import {NOW_US_SQL as NOW,errorResponse} from "./installations.ts";
+import {beginQuotaClock,finishQuotaClock,statusCreditStatements,quotaCreditFailure} from "./quota_credit.ts";
 export interface StatusAuth {family:"installation"|"admin";userId:string;subjectId:string;proof:string;}
 export interface StatusQuery {view:"active"|"attention"|"history";size:number;binding:string|null;beforeUs:string|null;beforeId:string|null;}
 export class StatusError extends Error {readonly status:number;readonly retryAfter:number|null;constructor(code:string,status=400,retryAfter:number|null=null){super(code);this.status=status;this.retryAfter=retryAfter;}}
@@ -31,20 +32,19 @@ export function parseStatusQuery(url:URL,item=false):StatusQuery{
 }
 export async function admitStatusRead(db:SqlStore,auth:StatusAuth):Promise<void>{
  const tx=crypto.randomUUID(),event=crypto.randomUUID();
- const clock="(SELECT now_us FROM transaction_guards WHERE transaction_id=?3)";
- const values=[auth.family,auth.subjectId,tx,event];
- const sql=(text:string)=>db.prepare("WITH input AS(SELECT ?1 f,?2 s,?3 t,?4 e) "+text).bind(...values);
+ const clock="(SELECT now_us FROM quota_credit_clocks WHERE batch_id=?1)";
+ // Prospective ADR0065 source: requires the separately selected integer schema.
+ // Every subject/deployment charge and event commits together or rolls back.
  try{await db.batch([
-  sql(`INSERT INTO transaction_guards(transaction_id,approved,now_us) VALUES(?3,1,${NOW})`),
-  sql(`INSERT INTO status_read_buckets(family,subject_id,tokens,updated_at_us) VALUES(?1,?2,20,${clock})
-   ON CONFLICT(family,subject_id) DO UPDATE SET tokens=MIN(20,status_read_buckets.tokens+MAX(0,${clock}-status_read_buckets.updated_at_us)/5000000.0),updated_at_us=MAX(status_read_buckets.updated_at_us,${clock})`),
-  sql(`INSERT INTO transaction_guards(transaction_id,approved) VALUES(?4,
-   EXISTS(SELECT 1 FROM status_read_buckets WHERE family=?1 AND subject_id=?2 AND tokens>=1)
-   AND (SELECT COUNT(*) FROM status_read_events WHERE created_at_us>${clock}-600000000)<600)`),
-  sql("UPDATE status_read_buckets SET tokens=tokens-1 WHERE family=?1 AND subject_id=?2"),
-  sql(`INSERT INTO status_read_events(event_id,created_at_us) VALUES(?4,${clock})`),
-  sql("DELETE FROM transaction_guards WHERE transaction_id IN (?3,?4)"),
- ]);}catch(error){if(!String(error).includes("CHECK constraint failed"))throw new StatusError("status_unavailable",503,5);throw new StatusError("status_rate_limited",429,5);}
+  beginQuotaClock(db,tx),
+  ...statusCreditStatements(db,tx,auth.family,auth.subjectId),
+  db.prepare(`UPDATE quota_credit_guards SET admitted=CASE WHEN
+   (SELECT COUNT(*) FROM status_read_events WHERE created_at_us>${clock}-600000000)<600
+   THEN 1 ELSE 0 END WHERE batch_id=?1 AND kind='status'`).bind(tx),
+  db.prepare(`INSERT INTO status_read_events(event_id,created_at_us) VALUES(?2,${clock})`).bind(tx,event),
+  ...finishQuotaClock(db,tx),
+ ]);}catch(error){throw quotaCreditFailure(error)==="exhausted"
+  ?new StatusError("status_rate_limited",429,5):new StatusError("status_unavailable",503,5);}
 }
 function integer(value:unknown,min=0):number{const n=Number(value);if(value===null||!Number.isSafeInteger(n)||n<min)throw new StatusError("status_projection_invalid",500);return n;}
 function record(value:unknown):Record<string,unknown>{if(!value||typeof value!=="object"||Array.isArray(value))throw new StatusError("status_projection_invalid",500);return value as Record<string,unknown>;}
@@ -159,5 +159,10 @@ export function statusFailure(error:unknown,bearer=false):Response{
  if(known&&error.retryAfter!==null)response.headers.set("Retry-After",String(error.retryAfter));else if(!known)response.headers.set("Retry-After","5");return response;
 }
 export async function cleanupStatusReads(db:SqlStore):Promise<void>{
- await db.prepare(`DELETE FROM status_read_events WHERE event_id IN (SELECT event_id FROM status_read_events WHERE created_at_us<${NOW}-600000000 LIMIT 1000)`).run();
+ const tx=crypto.randomUUID();
+ // Keep bounded event cleanup only; status buckets have no expiry policy.
+ await db.batch([beginQuotaClock(db,tx),
+  db.prepare(`DELETE FROM status_read_events WHERE event_id IN (SELECT event_id FROM status_read_events
+   WHERE created_at_us<(SELECT now_us FROM quota_credit_clocks WHERE batch_id=?1)-600000000 LIMIT 1000)`).bind(tx),
+  ...finishQuotaClock(db,tx)]);
 }
