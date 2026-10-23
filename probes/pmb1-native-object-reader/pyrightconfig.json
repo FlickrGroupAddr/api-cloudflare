@@ -1,6 +1,6 @@
 {
   "extends": "../../pyproject.toml",
-  "include": ["population.py"],
+  "include": ["population.py", "transport.py"],
   "pythonVersion": "3.14",
   "typeCheckingMode": "standard"
 }

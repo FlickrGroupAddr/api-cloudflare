@@ -61,9 +61,10 @@ alarm/closure gates and aggregate full-census bounds. The old reader/default and
 all historical frozen manifests remain unchanged and separately refuse this
 native-inaccessible raw-table model.
 
-There is no new SupportedSource population factory, remote RPC, native capture,
-HTTP implementation, grant or action budget. The actual HTTP entry stays
-disabled. Local SQL preflight cannot interrupt synchronous engine work and does
+The later prospective SupportedSource factory, private owning RPC, external
+durable controller and explicit finite census collector are recorded in
+[SOURCE.md](SOURCE.md). They supply no actual capture, grant or action budget;
+the original HTTP entry stays disabled. Local SQL preflight cannot interrupt synchronous engine work and does
 not prove a complete heap/deadline bound. Expected population/source provenance, creator/all-writer closure,
 common custody, callback disposition, native implementation/transport bounds,
 retained artifact and actual qualification remain mandatory unresolved gates.

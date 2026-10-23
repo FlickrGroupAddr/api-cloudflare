@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["./native-source.ts", "./native-owner.ts", "./native-control.ts"]
+}

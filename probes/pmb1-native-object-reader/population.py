@@ -310,6 +310,7 @@ class Census:
             observed[namespace] = sorted(rows, key=lambda row: row["id"])
         return {
             "schema": "pmb1-native-census-observation-v1",
+            "accountId": self._account,
             "completeSnapshot": False,
             "actualQualification": False,
             "accountNamespaces": namespaces,

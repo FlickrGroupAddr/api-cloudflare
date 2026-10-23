@@ -1,6 +1,6 @@
 # Bounded native object source mechanisms and capability finding
 
-Status: SOURCE SUBSET ONLY; complete object capture remains NO-GO.
+Status: prospective SOURCE composition; complete actual object capture remains NO-GO.
 Recorded 2026-10-23 under accepted PMB-1 / ADR0065. This directory supplies no
 deployment, object invocation, credential, provider operation, actual oracle,
 all-writer closure, resource or qualification authority.
@@ -9,7 +9,9 @@ all-writer closure, resource or qualification authority.
 object REST paths for an injected synthetic/model GET port. The actual HTTPS
 entry is permanently disabled before DNS or connection with
 `native_census_transport_unqualified`; there is no enable flag or network
-implementation in this directory. Returned model bodies are byte bounded before
+implementation in that entry. The separately named explicit finite numeric-TLS
+collector in `transport.py` is now implemented; see [SOURCE.md](SOURCE.md) for
+its packet, source and durable budget gates. Returned bodies are byte bounded before
 JSON decoding; pagination has no SDK auto-pagination or retry. Account namespace metadata and selected namespace
 object populations reconcile against a separately supplied, frozen expected
 inventory. False `hasStoredData` entries remain included. Opaque provider cursors
@@ -23,10 +25,10 @@ it does not establish REST snapshot consistency, expected-inventory custody,
 creator disposition or a common all-store closed interval. A new Python instance
 does not renew an actual invocation budget. The caller must account for each
 actual request separately. The removed r01 HTTP implementation could not bound
-header/framing/slow-drip acquisition or an absolute network deadline. No actual
-transport is supplied or enabled here. A future implementation needs separately
-reviewed concrete bounds and actual permit/custody; passing a model callback does
-not qualify or authorize network acquisition.
+header/framing/slow-drip acquisition or an absolute network deadline. The new
+explicit collector reuses the existing reviewed project's bounded concrete client;
+actual permit/custody and qualification remain unresolved. Passing a model
+callback does not qualify or authorize network acquisition.
 
 `native.ts` implements the existing `ReadSession` shape for storage already owned
 by the executing Durable Object. `readLocal` opens one supported native storage
@@ -64,10 +66,11 @@ existing native wakeup and partition disposition mechanisms remain in
 `../pmb1-native-wakeup/candidate.ts` and `../../src/partition_maintenance.ts`.
 No legacy alarm marker, sequence or callback identity is fabricated.
 
-There is deliberately no complete `SupportedSource` factory joining a REST
-census to remote storage. The APIs do not yield a remote storage handle; this
-directory installs no RPC. The factory's unresolved actual population, transport,
-custody and qualification requirements remain separate from the source successor.
+The prospective concrete factory and private native RPC composition are now in
+[`SOURCE.md`](SOURCE.md). Census APIs still yield no storage handle. The concrete
+owner reads its own existing storage through typed RPC and a separate durable
+external controller, with no bootstrap. Actual binding/deployment, population,
+custody, transport bounds and qualification remain separate gates.
 
 ## Exact capability finding
 
@@ -117,7 +120,8 @@ binding and full observable metadata retained as described in
 [`BOUNDARY.md`](BOUNDARY.md). `readLocalSupportedBoundary` admits only its exact
 source-bound automatic column-metadata pragma; raw hidden SQL still refuses.
 The original complete reader and `readLocal` default are not relabeled or changed
-to select that boundary. Complete native SupportedSource acquisition, independent
+to select that boundary. The concrete prospective factory is now implemented;
+complete actual native SupportedSource acquisition, independent
 inventory and all-writer/creator closure, common custody, callback disposition,
 memory/time/acquisition bounds and managed qualification remain unproved. Neither
 acceptance nor typed KV equality proves raw hidden SQL equality or a REST snapshot.
