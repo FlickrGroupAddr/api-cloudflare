@@ -182,6 +182,489 @@ class BindingTests(unittest.TestCase):
             transition_limit=limit,
         )
 
+    def successor_plan(
+        self, intents, *, extra_reads=0, limit_overrides=None, snapshot_queries=(), positional=False
+    ):
+        codec = (
+            binding.positional_receipt_successor if positional else binding.exact_receipt_successor
+        )
+        queries, requests = [], []
+        for intent in intents:
+            for name in ("readback.sql", "schema.sql"):
+                queries.append(self.query("observer", FIXED[name].decode()))
+            batch = codec.build(intent)
+            queries.append(self.query("writer", batch.update_sql, [intent.expected]))
+            for name in ("readback.sql", "schema.sql"):
+                queries.append(self.query("observer", FIXED[name].decode()))
+        for _ in range(extra_reads):
+            for name in ("readback.sql", "schema.sql"):
+                queries.append(self.query("observer", FIXED[name].decode()))
+        queries.extend(self.query("snapshot", sql) for sql in snapshot_queries)
+        by_write = iter(intents)
+        for query in queries:
+            if query["role"] == "writer":
+                requests.append(codec.manifest(codec.build(next(by_write))))
+            else:
+                body = binding.canonical({"sql": query["sql"], "params": []})
+                requests.append(
+                    {
+                        "protocol": "independent_primary_read",
+                        "statementCount": 1,
+                        "requestBodySha2_256": binding.sha2_256(body),
+                        "statements": [{"sql": query["sql"], "params": []}],
+                    }
+                )
+        limits = {
+            "requests": len(queries),
+            "statements": len(queries) + len(intents),
+            "requestBytes": 1024 * 1024,
+            "responseBytes": self.packet["maxTotalBytes"],
+        }
+        if limit_overrides:
+            limits.update(limit_overrides)
+        allocation = {
+            "kind": "SYNTHETIC_QUALIFICATION_ONLY",
+            "protocol": codec.BOUNDARY,
+            "intents": [asdict(intent) for intent in intents],
+            "requests": requests,
+            "limits": limits,
+        }
+        path = self.directory / "synthetic-allocation.json"
+        path.write_bytes(binding.canonical(allocation))
+        self.packet["independentEvidence"]["allocation"] = {
+            "path": str(path),
+            "sha2_256": binding.sha2_256(path.read_bytes()),
+        }
+        self.packet["credentialSha2_256"] = binding.sha2_256(
+            binding.SyntheticSuccessorBinding.SYNTHETIC_TOKEN.encode()
+        )
+        base, journal, _packet_path = self.plan(queries)
+        binding_type = (
+            binding.SyntheticPositionalSuccessorBinding
+            if positional
+            else binding.SyntheticSuccessorBinding
+        )
+        client = binding_type(
+            base.packet_path, base.packet_sha2_256, base.journal_path, self.source, clock=self.clock
+        )
+        client.activate_synthetic(self.batch_transport)
+        qualification = binding.successor_control.Qualification(client)
+        custodian = binding.successor_control.ReturnedInvocations(
+            self.directory / "returned.sqlite",
+            client.packet_sha2_256,
+            TARGET,
+            self.source.candidate,
+            self.clock,
+        )
+        custodian.provision(100)
+        return client, journal, qualification, custodian
+
+    def batch_transport(self, request, address, clock, guard, **kwargs):
+        payload = json.loads(request.wire.split(b"\r\n\r\n", 1)[1])
+        if "batch" not in payload:
+            return self.transport(request, address, clock, guard, **kwargs)
+        self.network_calls.append(request)
+        self.assertEqual(len(payload["batch"]), 2)
+        self.assertEqual(
+            payload["batch"][1], {"sql": binding.exact_receipt_successor.COUNT_SQL, "params": []}
+        )
+        guard()
+        results = []
+        self.db.execute("BEGIN")
+        try:
+            for statement in payload["batch"]:
+                # Explicit SQLite MODEL named binding. This is deliberately not
+                # evidence that the D1 REST array supports the original name.
+                params = (
+                    {"expected_generation": statement["params"][0]}
+                    if ":expected_generation" in statement["sql"]
+                    else statement["params"]
+                )
+                cursor = self.db.execute(statement["sql"], params)
+                rows = (
+                    []
+                    if cursor.description is None
+                    else [
+                        dict(zip([column[0] for column in cursor.description], row, strict=True))
+                        for row in cursor.fetchall()
+                    ]
+                )
+                results.append(
+                    {"success": True, "results": rows, "meta": {"served_by_primary": True}}
+                )
+            self.db.commit()
+        except BaseException:
+            self.db.rollback()
+            raise
+        body = binding.canonical({"success": True, "errors": [], "messages": [], "result": results})
+        return Response(200, {"content-type": "application/json"}, body, len(body) + 128)
+
+    def test_successor_complete_returned_custody_and_second_transition(self):
+        first = self.intent(limit=2)
+        second = self.intent("second", "close", "2", limit=2)
+        client, journal, qualification, custodian = self.successor_plan([first, second])
+        outcome = custodian.invoke(qualification, first, "synthetic:first")
+        self.assertEqual(outcome.scope, "SYNTHETIC_QUALIFICATION_ONLY")
+        self.assertEqual(outcome.result.status, "confirmed")
+        receipt = custodian.read("synthetic:first", 100)
+        self.assertIsNot(type(receipt), adapter.ConfirmedReceipt)
+        self.assertEqual(receipt.predecessor, first)
+        with contextlib.closing(sqlite3.connect(custodian.path)) as db:
+            evidence = json.loads(db.execute("SELECT evidence FROM receipts").fetchone()[0])
+        self.assertEqual(len(evidence["independentPrimaryRequests"]), 4)
+        self.assertTrue(evidence["finalJournalAcknowledged"])
+        outcome2 = custodian.invoke(
+            qualification, second, "synthetic:second", predecessor=first, previous="synthetic:first"
+        )
+        self.assertEqual(outcome2.result.status, "confirmed")
+        self.assertEqual(journal.get(first.key, 100).successor, second.key)
+        with contextlib.closing(sqlite3.connect(journal.path)) as db:
+            self.assertEqual(
+                db.execute("SELECT SUM(statements) FROM statement_allocations").fetchone()[0], 12
+            )
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM requests").fetchone()[0], 10)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM batch_dispatches").fetchone()[0], 2)
+        self.assertEqual(len(self.network_calls), 10)
+        self.assertEqual(qualification.execute(first).result.status, "refused")
+        self.assertEqual(len(self.network_calls), 10)
+        with self.assertRaises(adapter.Refusal):
+            client.activate(lambda: "real-credential-is-never-loaded")
+
+    def _headroom_campaign(self, limit, *, near_max=True):
+        initial = adapter.MAX_GENERATION - limit if near_max else 1
+        # Distinct synthetic bootstrap fixture, before guards are installed.
+        # Runtime operations still use the original unchanged schema/guard SQL.
+        self.db.close()
+        self.db = sqlite3.connect(":memory:", isolation_level=None)
+        self.addCleanup(self.db.close)
+        schema = (CANDIDATE / "d1-schema.sql").read_text()
+        marker = "VALUES (1, 1, 'closed');"
+        self.assertEqual(schema.count(marker), 1)
+        self.db.executescript(schema.replace(marker, f"VALUES (1, {initial}, 'closed');"))
+        self.db.executescript((CANDIDATE / "d1-guards.sql").read_text())
+        self.db.execute(self.fixture["providerMetadataDdl"])
+        intents = [
+            self.intent(
+                f"headroom-{index}",
+                "reopen" if index % 2 == 0 else "close",
+                str(initial + index),
+                limit=limit,
+            )
+            for index in range(limit)
+        ]
+        client, journal, qualification, custodian = self.successor_plan(intents)
+        for index, intent in enumerate(intents):
+            outcome = custodian.invoke(
+                qualification,
+                intent,
+                f"synthetic:headroom-{index}",
+                predecessor=None if index == 0 else intents[index - 1],
+                previous=None if index == 0 else f"synthetic:headroom-{index - 1}",
+            )
+            self.assertEqual(outcome.result.status, "confirmed")
+            self.assertEqual(outcome.result.observed_generation, str(initial + index + 1))
+        self.assertEqual(len(self.network_calls), limit * 5)
+        self.assertEqual(journal.get(intents[-1].key, 100).ordinal, limit)
+        return client, journal, qualification, custodian, intents
+
+    def test_successor_headroom_max_minus_three_completes_three_transitions(self):
+        _client, journal, qualification, custodian, intents = self._headroom_campaign(3)
+        self.assertEqual(intents[-1].next_generation, str(adapter.MAX_GENERATION))
+        fourth = replace(
+            intents[-1], key="fourth", operation="close", expected=str(adapter.MAX_GENERATION)
+        )
+        self.assertEqual(
+            qualification.advance(
+                intents[-1], fourth, "synthetic:headroom-2", custodian
+            ).result.status,
+            "refused",
+        )
+        with self.assertRaises(adapter.Refusal):
+            binding.exact_receipt_successor.build(fourth)
+        self.assertIsNone(journal.get(intents[-1].key, 100).successor)
+        self.assertEqual(len(self.network_calls), 15)
+
+    def test_successor_headroom_max_minus_two_completes_two_transitions(self):
+        self._headroom_campaign(2)
+
+    def test_successor_headroom_overflowing_root_is_refused_before_latch(self):
+        overflowing = self.intent(expected=str(adapter.MAX_GENERATION - 2), limit=3)
+        # One increment is structurally valid; only initial campaign admission
+        # reserves all three slots. A codec must not assume this is a root.
+        binding.exact_receipt_successor.build(overflowing)
+        with self.assertRaisesRegex(adapter.Refusal, "root_headroom"):
+            binding.exact_receipt_successor.build_root(overflowing)
+        journal = SQLiteJournal(self.directory / "overflow.sqlite", TARGET, "c" * 64, self.clock)
+        journal.provision(100)
+        with self.assertRaisesRegex(adapter.Refusal, "root_headroom"):
+            journal.latch(overflowing, 100)
+        self.assertEqual(journal.remaining(16 * 1024 * 1024, 100)[0], 0)
+        self.assertEqual(len(self.network_calls), 0)
+
+    def test_successor_headroom_fourth_transition_refuses_even_with_spare_generation(self):
+        _client, journal, _qualification, custodian, intents = self._headroom_campaign(
+            3, near_max=False
+        )
+        model = custodian.read("synthetic:headroom-2", 100)
+        receipt = adapter.ConfirmedReceipt(model.reference, model.predecessor, model.outcome.result)
+        fourth = replace(intents[-1], key="fourth", operation="close", expected="4")
+        self.assertFalse(journal.advance(intents[-1], fourth, receipt, 100))
+        self.assertIsNone(journal.get(intents[-1].key, 100).successor)
+        self.assertEqual(len(self.network_calls), 15)
+
+    def test_successor_legacy_journal_does_not_upgrade_or_reset_unknown_allocations(self):
+        path = self.directory / "legacy.sqlite"
+        with contextlib.closing(sqlite3.connect(path, isolation_level=None)) as db:
+            for statement in binding._JOURNAL_MODULE.DDL.split(";"):
+                if statement.strip() and not any(
+                    name in statement
+                    for name in (
+                        "CREATE TABLE statement_allocations",
+                        "CREATE TABLE batch_dispatches",
+                    )
+                ):
+                    db.execute(statement)
+            db.execute(
+                "INSERT INTO binding(singleton,target,packet,ordinal,response_bytes) "
+                "VALUES(1,?,?,1,4096)",
+                (TARGET, "c" * 64),
+            )
+            db.execute("INSERT INTO requests VALUES(0,'retained-unknown',4096,NULL)")
+        legacy = SQLiteJournal(path, TARGET, "c" * 64, self.clock)
+        limits = {
+            "requests": 5,
+            "statements": 6,
+            "requestBytes": 1024 * 1024,
+            "responseBytes": 16 * 1024 * 1024,
+        }
+        with self.assertRaises(sqlite3.OperationalError):
+            legacy.reserve_exact_request({"statementCount": 1}, 1024, 1024, limits, 100)
+        self.assertEqual(legacy.remaining(16 * 1024 * 1024, 100), (1, 16 * 1024 * 1024 - 4096))
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            names = {
+                row[0] for row in db.execute("SELECT name FROM sqlite_schema WHERE type='table'")
+            }
+            self.assertEqual(names, {"binding", "entries", "requests"})
+            self.assertEqual(
+                db.execute("SELECT * FROM requests").fetchall(),
+                [(0, "retained-unknown", 4096, None)],
+            )
+        self.assertEqual(len(self.network_calls), 0)
+
+    def test_successor_lost_mutation_response_restart_cannot_replay_or_confirm(self):
+        intent = self.intent(limit=1)
+        client, journal, qualification, custodian = self.successor_plan([intent], extra_reads=1)
+        original = client.exchange
+
+        def lost(*args, **kwargs):
+            response = original(*args, **kwargs)
+            if b'"batch"' in args[0].wire:
+                raise TimeoutError("synthetic lost committed response")
+            return response
+
+        client.exchange = lost
+        result = custodian.invoke(qualification, intent, "synthetic:lost")
+        self.assertEqual(result.result.status, "unknown")
+        self.assertEqual(journal.get(intent.key, 100).phase, "unknown")
+        self.assertEqual(len(self.network_calls), 3)
+        with self.assertRaises(adapter.Refusal):
+            custodian.read("synthetic:lost", 100)
+        restarted = binding.SyntheticSuccessorBinding(
+            client.packet_path,
+            client.packet_sha2_256,
+            client.journal_path,
+            self.source,
+            clock=self.clock,
+        )
+        restarted.activate_synthetic(self.batch_transport)
+        new_control = binding.successor_control.Qualification(restarted)
+        self.assertEqual(new_control.execute(intent).result.status, "refused")
+        # No blind advancement to the unused POST readback requests: the exact
+        # retained query sequence cannot silently skip them after unknown outcome.
+        observed = new_control.reconcile(intent)
+        self.assertIn(observed.result.status, ("observed", "unknown"))
+        self.assertNotEqual(observed.result.status, "confirmed")
+        self.assertEqual(len(self.network_calls), 5)
+
+    def test_successor_statement_budget_counts_both_statements(self):
+        intent = self.intent(limit=1)
+        _client, journal, qualification, _custodian = self.successor_plan(
+            [intent], limit_overrides={"statements": 5}
+        )
+        result = qualification.execute(intent)
+        # Two preflight + UPDATE/count = four statements; only one postflight
+        # read fits. The missing full schema request cannot yield confirmation.
+        self.assertEqual(result.result.status, "unknown")
+        self.assertEqual(len(self.network_calls), 4)
+        self.assertEqual(journal.get(intent.key, 100).phase, "unknown")
+
+    def test_successor_root_intent_memory_drift_and_real_credential_activation_refuse(self):
+        intent = self.intent(limit=1)
+        client, _journal, qualification, _custodian = self.successor_plan([intent])
+        self.assertEqual(
+            qualification.execute(replace(intent, key="unretained")).result.status, "refused"
+        )
+        loader = Mock(return_value=TOKEN)
+        with self.assertRaises(adapter.Refusal):
+            client.activate(loader)
+        loader.assert_not_called()
+        assert client.packet is not None
+        client.packet["databaseId"] = "c" * 36
+        self.assertEqual(qualification.execute(intent).result.status, "refused")
+        self.assertEqual(len(self.network_calls), 0)
+
+    def test_successor_late_final_journal_ack_retains_unknown_no_confirmation(self):
+        intent = self.intent(limit=1)
+        client, journal, qualification, custodian = self.successor_plan([intent])
+        settle = client.journal.settle
+
+        def late(key, phase, deadline):
+            settle(key, phase, deadline)
+            if phase == "confirmed":
+                self.clock_value = 101
+
+        with patch.object(client.journal, "settle", side_effect=late):
+            outcome = qualification.execute(intent)
+        self.assertEqual(outcome.result.status, "unknown")
+        self.assertEqual(journal.get(intent.key, 200).phase, "unknown")
+        with self.assertRaises(adapter.Refusal):
+            custodian.read("synthetic:late", 200)
+        self.assertEqual(len(self.network_calls), 5)
+        self.assertEqual(qualification.execute(intent).result.status, "refused")
+        self.assertEqual(len(self.network_calls), 5)
+
+    def test_successor_atomic_byte_and_request_allocation_precedes_exchange(self):
+        intent = self.intent(limit=1)
+        _client, journal, qualification, _custodian = self.successor_plan(
+            [intent], limit_overrides={"requestBytes": 1}
+        )
+        self.assertEqual(qualification.execute(intent).result.status, "refused")
+        self.assertEqual(len(self.network_calls), 0)
+        with contextlib.closing(sqlite3.connect(journal.path)) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM requests").fetchone()[0], 0)
+
+    def test_successor_batch_slot_is_durable_and_cannot_be_reserved_twice(self):
+        intent = self.intent(limit=1)
+        client, journal, _qualification, _custodian = self.successor_plan([intent])
+        self.assertTrue(journal.latch(intent, 100))
+        self.assertTrue(journal.claim_dispatch(intent.key, 100))
+        manifest = client.allocation["requests"][2]
+        limits = client.allocation["limits"]
+        journal.reserve_exact_request(manifest, 1024, 1024, limits, 100, intent=intent)
+        restarted = SQLiteJournal(journal.path, TARGET, client.packet_sha2_256, self.clock)
+        with self.assertRaisesRegex(adapter.Refusal, "dispatch_already_spent"):
+            restarted.reserve_exact_request(manifest, 1024, 1024, limits, 100, intent=intent)
+        self.assertEqual(restarted.remaining(self.packet["maxTotalBytes"], 100)[0], 1)
+        self.assertEqual(len(self.network_calls), 0)
+
+    def test_successor_custodian_clock_rollback_never_retains_returned_result(self):
+        intent = self.intent(limit=1)
+        _client, _journal, qualification, custodian = self.successor_plan([intent])
+        execute = qualification.execute
+
+        def rollback(value):
+            result = execute(value)
+            self.clock_value = 9
+            return result
+
+        with patch.object(qualification, "execute", side_effect=rollback):
+            with self.assertRaises(adapter.Refusal):
+                custodian.invoke(qualification, intent, "synthetic:rollback")
+        self.clock_value = 10
+        with self.assertRaises(adapter.Refusal):
+            custodian.read("synthetic:rollback", 100)
+        self.assertEqual(qualification.execute(intent).result.status, "refused")
+        self.assertEqual(len(self.network_calls), 5)
+
+    def test_successor_control_and_full_65_table_reader_fit_one_unchanged_allocation(self):
+        self.db.execute(FIXED["reopen.sql"].decode(), {"expected_generation": "1"})
+        self.db.execute("INSERT INTO fga_users(rowid,user_id) VALUES(?,?)", (-(2**63), "min-π"))
+        self.db.execute("INSERT INTO fga_users(rowid,user_id) VALUES(?,?)", (2**63 - 1, "max"))
+        statements = []
+
+        def oracle(sql):
+            cursor = self.db.execute(sql)
+            return [
+                dict(zip([column[0] for column in cursor.description], row, strict=True))
+                for row in cursor.fetchall()
+            ]
+
+        def plan_query(sql):
+            statements.append(sql)
+            return oracle(sql)
+
+        collect_snapshot(plan_query, page_size=2, profile_manifest=self.fixture["manifest"])
+        intent = self.intent(operation="close", expected="2", limit=1)
+        client, journal, qualification, custodian = self.successor_plan(
+            [intent], snapshot_queries=statements
+        )
+        self.assertEqual(
+            custodian.invoke(qualification, intent, "synthetic:capture").result.status, "confirmed"
+        )
+        expected = collect_snapshot(oracle, page_size=2, profile_manifest=self.fixture["manifest"])
+        actual = binding.CompleteReader(client).collect(
+            self.profile_path, self.profile_pin, 100, page_size=2
+        )
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(actual["tables"]), 65)
+        with contextlib.closing(sqlite3.connect(journal.path)) as db:
+            request_count, received, reserved = db.execute(
+                "SELECT COUNT(*),SUM(received),SUM(reserved) FROM requests"
+            ).fetchone()
+            statement_count, request_bytes = db.execute(
+                "SELECT SUM(statements),SUM(request_bytes) FROM statement_allocations"
+            ).fetchone()
+        self.assertEqual(request_count, len(statements) + 5)
+        self.assertEqual(statement_count, request_count + 1)
+        self.assertEqual(request_bytes, sum(len(request.wire) for request in self.network_calls))
+        self.assertEqual(
+            journal.remaining(16 * 1024 * 1024, 100), (request_count, 16 * 1024 * 1024 - received)
+        )
+        self.assertLess(request_bytes, 1024 * 1024)
+        self.assertLess(received, 16 * 1024 * 1024)
+        self.assertGreater(reserved, 16 * 1024 * 1024)
+        self.assertEqual(len(self.network_calls), request_count)
+        print(
+            "SYNTHETIC control/full65 allocation:",
+            f"requests={request_count} statements={statement_count}",
+            f"requestWireBytes={request_bytes} receivedWireBytes={received}",
+            f"sumWorstCaseReservations={reserved} aggregateCap={16 * 1024 * 1024}",
+        )
+
+    def test_successor_missing_primary_and_zero_are_never_success(self):
+        for count, primary, expected in (("0", True, "refused"), ("1", False, "unknown")):
+            with self.subTest(count=count, primary=primary):
+                # Each case needs its own permanent singleton journal.
+                for path in self.directory.glob("*.sqlite"):
+                    path.unlink()
+                intent = self.intent(limit=1)
+                client, _journal, qualification, custodian = self.successor_plan([intent])
+                original = client.exchange
+
+                def alter(*args, original=original, count=count, primary=primary, **kwargs):
+                    response = original(*args, **kwargs)
+                    if b'"batch"' in args[0].wire:
+                        value = json.loads(response.body)
+                        value["result"][1]["results"][0]["exact_change_count"] = count
+                        value["result"][1]["meta"]["served_by_primary"] = primary
+                        body = binding.canonical(value)
+                        return Response(200, response.headers, body, len(body) + 128)
+                    return response
+
+                client.exchange = alter
+                outcome = custodian.invoke(qualification, intent, "synthetic:invalid")
+                self.assertEqual(outcome.result.status, expected)
+                with self.assertRaises(adapter.Refusal):
+                    custodian.read("synthetic:invalid", 100)
+                # Restore initial model state for the next independent case.
+                if count == "0":
+                    self.db.close()
+                    self.db = sqlite3.connect(":memory:", isolation_level=None)
+                    self.addCleanup(self.db.close)
+                    self.db.executescript((CANDIDATE / "d1-schema.sql").read_text())
+                    self.db.executescript((CANDIDATE / "d1-guards.sql").read_text())
+                    self.db.execute(self.fixture["providerMetadataDdl"])
+
     def test_inert_construction_and_cli_no_credential_or_file_io(self):
         with patch.object(Path, "open", side_effect=AssertionError("unexpected file")):
             client = binding.Binding("missing", "x", "missing", self.source)
@@ -457,6 +940,122 @@ class BindingTests(unittest.TestCase):
             successor.request_body(replace(batch, update_sql="DELETE FROM maintenance_control"))
         with self.assertRaises(ValueError):
             successor.build(replace(self.intent(), expected="9223372036854775807"))
+
+    def test_positional_successor_exact_token_delta_text_binding_and_distinct_manifest(self):
+        named, positional = binding.exact_receipt_successor, binding.positional_receipt_successor
+        for operation in ("close", "reopen"):
+            for generation in ("1", str(adapter.MAX_GENERATION - 1)):
+                intent = self.intent(operation=operation, expected=generation, limit=1)
+                original, variant = named.build(intent), positional.build(intent)
+                self.assertEqual(original.update_sql.count(":expected_generation"), 2)
+                self.assertEqual(variant.update_sql.count("?1"), 2)
+                self.assertEqual(
+                    variant.update_sql.replace("?1", ":expected_generation"), original.update_sql
+                )
+                self.assertEqual(
+                    len(original.update_sql.encode()) - len(variant.update_sql.encode()), 36
+                )
+                body = json.loads(positional.request_body(variant))
+                self.assertEqual(len(body["batch"]), 2)
+                self.assertEqual(body["batch"][0]["params"], [generation])
+                self.assertEqual(body["batch"][1], {"sql": named.COUNT_SQL, "params": []})
+                self.assertEqual(positional.manifest(variant)["protocol"], positional.BOUNDARY)
+                self.assertNotEqual(
+                    named.manifest(original)["requestBodySha2_256"],
+                    positional.manifest(variant)["requestBodySha2_256"],
+                )
+                with self.assertRaises(adapter.Refusal):
+                    named.request_body(variant)
+                with self.assertRaises(adapter.Refusal):
+                    positional.request_body(original)
+        for invalid in (1, "01", "0", str(adapter.MAX_GENERATION)):
+            with self.assertRaises(adapter.Refusal):
+                positional.build(replace(self.intent(), expected=invalid))
+        self.assertEqual(named.BOUNDARY, "fixed_update_with_exact_count_v1")
+
+    def test_positional_successor_executes_two_transitions_and_retains_own_protocol(self):
+        first, second = self.intent(limit=2), self.intent("second", "close", "2", limit=2)
+        _client, _journal, qualification, custodian = self.successor_plan(
+            [first, second], positional=True
+        )
+        first_result = custodian.invoke(qualification, first, "synthetic:pos-first")
+        self.assertEqual(first_result.result.status, "confirmed")
+        second_result = custodian.invoke(
+            qualification,
+            second,
+            "synthetic:pos-second",
+            predecessor=first,
+            previous="synthetic:pos-first",
+        )
+        self.assertEqual(second_result.result.status, "confirmed")
+        with contextlib.closing(sqlite3.connect(custodian.path)) as db:
+            rows = db.execute("SELECT evidence FROM receipts").fetchall()
+        for row in rows:
+            evidence = json.loads(row[0])
+            self.assertEqual(
+                evidence["batch"]["receipt"]["protocol"],
+                binding.positional_receipt_successor.BOUNDARY,
+            )
+            self.assertEqual(len(evidence["independentPrimaryRequests"]), 4)
+        self.assertEqual(len(self.network_calls), 10)
+
+    def test_positional_successor_wrong_named_selection_refuses_without_exchange(self):
+        client, _journal, _qualification, _custodian = self.successor_plan(
+            [self.intent(limit=1)], positional=True
+        )
+        wrong = binding.SyntheticSuccessorBinding(
+            client.packet_path,
+            client.packet_sha2_256,
+            client.journal_path,
+            self.source,
+            clock=self.clock,
+        )
+        exchange = Mock()
+        with self.assertRaisesRegex(adapter.Refusal, "exact_allocation"):
+            wrong.activate_synthetic(exchange)
+        exchange.assert_not_called()
+        loader = Mock()
+        with self.assertRaises(adapter.Refusal):
+            client.activate(loader)
+        loader.assert_not_called()
+        self.assertEqual(len(self.network_calls), 0)
+
+    def test_positional_successor_lost_response_preserves_unknown_budget_and_no_replay(self):
+        intent = self.intent(limit=1)
+        client, journal, qualification, custodian = self.successor_plan([intent], positional=True)
+        exchange = client.exchange
+
+        def lost(*args, **kwargs):
+            response = exchange(*args, **kwargs)
+            if b'"batch"' in args[0].wire:
+                raise TimeoutError("synthetic lost positional response")
+            return response
+
+        client.exchange = lost
+        self.assertEqual(
+            custodian.invoke(qualification, intent, "synthetic:pos-lost").result.status, "unknown"
+        )
+        with contextlib.closing(sqlite3.connect(journal.path)) as db:
+            allowance, received = db.execute(
+                "SELECT reserved,received FROM requests WHERE ordinal=2"
+            ).fetchone()
+        self.assertEqual(allowance, 512 * 1024)
+        self.assertIsNone(received)
+        restarted = binding.SyntheticPositionalSuccessorBinding(
+            client.packet_path,
+            client.packet_sha2_256,
+            client.journal_path,
+            self.source,
+            clock=self.clock,
+        )
+        restarted.activate_synthetic(self.batch_transport)
+        self.assertEqual(
+            binding.successor_control.Qualification(restarted).execute(intent).result.status,
+            "refused",
+        )
+        with self.assertRaises(adapter.Refusal):
+            custodian.read("synthetic:pos-lost", 100)
+        self.assertEqual(len(self.network_calls), 3)
 
     def test_successor_count_model_zero_and_one_are_not_managed_commit_receipts(self):
         successor = binding.exact_receipt_successor

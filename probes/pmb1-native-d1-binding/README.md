@@ -6,6 +6,17 @@ confirmation custodian. The exact mutation receipt remains unsupported by the
 documented unchanged protocol. `Provider.dispatch()` refuses before networking.
 This is not a complete production control binding or a qualification PASS.
 
+The distinct `SyntheticSuccessorBinding` and `successor_control.Qualification`
+now execute the accepted two-statement candidate end to end under a trusted
+synthetic exchange. They compose immutable retained campaign intents, complete
+independent PRIMARY reads, the external journal, atomic request/SQL-statement/
+request-byte/response-byte allocation and a separate SQLite returned-invocation
+custodian. This is executable qualification-source delivery, with distinct
+synthetic result/receipt wrappers. It has no production sender or credential
+loader: `activate()` refuses and `activate_synthetic()` uses a constant
+noncredential. Constructor/default CLI remain inert. The original Provider and
+single_fixed_update behavior remain unchanged.
+
 The Python operator is separate from the Worker `MainEntryJournal` backend.
 Do not import it into a Worker or present it as a native Worker adapter.
 The external SQLite journal lives in the trusted operator's qualified private
@@ -26,7 +37,7 @@ need inclusion in the reviewed campaign allocation; this source grants none.
   The later operator must establish those factual gates before activation.
 - Default construction and CLI perform no operational I/O, credential delivery
   or networking. Normal module loading reads fixed local source only. The fixed
-  18-module project dependency graph, including journal, adapter, source verifier,
+  20-module project dependency graph, including journal, adapter, source verifier,
   HTTP dependencies and lazy codec imports, is compiled from frozen bytes into
   private namespaces. Project imports route only within that explicit graph.
   Ambient cached namesakes are neither used nor replaced; Python and its standard
@@ -98,7 +109,60 @@ success. Missing/order/extra-result/numeric/PRIMARY/completion anomalies refuse.
 The original named UPDATE parameter bytes are preserved; the selected REST
 parameter binding itself remains a qualification obligation. No builder or
 decoder loads credentials, provisions a resource, spends an intent or dispatches.
-Actual dispatch remains unimplemented and disabled for both protocols.
+Production dispatch remains unimplemented and disabled for all protocol identifiers.
+
+The concrete synthetic REST candidate builds exactly the fixed batch body and a
+fully framed request for the retained account/database/address. Before handing
+it to the supplied synthetic exchange, one SQLite transaction reserves the
+request ordinal, both SQL statements and the complete request wire/maximum
+response allocation, and permanently consumes that intent's batch-dispatch slot.
+Read requests each consume one request and one SQL statement. A normal transition
+requires five requests and six SQL statements (two complete preflight reads,
+one two-statement mutation request, two complete postflight reads). Additional
+transitions and reconciliation share the original root limits and exact retained
+query sequence; no implicit query, budget or replay is added.
+
+Whole-campaign generation headroom is reserved once for the immutable root,
+before activation/latch. The pure batch codec validates one increment only;
+durable successor advancement validates the root ordinal, adjacency and remaining
+slots. The immutable original transition limit is never charged again as though
+each successor began a new campaign. MAX-3 with limit three and MAX-2 with limit
+two may therefore finish exactly at signed-int64 MAX; root overflow and a fourth
+transition still refuse. Legacy journals without the new allocation tables are
+not upgraded or reset by a successor request.
+
+`ReturnedInvocations.invoke()` calls the model producer itself; no API accepts a
+caller-created Result for retention. After an actual timely returned model
+confirmation and final journal acknowledgement/checks, it retains the exact
+intent/result and request/response evidence in a separate exclusively created
+append-only SQLite custodian. Unknown/lost/late/refused outcomes cannot produce
+a receipt. Public synthetic receipts have a different type from the historical
+ConfirmedReceipt; the private synthetic lifecycle bridge alone consumes them.
+This models custody integration, not qualified native independent attestation.
+
+The [prepared-statement contract](https://developers.cloudflare.com/d1/worker-api/prepared-statements/)
+currently documents ordered and anonymous parameters and explicitly leaves named
+parameters to future support. The unchanged UPDATE uses the named
+`:expected_generation` twice. The tests explicitly bind it by name in their
+SQLite model; they never treat this as REST array-binding evidence. Worker batch
+ordering/transaction documentation cannot establish this unchanged named native
+path or qualify REST. Terry separately accepted the
+[prospective positional variant](../../docs/operations/pmb1-positional-generation-successor-2026-10-23.md)
+in #0250. `positional_receipt_successor` derives exactly two token replacements,
+both `:expected_generation` to the same `?1`, with every other historical byte
+unchanged. It binds one canonical positive signed-int64 decimal TEXT parameter
+and retains the same exact-count SELECT. Its identifier is
+`fixed_update_with_exact_count_positional_v1`, with distinct batch/count types,
+request/receipt manifests and source pins. The original named codec rejects its
+batch type and remains unchanged in SQL/protocol/default behavior.
+
+Select the new source explicitly with `SyntheticPositionalSuccessorBinding`;
+the ordinary synthetic binding continues to select the named protocol. A packet
+for the other class refuses before exchange. Both model selections preserve the
+same durable control, root headroom, independent PRIMARY reads, returned model
+custody and request/statement/wire-byte budgets. Neither class has native sender
+activation or an actual credential loader. Positional source acceptance supplies
+no REST connection/transaction/commit evidence or native qualification.
 
 ## Remaining factual and source limits
 

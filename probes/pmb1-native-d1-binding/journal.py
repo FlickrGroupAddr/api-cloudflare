@@ -34,6 +34,9 @@ CREATE TABLE entries(key TEXT PRIMARY KEY, intent TEXT NOT NULL,
  reconciliations INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE requests(ordinal INTEGER PRIMARY KEY, query TEXT NOT NULL,
  reserved INTEGER NOT NULL, received INTEGER);
+CREATE TABLE statement_allocations(ordinal INTEGER PRIMARY KEY REFERENCES requests(ordinal),
+ statements INTEGER NOT NULL, request_bytes INTEGER NOT NULL);
+CREATE TABLE batch_dispatches(key TEXT PRIMARY KEY REFERENCES entries(key), ordinal INTEGER UNIQUE);
 """
 
 
@@ -136,12 +139,13 @@ class SQLiteJournal:
             or any(character not in "0123456789abcdef" for character in intent.candidate)
             or type(intent.transition_limit) is not int
             or intent.transition_limit not in (1, 2, 3)
-            or int(intent.expected) + intent.transition_limit > adapter.MAX_GENERATION
         ):
             raise adapter.Refusal("external_journal_intent")
 
     def latch(self, intent, deadline):
         self._valid_intent(intent)
+        if int(intent.expected) + intent.transition_limit > adapter.MAX_GENERATION:
+            raise adapter.Refusal("external_journal_root_headroom")
         with self.transaction(deadline) as db:
             if db.execute("SELECT COUNT(*) FROM entries").fetchone()[0]:
                 return False
@@ -167,10 +171,12 @@ class SQLiteJournal:
         return result
 
     def advance(self, predecessor, successor, receipt, deadline):
+        self._valid_intent(predecessor)
         self._valid_intent(successor)
         with self.transaction(deadline) as db:
             row = self._entry(db, predecessor.key)
             root = intent_from(json.loads(self._entry(db, row["root"])["intent"]))
+            self._valid_intent(root)
             active = db.execute("SELECT active FROM binding").fetchone()[0]
             if (
                 active != predecessor.key
@@ -179,8 +185,15 @@ class SQLiteJournal:
                 or row["dispatched"] != 1
                 or row["successor"] is not None
                 or row["ordinal"] >= root.transition_limit
+                or type(row["ordinal"]) is not int
+                or not 1 <= row["ordinal"] <= root.transition_limit
+                or int(root.expected) + root.transition_limit > adapter.MAX_GENERATION
+                or predecessor.expected != str(int(root.expected) + row["ordinal"] - 1)
+                or int(successor.expected) + root.transition_limit - row["ordinal"]
+                > adapter.MAX_GENERATION
                 or successor.key == predecessor.key
                 or successor.candidate != predecessor.candidate
+                or successor.candidate != root.candidate
                 or successor.window != root.window
                 or successor.transition_limit != root.transition_limit
                 or successor.operation == predecessor.operation
@@ -303,3 +316,79 @@ class SQLiteJournal:
             db.execute(
                 "UPDATE binding SET response_bytes=response_bytes-?", (row["reserved"] - count,)
             )
+
+    def reserve_exact_request(
+        self, descriptor, allowance, request_bytes, limits, deadline, *, intent=None
+    ):
+        """Atomic REQUEST + SQL statement + request/response byte reservation.
+
+        Separate successor accounting; historical request counters remain intact.
+        Refuse preceding historical requests without full statement/byte custody.
+        Lost acknowledgments retain all allocations; there is no refund/retry.
+        """
+        statements = descriptor.get("statementCount")
+        if (
+            type(statements) is not int
+            or statements not in (1, 2)
+            or type(request_bytes) is not int
+            or not 1 <= request_bytes <= 256 * 1024
+            or type(allowance) is not int
+            or not 1 <= allowance <= 512 * 1024
+            or set(limits) != {"requests", "statements", "requestBytes", "responseBytes"}
+            or any(type(value) is not int or value <= 0 for value in limits.values())
+            or limits["requests"] > 2048
+            or limits["statements"] > 2048
+            or limits["requestBytes"] > 16 * 1024 * 1024
+            or limits["responseBytes"] > 16 * 1024 * 1024
+        ):
+            raise adapter.Refusal("exact_successor_allocation_shape")
+        with self.transaction(deadline) as db:
+            row = db.execute("SELECT * FROM binding").fetchone()
+            if (
+                db.execute("SELECT COUNT(*) FROM requests").fetchone()[0]
+                != db.execute("SELECT COUNT(*) FROM statement_allocations").fetchone()[0]
+            ):
+                raise adapter.Refusal("exact_successor_prior_allocation_unknown")
+            allocated = db.execute(
+                "SELECT COALESCE(SUM(statements-1),0),COALESCE(SUM(request_bytes),0) "
+                "FROM statement_allocations"
+            ).fetchone()
+            ordinal = row["ordinal"]
+            if (
+                ordinal >= limits["requests"]
+                or ordinal + allocated[0] + statements > limits["statements"]
+                or allocated[1] + request_bytes > limits["requestBytes"]
+                or row["response_bytes"] + allowance > limits["responseBytes"]
+            ):
+                raise adapter.Refusal("exact_successor_budget_exhausted")
+            if statements == 2:
+                if intent is None:
+                    raise adapter.Refusal("exact_successor_intent_required")
+                self._valid_intent(intent)
+                entry = self._entry(db, intent.key)
+                if (
+                    entry["intent"] != encode(asdict(intent))
+                    or entry["phase"] != "dispatching"
+                    or entry["dispatched"] != 1
+                    or db.execute("SELECT active FROM binding").fetchone()[0] != intent.key
+                    or db.execute(
+                        "SELECT 1 FROM batch_dispatches WHERE key=?", (intent.key,)
+                    ).fetchone()
+                ):
+                    raise adapter.Refusal("exact_successor_dispatch_already_spent")
+                db.execute("INSERT INTO batch_dispatches VALUES(?,?)", (intent.key, ordinal))
+            elif intent is not None:
+                raise adapter.Refusal("exact_successor_read_intent")
+            db.execute(
+                "INSERT INTO requests VALUES(?,?,?,NULL)",
+                (ordinal, encode(descriptor), allowance),
+            )
+            db.execute(
+                "INSERT INTO statement_allocations VALUES(?,?,?)",
+                (ordinal, statements, request_bytes),
+            )
+            db.execute(
+                "UPDATE binding SET ordinal=ordinal+1,response_bytes=response_bytes+?",
+                (allowance,),
+            )
+        return ordinal

@@ -37,15 +37,23 @@ def build(intent):
         raise adapter.Refusal("exact_count_successor_intent")
     intent.window.validate()
     adapter.generation(intent.expected, increment=True)
-    if (
-        type(intent.transition_limit) is not int
-        or intent.transition_limit not in (1, 2, 3)
-        or int(intent.expected) + intent.transition_limit > adapter.MAX_GENERATION
-    ):
+    if type(intent.transition_limit) is not int or intent.transition_limit not in (1, 2, 3):
         raise adapter.Refusal("exact_count_successor_headroom")
     return FixedExactChangeBatch(
         intent, adapter.verify_source()[intent.operation + ".sql"].decode()
     )
+
+
+def build_root(intent):
+    """Reserve whole-campaign headroom only for its immutable initial intent.
+
+    build() validates a single transition; the journal owns a successor's root,
+    durable ordinal and remaining capacity, which are not inputs to this codec.
+    """
+    batch = build(intent)
+    if int(intent.expected) + intent.transition_limit > adapter.MAX_GENERATION:
+        raise adapter.Refusal("exact_count_successor_root_headroom")
+    return batch
 
 
 def request_body(batch):

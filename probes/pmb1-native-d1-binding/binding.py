@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import types
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
@@ -30,6 +31,10 @@ _GRAPH_PATHS = {
     "prospective_control": ROOT / "probes/pmb1-integer-candidate/prospective_control.py",
     "journal": Path(__file__).resolve().with_name("journal.py"),
     "exact_receipt_successor": Path(__file__).resolve().with_name("exact_receipt_successor.py"),
+    "successor_control": Path(__file__).resolve().with_name("successor_control.py"),
+    "positional_receipt_successor": Path(__file__)
+    .resolve()
+    .with_name("positional_receipt_successor.py"),
     **{
         f"scripts.{name}": ROOT / "scripts" / f"{name}.py"
         for name in (
@@ -77,6 +82,8 @@ def _fixed_import(name, globals=None, locals=None, fromlist=(), level=0):
         "journal",
         "prospective_control",
         "exact_receipt_successor",
+        "successor_control",
+        "positional_receipt_successor",
     ):
         raise RuntimeError("native_d1_unreviewed_project_import")
     return builtins.__import__(name, globals, locals, fromlist, level)
@@ -110,6 +117,8 @@ for _name in _GRAPH_PATHS:
 adapter = _GRAPH["adapter"]
 prospective_control = _GRAPH["prospective_control"]
 exact_receipt_successor = _GRAPH["exact_receipt_successor"]
+successor_control = _GRAPH["successor_control"]
+positional_receipt_successor = _GRAPH["positional_receipt_successor"]
 _JOURNAL_MODULE = _GRAPH["journal"]
 SQLiteJournal = _JOURNAL_MODULE.SQLiteJournal
 encode = _JOURNAL_MODULE.encode
@@ -138,6 +147,8 @@ _BOUND_EXPORTS = {
         "adapter",
         "prospective_control",
         "exact_receipt_successor",
+        "successor_control",
+        "positional_receipt_successor",
         "SQLiteJournal",
         "encode",
         "intent_from",
@@ -270,6 +281,9 @@ class Binding:
             raise adapter.Refusal("native_d1_inert")
         return self.packet, self.journal, self.token
 
+    def _fixed_writer_sqls(self, fixed):
+        return [fixed[name].decode() for name in ("close.sql", "reopen.sql")]
+
     def activate(self, credential_loader):
         """Explicit later operator action; never invoked by constructor/CLI."""
         require(self.packet is None and self.token is None, "native_d1_already_active")
@@ -378,8 +392,7 @@ class Binding:
             )
             if query["role"] == "writer":
                 require(
-                    query["sql"] in [fixed[name].decode() for name in ("close.sql", "reopen.sql")]
-                    and len(query["params"]) == 1,
+                    query["sql"] in self._fixed_writer_sqls(fixed) and len(query["params"]) == 1,
                     "native_d1_fixed_write",
                 )
                 adapter.generation(query["params"][0], increment=True)
@@ -665,6 +678,307 @@ class FileConfirmations:
             pinned_file(value["path"], value["sha2_256"], MAX_PACKET_BYTES)
         require(now <= self.clock() < deadline, "native_d1_confirmation_late")
         return adapter.ConfirmedReceipt(reference, intent, result)
+
+
+class SyntheticSuccessorBinding(Binding):
+    """Executable finite model of the exact REST candidate, with no native sender.
+
+    Only activate_synthetic(exchange) is supported. The supplied trusted test
+    exchange consumes a fully framed candidate Request; this class never calls
+    _pinned_https, discovers credentials or exposes a production activation API.
+    The unchanged native named parameter lacks a supported D1 basis today.
+    """
+
+    SYNTHETIC_TOKEN = "synthetic-qualification-only-no-provider-credential"
+
+    def _codec(self):
+        return exact_receipt_successor
+
+    def build_batch(self, intent):
+        return self._codec().build(intent)
+
+    def activate(self, credential_loader):
+        raise adapter.Refusal("successor_production_capability_not_qualified")
+
+    def activate_synthetic(self, exchange):
+        require(callable(exchange), "synthetic_exchange_required")
+        raw = pinned_file(self.packet_path, self.packet_sha2_256, MAX_PACKET_BYTES)
+        packet = _json(raw)
+        require(
+            packet.get("credentialSha2_256") == sha2_256(self.SYNTHETIC_TOKEN.encode()),
+            "synthetic_credential_only",
+        )
+        allocation_record = packet["independentEvidence"]["allocation"]
+        allocation_raw = pinned_file(
+            allocation_record["path"], allocation_record["sha2_256"], MAX_PACKET_BYTES
+        )
+        allocation: Any = _json(allocation_raw)
+        require(
+            type(allocation) is dict
+            and set(allocation) == {"kind", "protocol", "intents", "requests", "limits"}
+            and allocation["kind"] == "SYNTHETIC_QUALIFICATION_ONLY"
+            and allocation["protocol"] == self._codec().BOUNDARY,
+            "synthetic_exact_allocation",
+        )
+        allocation = cast(dict[str, Any], allocation)
+        require(
+            type(allocation["intents"]) is list and 1 <= len(allocation["intents"]) <= 3,
+            "synthetic_intent_inventory",
+        )
+        intents = [intent_from(value) for value in allocation["intents"]]
+        intent = intents[0]
+        self._codec().build_root(intent)
+        require(
+            intent.target_id == packet["targetId"]
+            and intent.candidate == packet["candidate"]
+            and intent.window.starts == packet["starts"]
+            and intent.window.reconcile_until == packet["ends"],
+            "synthetic_immutable_intent_binding",
+        )
+        require(len(intents) <= intent.transition_limit, "synthetic_campaign_headroom")
+        for index, current in enumerate(intents):
+            self._codec().build(current)
+            require(
+                current.target_id == intent.target_id
+                and current.candidate == intent.candidate
+                and current.window == intent.window
+                and current.transition_limit == intent.transition_limit
+                and current.key not in [prior.key for prior in intents[:index]]
+                and (
+                    index == 0
+                    or (
+                        current.expected == intents[index - 1].next_generation
+                        and current.operation != intents[index - 1].operation
+                    )
+                ),
+                "synthetic_campaign_intent_binding",
+            )
+        limits = cast(dict[str, int], allocation["limits"])
+        require(
+            type(limits) is dict
+            and set(limits) == {"requests", "statements", "requestBytes", "responseBytes"}
+            and all(type(value) is int and value > 0 for value in limits.values())
+            and limits["requests"] == len(packet["queries"])
+            and limits["requests"] <= MAX_QUERIES
+            and limits["requests"] <= limits["statements"] <= MAX_QUERIES
+            and limits["requestBytes"] <= MAX_TOTAL_BYTES
+            and limits["responseBytes"] == packet["maxTotalBytes"],
+            "synthetic_finite_limits",
+        )
+        requests = cast(list[dict[str, Any]], allocation["requests"])
+        require(
+            type(requests) is list and len(requests) == len(packet["queries"]),
+            "synthetic_request_manifest",
+        )
+        writer_index = 0
+        for query, request in zip(packet["queries"], requests, strict=True):
+            count = 2 if query["role"] == "writer" else 1
+            if count == 2:
+                require(writer_index < len(intents), "synthetic_extra_writer")
+                batch = self.build_batch(intents[writer_index])
+                require(
+                    query["sql"] == batch.update_sql and query["params"] == [batch.intent.expected],
+                    "synthetic_writer_intent_manifest",
+                )
+                expected = self._codec().manifest(batch)
+                writer_index += 1
+            else:
+                body = canonical({"sql": query["sql"], "params": query["params"]})
+                expected = {
+                    "protocol": "independent_primary_read",
+                    "statementCount": 1,
+                    "requestBodySha2_256": sha2_256(body),
+                    "statements": [{"sql": query["sql"], "params": query["params"]}],
+                }
+            require(request == expected, "synthetic_exact_statement_manifest")
+        require(writer_index == len(intents), "synthetic_missing_writer")
+        # The parent activation checks every retained source/evidence/journal pin
+        # and exact fixed SQL before delivering this constant noncredential.
+        Binding.activate(self, lambda: self.SYNTHETIC_TOKEN)
+        self.allocation, self.allocation_raw, self.exchange = allocation, allocation_raw, exchange
+        self.packet_raw = raw
+        self.source_target = packet["targetId"]
+        self.read_evidence = []
+
+    def guard(self, deadline):
+        super().guard(deadline)
+        # Parent activation calls guard before synthetic fields are installed.
+        if hasattr(self, "packet_raw"):
+            require(canonical(self.packet) == self.packet_raw, "synthetic_packet_memory_drift")
+            require(
+                canonical(self.allocation) == self.allocation_raw,
+                "synthetic_allocation_memory_drift",
+            )
+
+    def query(self, role, sql, params, deadline):
+        require(role in ("observer", "snapshot"), "synthetic_read_role")
+        rows, meta, _body = self._request(role, sql, params, deadline)
+        return rows, meta
+
+    def dispatch_batch(self, batch, deadline):
+        require(
+            type(batch) is type(self.build_batch(batch.intent))
+            and batch == self.build_batch(batch.intent),
+            "synthetic_exact_batch",
+        )
+        packet, journal, _token = self.active()
+        intent = batch.intent
+        root = intent_from(self.allocation["intents"][0])
+        require(
+            intent.target_id == root.target_id
+            and intent.candidate == root.candidate
+            and intent.window == root.window
+            and intent.transition_limit == root.transition_limit,
+            "synthetic_batch_immutable_binding",
+        )
+        require(asdict(intent) in self.allocation["intents"], "synthetic_unretained_intent")
+        entry = journal.get(intent.key, deadline)
+        require(
+            entry.intent == intent
+            and entry.dispatch_claimed is True
+            and entry.phase == "dispatching",
+            "synthetic_durable_dispatch_required",
+        )
+        _rows_unused, _meta, body = self._request(
+            "writer", batch.update_sql, [intent.expected], deadline, batch=batch
+        )
+        decoded = self._codec().decode_ordered_body(body)
+        return successor_control.SyntheticBatchReceipt(
+            batch,
+            decoded.count,
+            canonical(
+                {
+                    "scope": "SYNTHETIC_QUALIFICATION_ONLY",
+                    "target": packet["targetId"],
+                    "packet": self.packet_sha2_256,
+                    "intent": asdict(intent),
+                    "receipt": self._codec().receipt_manifest(batch, body),
+                }
+            ),
+        )
+
+    def _request(self, role, sql, params, deadline, *, batch=None):
+        require(hasattr(self, "exchange"), "synthetic_inert")
+        if not self.lock.acquire(blocking=False):
+            raise adapter.Refusal("synthetic_concurrent_call")
+        try:
+            self.guard(deadline)
+            packet, journal, token = self.active()
+            ordinal, remaining = journal.remaining(packet["maxTotalBytes"], deadline)
+            descriptor = {"role": role, "sql": sql, "params": params}
+            require(
+                ordinal < len(packet["queries"]) and packet["queries"][ordinal] == descriptor,
+                "synthetic_query_manifest_mismatch",
+            )
+            body = (
+                self._codec().request_body(batch)
+                if batch is not None
+                else canonical({"sql": sql, "params": params})
+            )
+            manifest = self.allocation["requests"][ordinal]
+            require(
+                sha2_256(body) == manifest["requestBodySha2_256"],
+                "synthetic_request_body_binding",
+            )
+            cap = min(packet["maxResponseBytes"], remaining)
+            require(cap > 0, "synthetic_response_budget")
+            path = (
+                f"/client/v4/accounts/{packet['accountId']}"
+                f"/d1/database/{packet['databaseId']}/query"
+            )
+            headers = {
+                "Host": "api.cloudflare.com",
+                "Connection": "close",
+                "Content-Length": str(len(body)),
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Accept-Encoding": "identity",
+                "Authorization": "Bearer " + token,
+            }
+            wire = (
+                f"POST {path} HTTP/1.1\r\n"
+                + "".join(f"{key}: {value}\r\n" for key, value in headers.items())
+                + "\r\n"
+            ).encode() + body
+            claimed = journal.reserve_exact_request(
+                manifest,
+                cap,
+                len(wire),
+                self.allocation["limits"],
+                deadline,
+                intent=None if batch is None else batch.intent,
+            )
+            require(claimed == ordinal, "synthetic_concurrent_ordinal")
+            self.guard(deadline)
+            request = Request(
+                "https://api.cloudflare.com" + path,
+                headers,
+                min(packet["timeoutSeconds"], deadline - self.clock()),
+                cap,
+                min(deadline, self.clock() + packet["timeoutSeconds"]),
+                wire,
+            )
+            response = self.exchange(
+                request,
+                self.address,
+                self.clock,
+                lambda: self.guard(request.deadline),
+                discard_set_cookie=True,
+            )
+            self.guard(request.deadline)
+            require(
+                type(response) is Response
+                and response.status == 200
+                and response.headers == {"content-type": "application/json"}
+                and type(response.wire_bytes) is int
+                and len(response.body) <= response.wire_bytes <= cap,
+                "synthetic_complete_http_response",
+            )
+            if batch is not None:
+                self._codec().decode_ordered_body(response.body)
+                rows, meta = [], {}
+            else:
+                rows = _rows(response, cap)
+                payload = _json(response.body)
+                meta = payload["result"][0]["meta"]
+                require(meta.get("served_by_primary") is True, "synthetic_primary_unproved")
+                require(
+                    not any(
+                        key in payload
+                        for key in ("result_info", "cursor", "has_more", "next", "truncated")
+                    ),
+                    "synthetic_incomplete_read",
+                )
+            journal.received(ordinal, response.wire_bytes, request.deadline)
+            self.guard(request.deadline)
+            if batch is None:
+                self.read_evidence.append(
+                    {
+                        "requestOrdinal": ordinal,
+                        "request": manifest,
+                        "responseBodySha2_256": sha2_256(response.body),
+                        "wireBytes": response.wire_bytes,
+                        "primary": True,
+                        "complete": True,
+                    }
+                )
+            return rows, meta, response.body
+        except Exception:
+            raise adapter.Refusal("synthetic_refused_or_unknown_no_replay") from None
+        finally:
+            self.lock.release()
+
+
+class SyntheticPositionalSuccessorBinding(SyntheticSuccessorBinding):
+    """Explicit accepted #0250 model selection; production activation still refuses."""
+
+    def _codec(self):
+        return positional_receipt_successor
+
+    def _fixed_writer_sqls(self, fixed):
+        return [
+            positional_receipt_successor.source_sql(operation) for operation in ("close", "reopen")
+        ]
 
 
 def main(argv=None):
