@@ -23,6 +23,10 @@ from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 
+# Trusted entry loading is an operator/runtime boundary. Never relabel this
+# already loaded entry with bytes written to disk after its import.
+_BINDING_SOURCE_BYTES = Path(__file__).read_bytes()
+
 # This is the finite project dependency closure for THIS operator, including
 # lazy codec imports. There is no path discovery, plugin loading or ambient
 # project-module reuse. Python/the standard library are trusted runtime inputs.
@@ -35,6 +39,8 @@ _GRAPH_PATHS = {
     "positional_receipt_successor": Path(__file__)
     .resolve()
     .with_name("positional_receipt_successor.py"),
+    "native_sender": Path(__file__).resolve().with_name("native_sender.py"),
+    "native_custody": Path(__file__).resolve().with_name("native_custody.py"),
     **{
         f"scripts.{name}": ROOT / "scripts" / f"{name}.py"
         for name in (
@@ -84,6 +90,8 @@ def _fixed_import(name, globals=None, locals=None, fromlist=(), level=0):
         "exact_receipt_successor",
         "successor_control",
         "positional_receipt_successor",
+        "native_sender",
+        "native_custody",
     ):
         raise RuntimeError("native_d1_unreviewed_project_import")
     return builtins.__import__(name, globals, locals, fromlist, level)
@@ -119,6 +127,8 @@ prospective_control = _GRAPH["prospective_control"]
 exact_receipt_successor = _GRAPH["exact_receipt_successor"]
 successor_control = _GRAPH["successor_control"]
 positional_receipt_successor = _GRAPH["positional_receipt_successor"]
+native_sender = _GRAPH["native_sender"]
+native_custody = _GRAPH["native_custody"]
 _JOURNAL_MODULE = _GRAPH["journal"]
 SQLiteJournal = _JOURNAL_MODULE.SQLiteJournal
 encode = _JOURNAL_MODULE.encode
@@ -149,6 +159,8 @@ _BOUND_EXPORTS = {
         "exact_receipt_successor",
         "successor_control",
         "positional_receipt_successor",
+        "native_sender",
+        "native_custody",
         "SQLiteJournal",
         "encode",
         "intent_from",
@@ -192,7 +204,8 @@ def pinned_file(path, expected, limit):
 
 def source_pins():
     require(
-        all(path.read_bytes() == _GRAPH_BYTES[name] for name, path in _GRAPH_PATHS.items())
+        Path(__file__).read_bytes() == _BINDING_SOURCE_BYTES
+        and all(path.read_bytes() == _GRAPH_BYTES[name] for name, path in _GRAPH_PATHS.items())
         and all(
             sys.modules.get(_PRIVATE_PREFIX + "." + name) is module
             for name, module in _GRAPH.items()
@@ -205,10 +218,10 @@ def source_pins():
         and all(globals().get(name) is value for name, value in _BOUND_EXPORTS.items()),
         "native_d1_executable_project_graph_drift",
     )
-    files = [Path(__file__), *_GRAPH_PATHS.values()]
+    files = {Path(__file__): _BINDING_SOURCE_BYTES}
+    files.update({path: _GRAPH_BYTES[name] for name, path in _GRAPH_PATHS.items()})
     return {
-        str(path.relative_to(ROOT)).replace("\\", "/"): sha2_256(path.read_bytes())
-        for path in files
+        str(path.relative_to(ROOT)).replace("\\", "/"): sha2_256(raw) for path, raw in files.items()
     }
 
 
@@ -678,6 +691,59 @@ class FileConfirmations:
             pinned_file(value["path"], value["sha2_256"], MAX_PACKET_BYTES)
         require(now <= self.clock() < deadline, "native_d1_confirmation_late")
         return adapter.ConfirmedReceipt(reference, intent, result)
+
+
+class NativePositionalBinding(Binding):
+    """Concrete native composition; default construction and CLI stay inert.
+
+    Only an externally authenticated factual admission can activate the sender.
+    An admission object or retained hash cannot manufacture native qualification.
+    Historical/read-only and explicitly synthetic classes remain unchanged.
+    """
+
+    require = staticmethod(require)
+    pinned_file = staticmethod(pinned_file)
+    max_packet_bytes = MAX_PACKET_BYTES
+    json = staticmethod(_json)
+    canonical = staticmethod(canonical)
+    source_pins = staticmethod(source_pins)
+    intent_from = staticmethod(intent_from)
+    sha2_256 = staticmethod(sha2_256)
+    Request = Request
+    Response = Response
+    rows = staticmethod(_rows)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sender = native_sender.NativePositionalSender(self)
+
+    @property
+    def pinned_https(self):
+        # Resolve the existing checked anchor dynamically; no second HTTP stack.
+        return _pinned_https
+
+    @property
+    def read_evidence(self):
+        return self.sender.read_evidence
+
+    def _fixed_writer_sqls(self, fixed):
+        return [positional_receipt_successor.source_sql(op) for op in ("close", "reopen")]
+
+    def _activate_native_core(self, credential_loader):
+        # Internal sender seam avoids recursively entering public activation.
+        Binding.activate(self, credential_loader)
+
+    def activate(self, credential_loader, *, admission=None):
+        return self.sender.activate(credential_loader, admission=admission)
+
+    def build_batch(self, intent):
+        return self.sender.build_batch(intent)
+
+    def query(self, role, sql, params, deadline):
+        return self.sender.query(role, sql, params, deadline)
+
+    def dispatch_batch(self, batch, deadline):
+        return self.sender.dispatch_batch(batch, deadline)
 
 
 class SyntheticSuccessorBinding(Binding):
