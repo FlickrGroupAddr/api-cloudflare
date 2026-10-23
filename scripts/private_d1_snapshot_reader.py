@@ -35,6 +35,7 @@ SOURCE_FILES = (
     "private_d1_snapshot_reader.py",
     "private_d1_snapshot_codec.py",
     "private_d1_snapshot_profile.py",
+    "private_no_real_guards.py",
     "fixed_origin_preservation.py",
     "fixed_origin_restore.py",
     "qualify_private_d1_snapshot.py",
@@ -86,11 +87,13 @@ def _prepare(plan, expected, consent, now):
     profile = plan.get("profile") if type(plan) is dict else None
     profile_keys = {"profile", "profileManifest"} if profile is not None else set()
     if profile is not None:
-        from scripts.private_d1_snapshot_profile import PROFILE, validate_manifest
+        from scripts.private_d1_snapshot_profile import NO_REAL_PROFILE, PROFILE, validate_manifest
 
-        require(profile == PROFILE and "profileManifest" in plan, "snapshot_profile")
+        require(
+            profile in (PROFILE, NO_REAL_PROFILE) and "profileManifest" in plan, "snapshot_profile"
+        )
         manifest = plan["profileManifest"]
-        require(type(manifest) is dict, "snapshot_profile")
+        require(type(manifest) is dict and manifest.get("profile") == profile, "snapshot_profile")
         validate_manifest(manifest, manifest.get("schema"), manifest.get("tableList"))
     _keys(
         plan,

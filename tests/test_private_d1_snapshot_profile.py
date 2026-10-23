@@ -10,6 +10,7 @@ import unittest
 from scripts import fixed_origin_preservation as preservation
 from scripts import private_d1_snapshot_codec as codec
 from scripts import private_d1_snapshot_profile as profile
+from scripts import private_no_real_guards as guards
 from tests import test_private_d1_snapshot_reader as reader_tests
 
 
@@ -39,6 +40,268 @@ def manifest_for(query):
             "observableSchemaSha256": profile.sha256(schema),
         },
     }
+
+
+def install_no_real_manifest(db, query):
+    """Synthetic fixture installation only; production source never installs DDL."""
+    schema, storage = profile.included_census(query(codec.SCHEMA_SQL), query(codec.TABLE_LIST_SQL))
+    columns = {
+        row["name"]: query(codec.columns_sql(row["name"]))
+        for row in schema
+        if row["type"] == "table"
+    }
+    guard = guards.build_guard_manifest(schema, storage, columns)
+    for entry in guard["guards"]:
+        db.execute(entry["sql"])
+    manifest = manifest_for(query)
+    manifest.update(
+        profile=profile.NO_REAL_PROFILE,
+        contractRevision=profile.NO_REAL_CONTRACT,
+        guardManifest=guard,
+        guardManifestSha256=guards.manifest_sha256(guard),
+    )
+    return manifest
+
+
+class NoRealProfileTests(unittest.TestCase):
+    def setUp(self):
+        self.db = sqlite3.connect(":memory:")
+        self.addCleanup(self.db.close)
+        self.db.executescript("""
+            CREATE TABLE _cf_KV(key PRIMARY KEY,value) WITHOUT ROWID;
+            INSERT INTO _cf_KV VALUES ('provider',1.25);
+            CREATE TABLE flickr_write_gates(scope,scope_id,enabled,revision);
+            INSERT INTO flickr_write_gates VALUES ('deployment','*',0,7),
+                ('user','synthetic-user',0,11);
+            CREATE TABLE history(value,generated AS (length(value)));
+            CREATE INDEX history_index ON history(value);
+            CREATE VIEW history_view AS SELECT value FROM history;
+            CREATE TRIGGER history_keep BEFORE DELETE ON history
+                BEGIN SELECT RAISE(ABORT,'keep'); END;
+            CREATE TABLE d1_migrations(version INTEGER PRIMARY KEY,name TEXT);
+            INSERT INTO d1_migrations VALUES (1,'synthetic');
+            CREATE TABLE keyed(a,b,value,PRIMARY KEY(a,b)) WITHOUT ROWID;
+            INSERT INTO keyed VALUES ('x',1,X'00'),('x',2,NULL);
+        """)
+        values = [None, -(2**63), 2**63 - 1, 2**53 - 1, 2**53, 2**53 + 1, "", "雪\0tail", b"\0\xff"]
+        self.db.executemany("INSERT INTO history(value) VALUES (?)", [(v,) for v in values])
+        self.db.execute("INSERT INTO history(value) VALUES ('same'),('same')")
+        self.manifest = install_no_real_manifest(self.db, self.query)
+        self.db.commit()
+        self.calls = []
+
+    def query(self, sql):
+        cursor = self.db.execute(sql)
+        return [dict(zip((c[0] for c in cursor.description), row, strict=True)) for row in cursor]
+
+    def read(self, sql):
+        self.calls.append(sql)
+        if (
+            sql not in (codec.SCHEMA_SQL, codec.TABLE_LIST_SQL, codec.ENCODING_SQL)
+            and "_cf_KV" in sql
+        ):
+            raise RuntimeError("synthetic provider denial")
+        return self.query(sql)
+
+    def snapshot(self, query=None):
+        return codec.collect_snapshot(
+            query or self.read, page_size=2, profile_manifest=self.manifest
+        )
+
+    def test_complete_exact_typed_source_and_full_manifest_binding(self):
+        actual = self.snapshot()
+        local = preservation.capture_sqlite(
+            self.db, run="a" * 32, database="synthetic-no-real", observed_at_ms=1
+        )
+        local["tables"].pop("_cf_KV")
+        self.assertEqual(actual["schema"], local["schema"])
+        self.assertEqual(actual["tables"], local["tables"])
+        self.assertEqual(actual["profileBinding"]["profile"], profile.NO_REAL_PROFILE)
+        self.assertEqual(actual["profileBinding"]["excludedContents"], profile.CONTENTS)
+        self.assertIn("private_no_real_guards.py", actual["provenance"]["sourceSha256"])
+        self.assertEqual(actual["provenance"]["queries"], self.calls)
+        self.assertTrue(all(sql in self.calls for sql in profile.guard_queries(self.manifest)))
+        self.assertFalse(any("_cf_KV" in sql for sql in self.calls))
+        self.assertEqual(len(actual["tables"]["history"]["rows"]), 11)
+
+    def test_independent_real_refusal_outside_quotas_even_when_guards_bypassed(self):
+        for value in (1.25, 1.0, float("inf")):
+            with self.subTest(value=value):
+                self.db.execute("SAVEPOINT corruption")
+                for entry in self.manifest["guardManifest"]["guards"]:
+                    if entry["table"] == "history":
+                        self.db.execute('DROP TRIGGER "' + entry["name"] + '"')
+                self.db.execute("UPDATE history SET value=? WHERE rowid=1", (value,))
+                # Restore the exact guard definitions after introducing bad state.
+                for entry in self.manifest["guardManifest"]["guards"]:
+                    if entry["table"] == "history":
+                        self.db.execute(entry["sql"])
+                with self.assertRaisesRegex(
+                    preservation.Refused, "lossless_real_transport_unqualified"
+                ):
+                    self.snapshot()
+                self.db.execute("ROLLBACK TO corruption")
+                self.db.execute("RELEASE corruption")
+
+    def test_schema_guard_column_or_exclusion_drift_refuses(self):
+        for sql in (
+            "CREATE TABLE unexpected(value)",
+            "CREATE VIRTUAL TABLE search USING fts5(value)",
+            "ALTER TABLE _cf_KV ADD COLUMN changed",
+            'DROP TRIGGER "' + self.manifest["guardManifest"]["guards"][0]["name"] + '"',
+        ):
+            with self.subTest(sql=sql):
+                self.db.execute("SAVEPOINT drift")
+                self.db.execute(sql)
+                with self.assertRaises(preservation.Refused):
+                    self.snapshot()
+                self.db.execute("ROLLBACK TO drift")
+                self.db.execute("RELEASE drift")
+        original = copy.deepcopy(self.manifest)
+        for change in (
+            lambda m: m.pop("guardManifestSha256"),
+            lambda m: m.update(guardManifestSha256="a" * 64),
+            lambda m: m["guardManifest"]["cells"]["history"].pop(),
+            lambda m: m["guardManifest"]["columns"]["history"][0].update(hidden=1),
+            lambda m: m["guardManifest"]["guards"][0].update(sql="SELECT 1"),
+        ):
+            self.manifest = copy.deepcopy(original)
+            change(self.manifest)
+            with self.assertRaises(preservation.Refused):
+                self.snapshot()
+        self.manifest = original
+
+    def test_corrupt_cells_missing_pages_duplicate_identities_and_probes_refuse(self):
+        for mutation in (
+            lambda rows: rows.clear(),
+            lambda rows: rows[0].update(c0_type="integer", c0_value=2**53 + 1),
+            lambda rows: rows[0].update(c0_type="integer", c0_value="01"),
+            lambda rows: rows[0].update(c0_type="integer", c0_value="-0"),
+            lambda rows: rows[0].update(c0_type="integer", c0_value=str(2**63)),
+            lambda rows: rows[0].update(c0_type="real", c0_value="1"),
+            lambda rows: rows[0].update(c0_type="blob", c0_value="ff"),
+            lambda rows: rows[0].update(c0_type="text", c0_value="FF"),
+            lambda rows: rows[0].update(c0_type="null", c0_value=""),
+            lambda rows: rows[1].update(row_identity=rows[0]["row_identity"]),
+        ):
+
+            def corrupt(sql, mutation=mutation):
+                rows = self.read(sql)
+                if 'FROM main."history"' in sql and rows and "c0_type" in rows[0]:
+                    mutation(rows)
+                return rows
+
+            with self.subTest(mutation=mutation), self.assertRaises(preservation.Refused):
+                self.snapshot(corrupt)
+
+        def bad_probe(sql):
+            return [{}] if sql.endswith(" LIMIT 0") else self.read(sql)
+
+        with self.assertRaises(preservation.Refused):
+            self.snapshot(bad_probe)
+
+    def test_supplied_snapshot_cannot_smuggle_real_or_identity_drift(self):
+        snapshot = self.snapshot()
+        for change in (
+            lambda s: s["tables"]["history"]["rows"][0].__setitem__(
+                0, ["real", "3ff0000000000000"]
+            ),
+            lambda s: s["tables"]["history"]["rowids"].__setitem__(0, True),
+            lambda s: s["tables"]["history"]["rowids"].__setitem__(
+                0, s["tables"]["history"]["rowids"][1]
+            ),
+            lambda s: s["tables"]["keyed"]["rows"].append(
+                copy.deepcopy(s["tables"]["keyed"]["rows"][0])
+            ),
+            lambda s: s["provenance"]["columns"]["history"][0].update(type="REAL"),
+        ):
+            changed = copy.deepcopy(snapshot)
+            change(changed)
+            with self.assertRaises(preservation.Refused):
+                profile.validate_snapshot(changed, self.manifest)
+
+    def test_equal_count_cell_and_hidden_rowid_changes_fail_preservation(self):
+        baseline = self.snapshot()
+        packet = preservation.synthetic_example()
+        for envelope in packet[:3]:
+            metadata = envelope["database"]
+            envelope["database"] = {
+                **{
+                    key: metadata[key]
+                    for key in ("mode", "run", "database", "observedAtMs", "consistency")
+                },
+                **copy.deepcopy(baseline),
+            }
+            envelope["profileBinding"] = copy.deepcopy(baseline["profileBinding"])
+        packet[3]["profileBinding"] = copy.deepcopy(baseline["profileBinding"])
+        receipt = preservation.validate_preservation(
+            *packet, now_ms=1_000_700, profile_manifest=self.manifest
+        )
+        self.assertTrue(receipt["comparisonPassed"])
+        self.assertFalse(receipt["deploymentAllowed"])
+        for sql in (
+            "UPDATE history SET value='changed' WHERE rowid=1",
+            "UPDATE history SET rowid=100 WHERE rowid=1",
+            "UPDATE d1_migrations SET name='changed'",
+        ):
+            self.db.execute("SAVEPOINT changed_fact")
+            self.db.execute(sql)
+            changed = copy.deepcopy(packet)
+            changed[1]["database"].update(self.snapshot())
+            with self.assertRaises(preservation.Refused):
+                preservation.validate_preservation(
+                    *changed, now_ms=1_000_700, profile_manifest=self.manifest
+                )
+            self.db.execute("ROLLBACK TO changed_fact")
+            self.db.execute("RELEASE changed_fact")
+
+    def test_external_table_validation_rejects_duplicate_and_null_primary_keys(self):
+        snapshot = self.snapshot()
+        table = codec.TablePlan("keyed", ("a", "b", "value"), None, (0, 1))
+        for null_key in (False, True):
+            changed = copy.deepcopy(snapshot)
+            rows = changed["tables"]["keyed"]["rows"]
+            if null_key:
+                rows[0][0] = ["null", None]
+                category = "invalid_without_rowid_key"
+            else:
+                rows[1][:2] = copy.deepcopy(rows[0][:2])
+                category = "duplicate_without_rowid_key"
+            rows.sort(key=codec._json)
+            with self.assertRaisesRegex(preservation.Refused, category):
+                profile.validate_no_real_table(table, changed["tables"]["keyed"])
+            with self.assertRaisesRegex(preservation.Refused, category):
+                profile.validate_snapshot(changed, self.manifest)
+
+    def test_external_table_shapes_refuse_before_row_count_aggregation(self):
+        snapshot = self.snapshot()
+        for invalid in (None, [], {}, {"columns": [], "rows": None, "rowids": []}):
+            changed = copy.deepcopy(snapshot)
+            changed["tables"]["history"] = invalid
+            with self.assertRaises(preservation.Refused):
+                profile.validate_snapshot(changed, self.manifest)
+
+    def test_unknown_hidden_and_ambiguous_identity_schemas_refuse(self):
+        for ddl in (
+            "CREATE TABLE inaccessible(rowid,_rowid_,oid)",
+            "CREATE VIRTUAL TABLE search USING fts5(value)",
+        ):
+            self.db.execute("SAVEPOINT unsupported")
+            self.db.execute(ddl)
+            with self.assertRaises(preservation.Refused):
+                install_no_real_manifest(self.db, self.query)
+            self.db.execute("ROLLBACK TO unsupported")
+            self.db.execute("RELEASE unsupported")
+
+    def test_finite_bounds_and_unguardable_bookkeeping_remain_refusals(self):
+        from unittest.mock import patch
+
+        for name, bound in (("MAX_QUERIES", 3), ("MAX_BYTES", 1), ("MAX_ROWS", 1)):
+            with patch.object(codec, name, bound), self.assertRaises(preservation.Refused):
+                self.snapshot()
+        self.db.execute("CREATE TABLE sequenced(id INTEGER PRIMARY KEY AUTOINCREMENT)")
+        with self.assertRaisesRegex(preservation.Refused, "no_real_unguardable_table"):
+            install_no_real_manifest(self.db, self.query)
 
 
 class ApplicationProfileTests(unittest.TestCase):
@@ -274,6 +537,39 @@ class ApplicationProfileReaderTests(reader_tests.SnapshotReaderTests):
             {**self.consent(plan), "profile": "strict", "profileManifest": plan["profileManifest"]},
         ):
             self.refuse(lambda current=current: self.collect(plan, current))
+            self.credential.assert_not_called()
+            self.transport.assert_not_called()
+
+    def test_no_real_plan_consent_guard_queries_and_no_replay(self):
+        self.db.execute("CREATE TABLE _cf_KV(key PRIMARY KEY,value) WITHOUT ROWID")
+        manifest = install_no_real_manifest(self.db, self.rows)
+        self.queries.clear()
+
+        def discovery(sql):
+            self.queries.append(sql)
+            return self.rows(sql)
+
+        expected = codec.collect_snapshot(discovery, page_size=2, profile_manifest=manifest)
+        plan, _ = self.inputs()
+        plan.update(profile=profile.NO_REAL_PROFILE, profileManifest=manifest)
+        consent = self.consent(plan)
+        consent.update(profile=profile.NO_REAL_PROFILE, profileManifest=copy.deepcopy(manifest))
+        summary = self.collect(plan, consent)
+        self.assertEqual(json.loads(self.output.read_text())["snapshot"], expected)
+        self.assertEqual(summary["profileBinding"]["profile"], profile.NO_REAL_PROFILE)
+        delivered = self.credential.call_count
+        self.refuse(lambda: self.collect(plan, consent))
+        self.assertEqual(self.credential.call_count, delivered)
+
+    def test_profile_identity_confusion_refuses_before_credential_or_transport(self):
+        self.db.execute("CREATE TABLE _cf_KV(key PRIMARY KEY,value) WITHOUT ROWID")
+        manifest = install_no_real_manifest(self.db, self.rows)
+        for selected in (profile.PROFILE, "unknown"):
+            plan, _ = self.inputs()
+            plan.update(profile=selected, profileManifest=manifest)
+            consent = self.consent(plan)
+            consent.update(profile=selected, profileManifest=copy.deepcopy(manifest))
+            self.refuse(lambda plan=plan, consent=consent: self.collect(plan, consent))
             self.credential.assert_not_called()
             self.transport.assert_not_called()
 

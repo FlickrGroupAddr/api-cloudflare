@@ -387,10 +387,12 @@ class PrivateSnapshotPreparationTests(unittest.TestCase):
             "decisionRef": "synthetic admission only",
             "packetSha256": digest(packet),
         }
-        self.assertEqual(len(self.document("source-pins.json")), 16)
+        self.assertEqual(len(self.document("source-pins.json")), 17)
         self.assertIn("private_d1_snapshot_profile.py", self.document("source-pins.json"))
-        self.assertEqual(len(packet["sourceSha256"]), 15)
+        self.assertIn("private_no_real_guards.py", self.document("source-pins.json"))
+        self.assertEqual(len(packet["sourceSha256"]), 16)
         self.assertIn("private_d1_snapshot_profile.py", packet["sourceSha256"])
+        self.assertIn("private_no_real_guards.py", packet["sourceSha256"])
         address, end = q._prepare(packet, digest(packet), consent, now)
         self.assertEqual(str(address), "1.1.1.1")
         self.assertEqual(end, now + timedelta(minutes=20))

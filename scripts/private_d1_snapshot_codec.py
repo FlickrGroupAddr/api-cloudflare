@@ -455,6 +455,10 @@ def collect_snapshot(
     plan = build_plan(
         schema, storage, columns, page_size=page_size, profile_manifest=profile_manifest
     )
+    if profile_manifest is not None:
+        from scripts.private_d1_snapshot_profile import validate_guards
+
+        validate_guards(profile_manifest, schema, storage, columns, read)
     pages = {}
     counts = {}
     total = 0
@@ -473,7 +477,7 @@ def collect_snapshot(
         from scripts.private_d1_snapshot_profile import binding, sources, validate_snapshot
 
         provenance = {
-            "sourceSha256": sources(),
+            "sourceSha256": sources(profile_manifest["profile"]),
             "queries": queries,
             "pageSize": page_size,
             "columns": columns,
