@@ -58,7 +58,9 @@ def main() -> None:
         manifest = build_guard_manifest(schema, tables, columns)
     result = {"ddl": DDL, "manifest": manifest, "manifestSha256": manifest_sha256(manifest)}
     target = Path(__file__).with_name("synthetic-fixture.json")
-    target.write_text(json.dumps(result, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    target.write_text(
+        json.dumps(result, ensure_ascii=True, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
 
 
 if __name__ == "__main__":
