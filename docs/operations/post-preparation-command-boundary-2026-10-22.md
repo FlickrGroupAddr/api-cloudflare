@@ -76,3 +76,12 @@ Fresh independent High review passed six package hashes, seventeen source pins
 and eleven combined offline checks. The concrete proposal and review are retained
 privately with implementation-board card 0161. Provider expiry and revocation
 remain unconfirmed. No account, credential, native or execution action occurred.
+
+## Subsequent owner acceptance — October 23
+
+The proposal above is retained as historical pre-decision evidence. Terry later
+accepted the [historical-child recovery source contract](historical-child-recovery-contract-2026-10-23.md)
+in decision `call_85ff42c39e6343dcbd60e8d1d7ee6c32`. Its two changes and required
+engineering/factual gates now govern a separate recovery implementation. This
+acceptance supplies no credential access, retirement, POST run or current facts.
+The original controller and historical evidence remain unchanged.
