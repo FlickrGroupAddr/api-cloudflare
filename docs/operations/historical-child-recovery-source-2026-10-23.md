@@ -127,3 +127,23 @@ all original attempt records remain unchanged. These checks establish synthetic
 source behavior, not live module/adaptor qualification, present facts or an actual
 recovery/POST result. Concrete operator adapters and packet preparation remain
 unfinished Bot work before the later actual-action gates.
+
+## Subsequent operator source handoff
+
+The [concrete operator adapter source](historical-child-recovery-operator-2026-10-23.md)
+is now available and independently reviewed. This later handoff supersedes the
+earlier unfinished-adapter status above; the earlier controller review remains
+historical evidence. The new operator supplies exact-role private readers and
+exclusive namespace writes, pinned source/import qualification, retained evidence
+bindings and explicit selection of the verified original producer's TLS branch.
+
+The original producer and controller runtime body remain unchanged. Only the
+controller's required transport argument type/docstring now explicitly permits
+`None` for that qualified selection, preserving the producer's numeric parsing
+and original connect/TLS/send fence. Current source pins distinguish this small
+clarification from the retained turn-19 controller pin.
+
+Genuine current facts, an independently reviewed actual packet, recovery and
+positive POST qualification remain pending. Source and synthetic PASS supply
+none of those outcomes; the original stopped run, immutable evidence, timestamps,
+old namespaces and sole retirement latch retain their existing boundaries.

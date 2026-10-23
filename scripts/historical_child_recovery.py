@@ -570,13 +570,16 @@ def dispatch(
     packet_review: bytes,
     clock: Callable[[], datetime],
     monotonic: Callable[[], float],
-    transport: Callable,
+    transport: Callable | None,
     credential_loader: Callable,
     execute: bool = False,
 ) -> Any:
     """Explicit trusted handoff only; no default execution adapter or retry.
 
-    All adapters are mandatory injections. The unchanged producer independently
+    All adapter arguments are required. A qualified operator may explicitly pass
+    None to select the verified producer's original TLS branch and its private
+    send-stage fence; no argument default or ambient module is supplied here.
+    The unchanged producer independently
     fences actual calls and reserves the original journal's atomic latch.
     """
     if execute is not True:
