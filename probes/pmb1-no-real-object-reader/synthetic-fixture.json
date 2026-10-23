@@ -1,0 +1,379 @@
+{
+  "ddl": "CREATE TABLE payload (rowid TEXT, value, note TEXT,\n generated TEXT GENERATED ALWAYS AS (note || '\ud83d\ude00') STORED);\nCREATE TABLE composite (a INTEGER, b TEXT COLLATE NOCASE, value BLOB,\n PRIMARY KEY (a,b)) WITHOUT ROWID;\nCREATE TABLE \"__cf_kv\" (key TEXT PRIMARY KEY, value);\nCREATE TABLE bookkeeping (sequence INTEGER NOT NULL);\nCREATE VIEW utf8_view AS SELECT note || '\u00e9' FROM payload;\nCREATE INDEX payload_note ON payload(note);\nCREATE TRIGGER payload_history AFTER INSERT ON payload BEGIN\n INSERT INTO bookkeeping VALUES(1); END;",
+  "manifest": {
+    "profile": "pmb1-private-application-no-real-v1",
+    "contractRevision": "adr0065-no-real-sql-guards-v1",
+    "baseSchema": [
+      {
+        "type": "index",
+        "name": "payload_note",
+        "tbl_name": "payload",
+        "sql": "CREATE INDEX payload_note ON payload(note)"
+      },
+      {
+        "type": "index",
+        "name": "sqlite_autoindex___cf_kv_1",
+        "tbl_name": "__cf_kv",
+        "sql": null
+      },
+      {
+        "type": "table",
+        "name": "__cf_kv",
+        "tbl_name": "__cf_kv",
+        "sql": "CREATE TABLE \"__cf_kv\" (key TEXT PRIMARY KEY, value)"
+      },
+      {
+        "type": "table",
+        "name": "bookkeeping",
+        "tbl_name": "bookkeeping",
+        "sql": "CREATE TABLE bookkeeping (sequence INTEGER NOT NULL)"
+      },
+      {
+        "type": "table",
+        "name": "composite",
+        "tbl_name": "composite",
+        "sql": "CREATE TABLE composite (a INTEGER, b TEXT COLLATE NOCASE, value BLOB,\n PRIMARY KEY (a,b)) WITHOUT ROWID"
+      },
+      {
+        "type": "table",
+        "name": "payload",
+        "tbl_name": "payload",
+        "sql": "CREATE TABLE payload (rowid TEXT, value, note TEXT,\n generated TEXT GENERATED ALWAYS AS (note || '\ud83d\ude00') STORED)"
+      },
+      {
+        "type": "trigger",
+        "name": "payload_history",
+        "tbl_name": "payload",
+        "sql": "CREATE TRIGGER payload_history AFTER INSERT ON payload BEGIN\n INSERT INTO bookkeeping VALUES(1); END"
+      },
+      {
+        "type": "view",
+        "name": "utf8_view",
+        "tbl_name": "utf8_view",
+        "sql": "CREATE VIEW utf8_view AS SELECT note || '\u00e9' FROM payload"
+      }
+    ],
+    "schema": [
+      {
+        "type": "index",
+        "name": "payload_note",
+        "tbl_name": "payload",
+        "sql": "CREATE INDEX payload_note ON payload(note)"
+      },
+      {
+        "type": "index",
+        "name": "sqlite_autoindex___cf_kv_1",
+        "tbl_name": "__cf_kv",
+        "sql": null
+      },
+      {
+        "type": "table",
+        "name": "__cf_kv",
+        "tbl_name": "__cf_kv",
+        "sql": "CREATE TABLE \"__cf_kv\" (key TEXT PRIMARY KEY, value)"
+      },
+      {
+        "type": "table",
+        "name": "bookkeeping",
+        "tbl_name": "bookkeeping",
+        "sql": "CREATE TABLE bookkeeping (sequence INTEGER NOT NULL)"
+      },
+      {
+        "type": "table",
+        "name": "composite",
+        "tbl_name": "composite",
+        "sql": "CREATE TABLE composite (a INTEGER, b TEXT COLLATE NOCASE, value BLOB,\n PRIMARY KEY (a,b)) WITHOUT ROWID"
+      },
+      {
+        "type": "table",
+        "name": "payload",
+        "tbl_name": "payload",
+        "sql": "CREATE TABLE payload (rowid TEXT, value, note TEXT,\n generated TEXT GENERATED ALWAYS AS (note || '\ud83d\ude00') STORED)"
+      },
+      {
+        "type": "trigger",
+        "name": "payload_history",
+        "tbl_name": "payload",
+        "sql": "CREATE TRIGGER payload_history AFTER INSERT ON payload BEGIN\n INSERT INTO bookkeeping VALUES(1); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_insert",
+        "tbl_name": "bookkeeping",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_insert\" AFTER INSERT ON \"bookkeeping\" WHEN typeof(NEW.\"sequence\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_update",
+        "tbl_name": "bookkeeping",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_update\" AFTER UPDATE ON \"bookkeeping\" WHEN typeof(NEW.\"sequence\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_insert",
+        "tbl_name": "payload",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_insert\" AFTER INSERT ON \"payload\" WHEN typeof(NEW.\"rowid\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"generated\")='real' OR typeof(NEW.\"_rowid_\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_update",
+        "tbl_name": "payload",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_update\" AFTER UPDATE ON \"payload\" WHEN typeof(NEW.\"rowid\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"generated\")='real' OR typeof(NEW.\"_rowid_\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_insert",
+        "tbl_name": "__cf_kv",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_insert\" AFTER INSERT ON \"__cf_kv\" WHEN typeof(NEW.\"key\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_update",
+        "tbl_name": "__cf_kv",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_update\" AFTER UPDATE ON \"__cf_kv\" WHEN typeof(NEW.\"key\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_insert",
+        "tbl_name": "composite",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_insert\" AFTER INSERT ON \"composite\" WHEN typeof(NEW.\"a\")='real' OR typeof(NEW.\"b\")='real' OR typeof(NEW.\"value\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_update",
+        "tbl_name": "composite",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_update\" AFTER UPDATE ON \"composite\" WHEN typeof(NEW.\"a\")='real' OR typeof(NEW.\"b\")='real' OR typeof(NEW.\"value\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "view",
+        "name": "utf8_view",
+        "tbl_name": "utf8_view",
+        "sql": "CREATE VIEW utf8_view AS SELECT note || '\u00e9' FROM payload"
+      }
+    ],
+    "tableList": [
+      {
+        "schema": "main",
+        "name": "__cf_kv",
+        "type": "table",
+        "ncol": 2,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "bookkeeping",
+        "type": "table",
+        "ncol": 1,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "composite",
+        "type": "table",
+        "ncol": 3,
+        "wr": 1,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "payload",
+        "type": "table",
+        "ncol": 4,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "sqlite_schema",
+        "type": "table",
+        "ncol": 5,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "utf8_view",
+        "type": "view",
+        "ncol": 1,
+        "wr": 0,
+        "strict": 0
+      }
+    ],
+    "columns": {
+      "__cf_kv": [
+        {
+          "cid": 0,
+          "name": "key",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "value",
+          "type": "",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ],
+      "bookkeeping": [
+        {
+          "cid": 0,
+          "name": "sequence",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ],
+      "composite": [
+        {
+          "cid": 0,
+          "name": "a",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "b",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2,
+          "hidden": 0
+        },
+        {
+          "cid": 2,
+          "name": "value",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ],
+      "payload": [
+        {
+          "cid": 0,
+          "name": "rowid",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "value",
+          "type": "",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 2,
+          "name": "note",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 3,
+          "name": "generated",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 3
+        }
+      ]
+    },
+    "cells": {
+      "__cf_kv": [
+        "key",
+        "value",
+        "rowid"
+      ],
+      "bookkeeping": [
+        "sequence",
+        "rowid"
+      ],
+      "composite": [
+        "a",
+        "b",
+        "value"
+      ],
+      "payload": [
+        "rowid",
+        "value",
+        "note",
+        "generated",
+        "_rowid_"
+      ]
+    },
+    "guards": [
+      {
+        "name": "pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_insert",
+        "table": "__cf_kv",
+        "event": "INSERT",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_insert\" AFTER INSERT ON \"__cf_kv\" WHEN typeof(NEW.\"key\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_update",
+        "table": "__cf_kv",
+        "event": "UPDATE",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_822cacff71933adb177f43c86e94002f221aa59f19d8a5d24b6c3b84e4cdb180_update\" AFTER UPDATE ON \"__cf_kv\" WHEN typeof(NEW.\"key\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_insert",
+        "table": "bookkeeping",
+        "event": "INSERT",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_insert\" AFTER INSERT ON \"bookkeeping\" WHEN typeof(NEW.\"sequence\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_update",
+        "table": "bookkeeping",
+        "event": "UPDATE",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_195da441b7a1b4aa9dd801fae853a9cfc8f386f151540f77cb955ac7a0fd52fb_update\" AFTER UPDATE ON \"bookkeeping\" WHEN typeof(NEW.\"sequence\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_insert",
+        "table": "composite",
+        "event": "INSERT",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_insert\" AFTER INSERT ON \"composite\" WHEN typeof(NEW.\"a\")='real' OR typeof(NEW.\"b\")='real' OR typeof(NEW.\"value\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_update",
+        "table": "composite",
+        "event": "UPDATE",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ad1e26066637d18f500318563e09c716fe3b0f6cf646ce32fb4c79f995aa15f5_update\" AFTER UPDATE ON \"composite\" WHEN typeof(NEW.\"a\")='real' OR typeof(NEW.\"b\")='real' OR typeof(NEW.\"value\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_insert",
+        "table": "payload",
+        "event": "INSERT",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_insert\" AFTER INSERT ON \"payload\" WHEN typeof(NEW.\"rowid\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"generated\")='real' OR typeof(NEW.\"_rowid_\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_update",
+        "table": "payload",
+        "event": "UPDATE",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5_update\" AFTER UPDATE ON \"payload\" WHEN typeof(NEW.\"rowid\")='real' OR typeof(NEW.\"value\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"generated\")='real' OR typeof(NEW.\"_rowid_\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      }
+    ]
+  },
+  "manifestSha256": "9c84283ef7a8f742b44423fa9478c334c230d1110ab9bb7e4a9977660025bc9a"
+}
