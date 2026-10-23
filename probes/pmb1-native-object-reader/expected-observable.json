@@ -1,0 +1,347 @@
+{
+  "syntheticOnly": true,
+  "appDDL": "CREATE TABLE facts(value INTEGER, payload BLOB, note TEXT); CREATE TABLE maintenance_control(singleton_id INTEGER PRIMARY KEY,generation INTEGER,state TEXT)",
+  "automaticDDL": "CREATE TABLE \"__cf_kv\" (key BLOB PRIMARY KEY, value BLOB) WITHOUT ROWID",
+  "application": {
+    "profile": "pmb1-private-application-no-real-v1",
+    "contractRevision": "adr0065-no-real-sql-guards-v1",
+    "baseSchema": [
+      {
+        "type": "table",
+        "name": "facts",
+        "tbl_name": "facts",
+        "sql": "CREATE TABLE facts(value INTEGER, payload BLOB, note TEXT)"
+      },
+      {
+        "type": "table",
+        "name": "maintenance_control",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TABLE maintenance_control(singleton_id INTEGER PRIMARY KEY,generation INTEGER,state TEXT)"
+      }
+    ],
+    "schema": [
+      {
+        "type": "table",
+        "name": "facts",
+        "tbl_name": "facts",
+        "sql": "CREATE TABLE facts(value INTEGER, payload BLOB, note TEXT)"
+      },
+      {
+        "type": "table",
+        "name": "maintenance_control",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TABLE maintenance_control(singleton_id INTEGER PRIMARY KEY,generation INTEGER,state TEXT)"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_insert",
+        "tbl_name": "facts",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_insert\" AFTER INSERT ON \"facts\" WHEN typeof(NEW.\"value\")='real' OR typeof(NEW.\"payload\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_update",
+        "tbl_name": "facts",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_update\" AFTER UPDATE ON \"facts\" WHEN typeof(NEW.\"value\")='real' OR typeof(NEW.\"payload\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_insert",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_insert\" AFTER INSERT ON \"maintenance_control\" WHEN typeof(NEW.\"singleton_id\")='real' OR typeof(NEW.\"generation\")='real' OR typeof(NEW.\"state\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_update",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_update\" AFTER UPDATE ON \"maintenance_control\" WHEN typeof(NEW.\"singleton_id\")='real' OR typeof(NEW.\"generation\")='real' OR typeof(NEW.\"state\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      }
+    ],
+    "tableList": [
+      {
+        "schema": "main",
+        "name": "facts",
+        "type": "table",
+        "ncol": 3,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "maintenance_control",
+        "type": "table",
+        "ncol": 3,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "sqlite_schema",
+        "type": "table",
+        "ncol": 5,
+        "wr": 0,
+        "strict": 0
+      }
+    ],
+    "columns": {
+      "facts": [
+        {
+          "cid": 0,
+          "name": "value",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "payload",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 2,
+          "name": "note",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ],
+      "maintenance_control": [
+        {
+          "cid": 0,
+          "name": "singleton_id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "generation",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 2,
+          "name": "state",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ]
+    },
+    "cells": {
+      "facts": [
+        "value",
+        "payload",
+        "note",
+        "rowid"
+      ],
+      "maintenance_control": [
+        "singleton_id",
+        "generation",
+        "state",
+        "rowid"
+      ]
+    },
+    "guards": [
+      {
+        "name": "pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_insert",
+        "table": "facts",
+        "event": "INSERT",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_insert\" AFTER INSERT ON \"facts\" WHEN typeof(NEW.\"value\")='real' OR typeof(NEW.\"payload\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_update",
+        "table": "facts",
+        "event": "UPDATE",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_update\" AFTER UPDATE ON \"facts\" WHEN typeof(NEW.\"value\")='real' OR typeof(NEW.\"payload\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_insert",
+        "table": "maintenance_control",
+        "event": "INSERT",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_insert\" AFTER INSERT ON \"maintenance_control\" WHEN typeof(NEW.\"singleton_id\")='real' OR typeof(NEW.\"generation\")='real' OR typeof(NEW.\"state\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "name": "pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_update",
+        "table": "maintenance_control",
+        "event": "UPDATE",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_update\" AFTER UPDATE ON \"maintenance_control\" WHEN typeof(NEW.\"singleton_id\")='real' OR typeof(NEW.\"generation\")='real' OR typeof(NEW.\"state\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      }
+    ]
+  },
+  "observable": {
+    "schema": [
+      {
+        "type": "table",
+        "name": "__cf_kv",
+        "tbl_name": "__cf_kv",
+        "sql": "CREATE TABLE \"__cf_kv\" (key BLOB PRIMARY KEY, value BLOB) WITHOUT ROWID"
+      },
+      {
+        "type": "table",
+        "name": "facts",
+        "tbl_name": "facts",
+        "sql": "CREATE TABLE facts(value INTEGER, payload BLOB, note TEXT)"
+      },
+      {
+        "type": "table",
+        "name": "maintenance_control",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TABLE maintenance_control(singleton_id INTEGER PRIMARY KEY,generation INTEGER,state TEXT)"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_insert",
+        "tbl_name": "facts",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_insert\" AFTER INSERT ON \"facts\" WHEN typeof(NEW.\"value\")='real' OR typeof(NEW.\"payload\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_update",
+        "tbl_name": "facts",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_0694aacb66d62e742a92e8d5f1e82bd9d2a8ca1be88744201fbe63d0f5007502_update\" AFTER UPDATE ON \"facts\" WHEN typeof(NEW.\"value\")='real' OR typeof(NEW.\"payload\")='real' OR typeof(NEW.\"note\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_insert",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_insert\" AFTER INSERT ON \"maintenance_control\" WHEN typeof(NEW.\"singleton_id\")='real' OR typeof(NEW.\"generation\")='real' OR typeof(NEW.\"state\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      },
+      {
+        "type": "trigger",
+        "name": "pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_update",
+        "tbl_name": "maintenance_control",
+        "sql": "CREATE TRIGGER \"pmb1_no_real_ce00d527a17b4a13a31331cd468482b2cc253090aee61c52d831cc1fa446446d_update\" AFTER UPDATE ON \"maintenance_control\" WHEN typeof(NEW.\"singleton_id\")='real' OR typeof(NEW.\"generation\")='real' OR typeof(NEW.\"state\")='real' OR typeof(NEW.\"rowid\")='real' BEGIN SELECT RAISE(ABORT,'pmb1_no_real'); END"
+      }
+    ],
+    "tableList": [
+      {
+        "schema": "main",
+        "name": "__cf_kv",
+        "type": "table",
+        "ncol": 2,
+        "wr": 1,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "facts",
+        "type": "table",
+        "ncol": 3,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "maintenance_control",
+        "type": "table",
+        "ncol": 3,
+        "wr": 0,
+        "strict": 0
+      },
+      {
+        "schema": "main",
+        "name": "sqlite_schema",
+        "type": "table",
+        "ncol": 5,
+        "wr": 0,
+        "strict": 0
+      }
+    ],
+    "columns": {
+      "__cf_kv": [
+        {
+          "cid": 0,
+          "name": "key",
+          "type": "BLOB",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "value",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ],
+      "facts": [
+        {
+          "cid": 0,
+          "name": "value",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "payload",
+          "type": "BLOB",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 2,
+          "name": "note",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ],
+      "maintenance_control": [
+        {
+          "cid": 0,
+          "name": "singleton_id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1,
+          "hidden": 0
+        },
+        {
+          "cid": 1,
+          "name": "generation",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        },
+        {
+          "cid": 2,
+          "name": "state",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0,
+          "hidden": 0
+        }
+      ]
+    }
+  }
+}

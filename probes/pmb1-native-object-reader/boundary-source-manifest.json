@@ -1,0 +1,33 @@
+{
+  "schema": "pmb1-object-kv-interface-source-manifest-v1",
+  "algorithm": "SHA2-256",
+  "boundary": "pmb1-private-object-kv-interface-v1",
+  "revision": "adr0066-object-kv-interface-source-v1",
+  "profile": "pmb1-private-application-no-real-v1",
+  "completeNativeSource": false,
+  "actualQualification": false,
+  "inputs": {
+    "../architecture-design/docs/decisions/0066-scope-prospective-object-preservation-to-supported-state.md": "1224dafdb3f396f407b963df4df3ff2ffa27f0cef2fde289d6caecddc69ee8c7",
+    "../architecture-design/docs/decisions/README.md": "25b17e2ce0dda3f20a84f96ded31cdac6282751fb178be07de6df0628a661526",
+    "../architecture-design/docs/prospective-integer-accounting-and-state-profile.md": "9089b3d0d416a7aedc42997279c21a5309c854a92f2f8f894d2abab5554116f4",
+    "package-lock.json": "6894a3dcecffb784baae9751677b0c231250ae9e99a2cb6ddacc6011a0dc0048",
+    "package.json": "e2f360d067787a6092bccf93c0a54323958cf1c80ef569f09c3d193fee3f635a",
+    "probes/pmb1-native-object-reader/BOUNDARY.md": "adfc9907eaca227b5a66136178c5193e5631fb3d68ae8306d52db96fb135601b",
+    "probes/pmb1-native-object-reader/README.md": "45ba1a516f02fb390fa7ffdb374ad413f81466b6a5e906a41553f967193adb29",
+    "probes/pmb1-native-object-reader/expected-observable.json": "762a6aa93044bdeb69759dbed545b44352368fc54317a0f6c72d612f1433fe01",
+    "probes/pmb1-native-object-reader/native.test.mjs": "6f3d0cb6278c523e7967c0017f51db7f735f80146b41cc041756a06ed889251e",
+    "probes/pmb1-native-object-reader/native.ts": "ad04df277bf1f67b518f6eb04a746bc1503cc9d66c33586cf32d9fb01c65645e",
+    "probes/pmb1-native-object-reader/object-kv-interface.test.mjs": "ce6b58084b41875626065a107a2f8ffde9689528f78d89631302163c75243c7c",
+    "probes/pmb1-native-object-reader/object-kv-interface.ts": "ab3445535f1d906447705a82c8997fdf33fb82708d926bc89266e197cd64c408",
+    "probes/pmb1-native-object-reader/population.py": "8bb31c8bec8fc07c8b89f59c8702de743a1c7c5e6e93a375c5abc5e7266f98e1",
+    "probes/pmb1-native-object-reader/pyrightconfig.json": "722794e619ac5a1a44bb35d8b52c0f8a5cd3dca8649a5aaaa2eafa9e7326f990",
+    "probes/pmb1-native-object-reader/test_population.py": "4c4b81456c51625f8b5904a20b598b7868be277de9aaff4cce25124768b121ab",
+    "probes/pmb1-native-object-reader/tsconfig.boundary.json": "08bee7fd4e0f55f53fe613e7660cf7587149136d71af600079f397a0385578f3",
+    "probes/pmb1-native-object-reader/tsconfig.json": "f621f3abcdcdf469ce3282ddd20e7fbaa57a2e37c6728f2c65fc6d904a8d8774",
+    "probes/pmb1-native-wakeup/candidate.ts": "55f0a2c43b3974cbcb0f569c651cd8c7671e1d0f67d8adcb923b4999f27cc47c",
+    "probes/pmb1-no-real-object-reader/reader.ts": "de7d6258e3f3ac09aa2940dd040fef27801f72d2f51ba313fc23f3bdbafe408b",
+    "pyproject.toml": "36c79d4a033535fe270b347739609e420a41a2b3f99f93add88765876436b90d",
+    "src/partition_maintenance.ts": "52c537acff8a7be957e76b5429e41685726cec42590fdb56c46c3c81f70370c2",
+    "uv.lock": "aa94ded3cda190efe788d8b1028bcf57fab22495c19113b1ad8ce1a1d0adafba"
+  }
+}
