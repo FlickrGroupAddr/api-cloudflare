@@ -31,6 +31,13 @@ from scripts.temporary_composition_metadata_collector import (
 
 MAX_QUERIES = 2048
 MAX_TOTAL_BYTES = 16 * 1024 * 1024
+# Local source admission bounds, not actual run/transport/campaign allowances.
+# Only an explicit subsequently validated ADR0065 context selects the larger
+# finite source domain. Historical/default profiles keep their prior bounds.
+MAX_INPUT_BYTES = 1024 * 1024
+MAX_RESPONSE_BYTES = 256 * 1024
+NO_REAL_MAX_INPUT_BYTES = 2 * 1024 * 1024
+NO_REAL_MAX_RESPONSE_BYTES = 512 * 1024
 SOURCE_FILES = (
     "private_d1_snapshot_reader.py",
     "private_d1_snapshot_codec.py",
@@ -80,6 +87,23 @@ def _now():
 
 def _hash(value):
     return type(value) is str and re.fullmatch(r"[a-f0-9]{64}", value) is not None
+
+
+def _input_bound(value):
+    from scripts.private_d1_snapshot_profile import NO_REAL_PROFILE
+
+    return (
+        NO_REAL_MAX_INPUT_BYTES
+        if type(value) is dict and value.get("profile") == NO_REAL_PROFILE
+        else MAX_INPUT_BYTES
+    )
+
+
+def _bounded_inputs(plan, consent):
+    bound = _input_bound(plan)
+    encoded_plan, encoded_consent = canonical(plan), canonical(consent)
+    require(max(len(encoded_plan), len(encoded_consent)) <= bound, "snapshot_input_limit")
+    return _json(encoded_plan), _json(encoded_consent)
 
 
 def _prepare(plan, expected, consent, now):
@@ -166,9 +190,14 @@ def _prepare(plan, expected, consent, now):
         and timedelta(0) < end - start <= timedelta(minutes=20),
         "snapshot_window",
     )
+    from scripts.private_d1_snapshot_profile import NO_REAL_PROFILE
+
+    response_bound = (
+        NO_REAL_MAX_RESPONSE_BYTES if profile == NO_REAL_PROFILE else MAX_RESPONSE_BYTES
+    )
     for key, cap in (
         ("timeoutSeconds", 60),
-        ("maxResponseBytes", 262144),
+        ("maxResponseBytes", response_bound),
         ("maxTotalBytes", MAX_TOTAL_BYTES),
         ("pageSize", 256),
     ):
@@ -266,8 +295,7 @@ def collect(
     Injected transport and clocks are trusted test code, never security evidence.
     """
     try:
-        require(len(canonical(plan)) <= 1048576, "snapshot_input_limit")
-        plan, consent = _json(canonical(plan)), _json(canonical(consent))
+        plan, consent = _bounded_inputs(plan, consent)
         _address_value, end = _prepare(plan, expected_plan_sha256, consent, now())
         # No arbitrary boolean or self-authored evidence file can enable networking.
         require(callable(transport), "snapshot_external_qualification_unavailable")
@@ -479,7 +507,7 @@ def collect_isolated(
     Completion qualifies neither production barriers nor production snapshots.
     """
     try:
-        frozen = _json(canonical(plan))
+        frozen, consent = _bounded_inputs(plan, consent)
         _prepare(frozen, expected_plan_sha256, consent, now())
         transport = _IsolatedTransport(frozen, permit, clock)
         return collect(
@@ -499,9 +527,11 @@ def collect_isolated(
 
 def _read_json(path):
     with Path(path).open("rb") as handle:
-        raw = handle.read(1048577)
-    require(len(raw) <= 1048576, "snapshot_input_limit")
-    return _json(raw)
+        raw = handle.read(NO_REAL_MAX_INPUT_BYTES + 1)
+    require(len(raw) <= NO_REAL_MAX_INPUT_BYTES, "snapshot_input_limit")
+    value = _json(raw)
+    require(len(raw) <= _input_bound(value), "snapshot_input_limit")
+    return value
 
 
 def main(argv=None):

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import { MainEntryMaintenance, MAIN_ENTRY_FAMILIES } from '../src/main_entry_maintenance.ts';
 import { createMaintenanceWorker, createWorker, ROUTES } from '../src/worker.ts';
 import { credentialDigest, NOW_US_SQL } from '../src/installations.ts';
@@ -56,7 +57,14 @@ function fixture(db, options={}) {
   const bridge=new MainEntryMaintenance(binding,journal,observer,options.now);
   return {bridge,journal,observer,retained,kinds,admissions,assessments:()=>assessments};
 }
-async function database(t) { const db=sqlStore();t.after(()=>db.raw.close());return db; }
+async function database(t) {
+  const db=sqlStore();t.after(()=>db.raw.close());
+  // NEW in-memory source fixture only. Current accepted authentication writers
+  // require the prospective integer schema; historical migrations stay intact.
+  db.raw.exec('DROP TABLE auth_source_buckets;DROP TABLE status_read_buckets;');
+  db.raw.exec(readFileSync(new URL('./integer_quota_fixture.sql',import.meta.url),'utf8'));
+  return db;
+}
 async function install(db) {
   await db.batch([
     db.prepare("INSERT INTO fga_users VALUES('user')"),

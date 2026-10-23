@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["./candidate.ts", "../pmb1-no-real-object-reader/reader.ts"]
+}

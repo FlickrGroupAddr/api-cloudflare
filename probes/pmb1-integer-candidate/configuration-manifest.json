@@ -1,0 +1,54 @@
+{
+  "actualImmutableVersion": null,
+  "actualQualification": false,
+  "actualResourceMapping": null,
+  "build": {
+    "command": "node_modules/@typescript/typescript-win32-x64/lib/tsc.exe -p probes/pmb1-integer-candidate/tsconfig.json --noEmit",
+    "compiler": "TypeScript native Go 7.0.2",
+    "moduleBuild": "offline build.py; native ESM source closure and exact private receipt",
+    "providerBundle": false
+  },
+  "closedRead": "ordinary exact GET /api/v001/installations/current; only exact LOOKUP_SQL first()",
+  "compatibilityDate": "2026-10-16",
+  "compatibilityFlags": [
+    "nodejs_compat"
+  ],
+  "entry": "probes/pmb1-integer-candidate/candidate.ts:compose",
+  "localD1SourceLimits": {
+    "actualCampaignAllowance": false,
+    "aggregateWireBytes": 16777216,
+    "planAndConsentBytes": 2097152,
+    "queries": 2048,
+    "responseWireBytes": 524288
+  },
+  "profile": "pmb1-private-application-no-real-v1",
+  "prospectiveControlSource": "prospective_control.py:source_descriptor",
+  "registration": false,
+  "requiredBindings": [
+    "DB",
+    "COORD",
+    "ASSETS",
+    "FLICKR_APPLICATION",
+    "FLICKR_GRANT",
+    "AUTH_LIMITER_KEY",
+    "NATIVE_WRITER_TOKEN",
+    "FLICKR_TEMP_0",
+    "FLICKR_TEMP_1",
+    "FLICKR_TEMP_2",
+    "FLICKR_TEMP_3",
+    "FLICKR_TEMP_4"
+  ],
+  "role": [
+    "future retained",
+    "future temporary"
+  ],
+  "trustedPorts": [
+    "main-entry journal outside compared stores",
+    "independent main-entry observer",
+    "explicit Flickr transport",
+    "object disposition verifier",
+    "partition reconciliation verifier",
+    "complete bounded D1 query adapter",
+    "complete bounded object population/read adapter"
+  ]
+}

@@ -1,0 +1,1371 @@
+{
+  "actualClosure": false,
+  "domains": {
+    "d1": {
+      "actualPopulationKnown": false,
+      "allTypedCellsIncluded": true,
+      "binding": "DB",
+      "cells": {
+        "admin_principals": [
+          "user_id",
+          "google_issuer",
+          "google_sub",
+          "session_set_revision",
+          "rowid"
+        ],
+        "admin_sessions": [
+          "session_id",
+          "token_digest",
+          "user_id",
+          "csrf_token",
+          "created_at_us",
+          "recent_authentication_at_us",
+          "expires_at_us",
+          "last_activity_at_us",
+          "revoked_at_us",
+          "revocation_reason",
+          "revision",
+          "correlation_id",
+          "rowid"
+        ],
+        "album_attachment_attempts": [
+          "attempt_id",
+          "obligation_id",
+          "binding_id",
+          "lease_id",
+          "epoch",
+          "user_id",
+          "owner_nsid",
+          "photo_binding_id",
+          "photo_id",
+          "photoset_id",
+          "primary_photo_id",
+          "link_revision",
+          "grant_generation",
+          "binding_revision",
+          "obligation_revision",
+          "verification_revision",
+          "deployment_gate_revision",
+          "user_gate_revision",
+          "reconciliation_only",
+          "started_at_us",
+          "invocation_deadline_at_us",
+          "lease_expires_at_us",
+          "state",
+          "dispatch_count",
+          "dispatch_started_at_us",
+          "pre_context_ids",
+          "pre_observed_at_us",
+          "received_result",
+          "received_at_us",
+          "completed_at_us",
+          "retry_after_us",
+          "proof_context_ids",
+          "proof_owner_nsid",
+          "proof_photo_id",
+          "proof_observed_at_us",
+          "attention_reason",
+          "rowid"
+        ],
+        "album_attachment_events": [
+          "attempt_id",
+          "event_ordinal",
+          "state",
+          "epoch",
+          "dispatch_count",
+          "dispatch_started_at_us",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_attachment_semantic_events": [
+          "attempt_id",
+          "event_ordinal",
+          "obligation_id",
+          "binding_id",
+          "binding_revision_before",
+          "binding_revision_after",
+          "obligation_revision_before",
+          "obligation_revision_after",
+          "state",
+          "membership_observed_at_us",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_binding_events": [
+          "binding_id",
+          "binding_revision",
+          "kind",
+          "title_revision",
+          "desired_title",
+          "flickr_photoset_id",
+          "state",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_bindings": [
+          "binding_id",
+          "user_id",
+          "service_id",
+          "local_collection_id",
+          "link_revision",
+          "owner_nsid",
+          "first_photo_binding_id",
+          "first_photo_id",
+          "first_obligation_id",
+          "desired_title",
+          "title_revision",
+          "binding_revision",
+          "flickr_photoset_id",
+          "state",
+          "materialization_state",
+          "materialization_revision",
+          "navigation_url",
+          "rowid"
+        ],
+        "album_create_repair_receipts": [
+          "binding_id",
+          "attempt_id",
+          "expected_binding_revision",
+          "selected_photoset_id",
+          "navigation_url",
+          "owner_nsid",
+          "first_photo_binding_id",
+          "first_photo_id",
+          "link_revision",
+          "grant_generation",
+          "deployment_gate_revision",
+          "user_gate_revision",
+          "lifecycle",
+          "authority_kind",
+          "authority_id",
+          "authority_digest",
+          "owner_sub",
+          "principal_revision",
+          "authority_revision",
+          "context_observed_at_us",
+          "deadline_at_us",
+          "proof_context_ids",
+          "proof_observed_at_us",
+          "request_correlation_id",
+          "provenance",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_local_removal_receipts": [
+          "binding_id",
+          "expected_binding_revision",
+          "accepted_binding_revision",
+          "acknowledged_create_attempt_id",
+          "archived_at_us",
+          "installation_id",
+          "credential_digest",
+          "rowid"
+        ],
+        "album_materialization_attempts": [
+          "attempt_id",
+          "binding_id",
+          "lease_id",
+          "epoch",
+          "user_id",
+          "owner_nsid",
+          "photo_binding_id",
+          "photo_id",
+          "link_revision",
+          "grant_generation",
+          "desired_title",
+          "title_revision",
+          "deployment_gate_revision",
+          "user_gate_revision",
+          "started_at_us",
+          "invocation_deadline_at_us",
+          "lease_expires_at_us",
+          "state",
+          "dispatch_count",
+          "dispatch_started_at_us",
+          "pre_context_ids",
+          "pre_context_observed_at_us",
+          "received_photoset_id",
+          "received_navigation_url",
+          "received_at_us",
+          "completed_at_us",
+          "photoset_id",
+          "navigation_url",
+          "proof_context_ids",
+          "proof_owner_nsid",
+          "proof_photo_id",
+          "proof_observed_at_us",
+          "flickr_code",
+          "rowid"
+        ],
+        "album_materialization_events": [
+          "attempt_id",
+          "event_ordinal",
+          "state",
+          "epoch",
+          "dispatch_count",
+          "dispatch_started_at_us",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_obligation_events": [
+          "obligation_id",
+          "obligation_revision",
+          "kind",
+          "state",
+          "local_relationship",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_photo_local_removal_receipts": [
+          "obligation_id",
+          "binding_id",
+          "photo_binding_id",
+          "expected_binding_revision",
+          "expected_obligation_revision",
+          "accepted_binding_revision",
+          "archived_obligation_revision",
+          "source",
+          "archived_at_us",
+          "installation_id",
+          "credential_digest",
+          "rowid"
+        ],
+        "album_photo_obligations": [
+          "obligation_id",
+          "album_binding_id",
+          "photo_binding_id",
+          "photo_id",
+          "obligation_revision",
+          "state",
+          "local_relationship",
+          "admission_binding_revision",
+          "rowid"
+        ],
+        "album_title_attempts": [
+          "attempt_id",
+          "binding_id",
+          "lease_id",
+          "epoch",
+          "user_id",
+          "owner_nsid",
+          "photoset_id",
+          "link_revision",
+          "grant_generation",
+          "desired_title",
+          "title_revision",
+          "binding_revision",
+          "lease_binding_revision",
+          "deployment_gate_revision",
+          "user_gate_revision",
+          "attempt_number",
+          "started_at_us",
+          "lease_expires_at_us",
+          "invocation_deadline_at_us",
+          "next_read_at_us",
+          "state",
+          "dispatch_count",
+          "read_count",
+          "pre_dispatch_title",
+          "dispatch_started_at_us",
+          "result_class",
+          "observed_title",
+          "observed_at_us",
+          "completed_at_us",
+          "satisfied_title_revision",
+          "remote_missing",
+          "rowid"
+        ],
+        "album_title_events": [
+          "attempt_id",
+          "event_ordinal",
+          "state",
+          "epoch",
+          "dispatch_count",
+          "read_count",
+          "semantic_change",
+          "created_at_us",
+          "rowid"
+        ],
+        "album_title_receipts": [
+          "binding_id",
+          "title_revision",
+          "expected_binding_revision",
+          "expected_title_revision",
+          "desired_title",
+          "accepted_binding_revision",
+          "installation_id",
+          "credential_digest",
+          "accepted_at_us",
+          "rowid"
+        ],
+        "album_title_semantic_events": [
+          "binding_id",
+          "binding_revision_before",
+          "binding_revision_after",
+          "attempt_id",
+          "epoch",
+          "event_ordinal",
+          "rowid"
+        ],
+        "attempt_dispatches": [
+          "attempt_id",
+          "started_at_us",
+          "rowid"
+        ],
+        "attempt_membership": [
+          "attempt_id",
+          "target_absent",
+          "observed_at_us",
+          "rowid"
+        ],
+        "attempt_preflights": [
+          "attempt_id",
+          "moderated",
+          "observed_at_us",
+          "rowid"
+        ],
+        "attempt_resolutions": [
+          "attempt_id",
+          "outcome",
+          "reason",
+          "completed_at_us",
+          "flickr_code",
+          "observed_age_us",
+          "rowid"
+        ],
+        "audit_events": [
+          "event_id",
+          "user_id",
+          "action",
+          "request_correlation_id",
+          "session_correlation_id",
+          "outcome",
+          "reason",
+          "target_id",
+          "created_at_utc",
+          "source_component",
+          "rowid"
+        ],
+        "auth_cost_events": [
+          "event_id",
+          "source_key",
+          "route",
+          "created_at_us",
+          "invalid_or_inflight",
+          "rowid"
+        ],
+        "auth_source_buckets": [
+          "source_key",
+          "credit_us",
+          "updated_at_us",
+          "rowid"
+        ],
+        "deployment_conformance": [
+          "artifact_sha2_256",
+          "contract_sha2_256",
+          "evidence_sha2_256",
+          "verified_at_us",
+          "rowid"
+        ],
+        "fga_users": [
+          "user_id",
+          "rowid"
+        ],
+        "flickr_connection_state": [
+          "user_id",
+          "state",
+          "local_state",
+          "verified_permission",
+          "verified_at_us",
+          "external_removal",
+          "operation_id",
+          "rowid"
+        ],
+        "flickr_lifecycle_operations": [
+          "operation_id",
+          "user_id",
+          "kind",
+          "phase",
+          "generation",
+          "retiring_generation",
+          "preserve_relink",
+          "expected_revision",
+          "created_at_us",
+          "completed_at_us",
+          "rowid"
+        ],
+        "flickr_links": [
+          "user_id",
+          "owner_nsid",
+          "link_revision",
+          "state",
+          "rowid"
+        ],
+        "flickr_native_credentials": [
+          "user_id",
+          "active_generation",
+          "link_revision",
+          "verified_owner_nsid",
+          "verified_permission",
+          "operation_id",
+          "rowid"
+        ],
+        "flickr_oauth_transactions": [
+          "transaction_id",
+          "user_id",
+          "session_id",
+          "state_digest",
+          "request_token_digest",
+          "slot",
+          "generation",
+          "expected_revision",
+          "phase",
+          "created_at_us",
+          "expires_at_us",
+          "operation_id",
+          "retirement_generation",
+          "rowid"
+        ],
+        "flickr_rate_reservations": [
+          "reservation_id",
+          "attempt_id",
+          "window_id",
+          "expires_at_us",
+          "released",
+          "consumed_slots",
+          "rowid"
+        ],
+        "flickr_rate_window": [
+          "singleton",
+          "window_id",
+          "capacity",
+          "window_ms",
+          "expires_at_us",
+          "reserved_slots",
+          "rowid"
+        ],
+        "flickr_write_gate_events": [
+          "event_id",
+          "scope",
+          "scope_id",
+          "revision",
+          "reason",
+          "flickr_code",
+          "attempt_id",
+          "created_at_us",
+          "artifact_sha2_256",
+          "rowid"
+        ],
+        "flickr_write_gates": [
+          "scope",
+          "scope_id",
+          "enabled",
+          "revision",
+          "rowid"
+        ],
+        "google_jwks_cache": [
+          "singleton",
+          "keys_json",
+          "expires_at_us",
+          "refresh_after_us",
+          "refresh_owner",
+          "refresh_until_us",
+          "rowid"
+        ],
+        "google_login_transactions": [
+          "state_digest",
+          "nonce_digest",
+          "purpose",
+          "bound_session_id",
+          "user_id",
+          "created_at_us",
+          "expires_at_us",
+          "consumed_at_us",
+          "rowid"
+        ],
+        "group_partitions": [
+          "partition_id",
+          "user_id",
+          "group_id",
+          "next_enqueue_ordinal",
+          "next_work_not_before_us",
+          "wake_revision",
+          "lease_id",
+          "lease_generation",
+          "lease_expires_at_us",
+          "lease_started_at_us",
+          "invocation_deadline_at_us",
+          "last_claim_at_us",
+          "next_probe_not_before_us",
+          "rowid"
+        ],
+        "group_refresh": [
+          "user_id",
+          "job_id",
+          "installation_id",
+          "version_id",
+          "link_revision",
+          "generation",
+          "state",
+          "admitted_at_us",
+          "deadline_at_us",
+          "failed_at_us",
+          "rowid"
+        ],
+        "group_refresh_rows": [
+          "user_id",
+          "job_id",
+          "group_id",
+          "display_name",
+          "rowid"
+        ],
+        "group_snapshot_rows": [
+          "user_id",
+          "group_id",
+          "display_name",
+          "rowid"
+        ],
+        "group_snapshots": [
+          "user_id",
+          "revision",
+          "refreshed_at_us",
+          "link_revision",
+          "generation",
+          "rowid"
+        ],
+        "installation_credential_versions": [
+          "version_id",
+          "installation_id",
+          "credential_digest",
+          "state",
+          "ordinal",
+          "expires_at_us",
+          "created_at_utc",
+          "current_link",
+          "pending_link",
+          "active_parent",
+          "rowid"
+        ],
+        "installation_lifecycle_events": [
+          "event_id",
+          "installation_id",
+          "version_id",
+          "from_revision",
+          "to_revision",
+          "kind",
+          "created_at_utc",
+          "rowid"
+        ],
+        "installations": [
+          "installation_id",
+          "user_id",
+          "credential_class",
+          "label",
+          "state",
+          "revision",
+          "current_version_id",
+          "pending_version_id",
+          "created_at_utc",
+          "revoked_at_utc",
+          "current_kind",
+          "pending_kind",
+          "rotation_due_at_utc",
+          "last_authenticated_at_utc",
+          "rowid"
+        ],
+        "maintenance_control": [
+          "singleton_id",
+          "generation",
+          "state",
+          "rowid"
+        ],
+        "partition_lease_events": [
+          "event_id",
+          "partition_id",
+          "lease_id",
+          "lease_generation",
+          "kind",
+          "invocation_id",
+          "created_at_us",
+          "rowid"
+        ],
+        "photo_binding_events": [
+          "event_id",
+          "binding_id",
+          "verification_revision",
+          "kind",
+          "created_at_us",
+          "rowid"
+        ],
+        "photo_bindings": [
+          "binding_id",
+          "user_id",
+          "photo_id",
+          "owner_nsid",
+          "link_revision",
+          "verification_revision",
+          "source_kind",
+          "verified_at_us",
+          "last_admission_at_us",
+          "rowid"
+        ],
+        "photo_membership_observations": [
+          "binding_id",
+          "revision",
+          "link_revision",
+          "generation",
+          "valid",
+          "observed_at_us",
+          "rowid"
+        ],
+        "photo_membership_rows": [
+          "binding_id",
+          "group_id",
+          "display_name",
+          "rowid"
+        ],
+        "publish_service_identities": [
+          "service_id",
+          "user_id",
+          "issuing_installation_id",
+          "link_revision",
+          "owner_nsid",
+          "service_revision",
+          "rowid"
+        ],
+        "quota_credit_clocks": [
+          "batch_id",
+          "now_us",
+          "rowid"
+        ],
+        "quota_credit_guards": [
+          "batch_id",
+          "kind",
+          "invariant_ok",
+          "admitted",
+          "rowid"
+        ],
+        "status_read_buckets": [
+          "family",
+          "subject_id",
+          "credit_us",
+          "updated_at_us",
+          "rowid"
+        ],
+        "status_read_events": [
+          "event_id",
+          "created_at_us",
+          "rowid"
+        ],
+        "submission_attempts": [
+          "attempt_id",
+          "intent_id",
+          "ordinal",
+          "lease_id",
+          "lease_generation",
+          "deployment_revision",
+          "user_revision",
+          "link_revision",
+          "created_at_us",
+          "rowid"
+        ],
+        "submission_blocks": [
+          "photo_id",
+          "group_id",
+          "first_reason",
+          "source_attempt_id",
+          "created_at_utc",
+          "rowid"
+        ],
+        "submission_intent_events": [
+          "event_id",
+          "intent_id",
+          "kind",
+          "correlation_id",
+          "created_at_us",
+          "rowid"
+        ],
+        "submission_intents": [
+          "intent_id",
+          "binding_id",
+          "user_id",
+          "photo_id",
+          "group_id",
+          "partition_id",
+          "enqueue_ordinal",
+          "state",
+          "active_fifo_member",
+          "state_version",
+          "created_at_us",
+          "created_request_id",
+          "next_attempt_not_before_us",
+          "terminal_at_us",
+          "safe_read_failure_count",
+          "add_dispatch_count",
+          "state_changed_at_us",
+          "rowid"
+        ],
+        "transaction_guards": [
+          "transaction_id",
+          "approved",
+          "now_us",
+          "rowid"
+        ],
+        "upload_ambiguity_resolution_events": [
+          "authorization_id",
+          "provenance",
+          "binding_origin",
+          "rowid"
+        ],
+        "upload_authorizations": [
+          "authorization_id",
+          "installation_id",
+          "user_id",
+          "issued_at_us",
+          "photo_id",
+          "owner_nsid",
+          "link_revision",
+          "rowid"
+        ],
+        "upload_photo_binding_events": [
+          "authorization_id",
+          "binding_id",
+          "link_revision",
+          "verification_revision",
+          "observed_public",
+          "verified_at_us",
+          "rowid"
+        ]
+      },
+      "guardManifestSha256": "fcdef4f0c9a093d88fdf241cce4ae7c1cad0e1cf00295baf97767db5983266f1",
+      "onlyPossibleContentExclusion": "exact independently accepted D1 main._cf_KV manifest; selected only in separate explicitly SYNTHETIC reader-profile fixture",
+      "providerMetadata": "actual schema/census required; unknown tables refuse fixture equality",
+      "resource": null,
+      "schemaObjects": 716,
+      "syntheticReaderProfileFixture": "d1-profile-fixture.json",
+      "tables": [
+        "admin_principals",
+        "admin_sessions",
+        "album_attachment_attempts",
+        "album_attachment_events",
+        "album_attachment_semantic_events",
+        "album_binding_events",
+        "album_bindings",
+        "album_create_repair_receipts",
+        "album_local_removal_receipts",
+        "album_materialization_attempts",
+        "album_materialization_events",
+        "album_obligation_events",
+        "album_photo_local_removal_receipts",
+        "album_photo_obligations",
+        "album_title_attempts",
+        "album_title_events",
+        "album_title_receipts",
+        "album_title_semantic_events",
+        "attempt_dispatches",
+        "attempt_membership",
+        "attempt_preflights",
+        "attempt_resolutions",
+        "audit_events",
+        "auth_cost_events",
+        "auth_source_buckets",
+        "deployment_conformance",
+        "fga_users",
+        "flickr_connection_state",
+        "flickr_lifecycle_operations",
+        "flickr_links",
+        "flickr_native_credentials",
+        "flickr_oauth_transactions",
+        "flickr_rate_reservations",
+        "flickr_rate_window",
+        "flickr_write_gate_events",
+        "flickr_write_gates",
+        "google_jwks_cache",
+        "google_login_transactions",
+        "group_partitions",
+        "group_refresh",
+        "group_refresh_rows",
+        "group_snapshot_rows",
+        "group_snapshots",
+        "installation_credential_versions",
+        "installation_lifecycle_events",
+        "installations",
+        "maintenance_control",
+        "partition_lease_events",
+        "photo_binding_events",
+        "photo_bindings",
+        "photo_membership_observations",
+        "photo_membership_rows",
+        "publish_service_identities",
+        "quota_credit_clocks",
+        "quota_credit_guards",
+        "status_read_buckets",
+        "status_read_events",
+        "submission_attempts",
+        "submission_blocks",
+        "submission_intent_events",
+        "submission_intents",
+        "transaction_guards",
+        "upload_ambiguity_resolution_events",
+        "upload_authorizations",
+        "upload_photo_binding_events"
+      ]
+    },
+    "object": {
+      "actualPopulationKnown": false,
+      "allTypedCellsIncluded": true,
+      "binding": "COORD",
+      "bootstrapAlarm": null,
+      "bootstrapKV": [
+        [
+          "pmb1:admission",
+          false
+        ],
+        [
+          "pmb1:wake-admission-sequence",
+          "0"
+        ],
+        [
+          "pmb1:wake-revision",
+          "0"
+        ]
+      ],
+      "cells": {
+        "maintenance_control": [
+          "singleton_id",
+          "generation",
+          "state",
+          "rowid"
+        ],
+        "pmb1_partition_binding": [
+          "id",
+          "partition_id",
+          "rowid"
+        ],
+        "pmb1_partition_invocations": [
+          "id",
+          "generation",
+          "entry",
+          "partition_id",
+          "claim_id",
+          "lease",
+          "grant_binding",
+          "attempt_id",
+          "attempt_binding",
+          "due_token",
+          "dispatch",
+          "state",
+          "receipt",
+          "rowid"
+        ],
+        "pmb1_wake_executions": [
+          "id",
+          "generation",
+          "revision",
+          "value",
+          "state",
+          "rowid"
+        ],
+        "pmb1_wake_results": [
+          "id",
+          "result",
+          "rowid"
+        ],
+        "pmb1_wake_work": [
+          "id",
+          "revision",
+          "value",
+          "due",
+          "rowid"
+        ]
+      },
+      "class": "CandidatePartitionWorker",
+      "completeAlarm": true,
+      "completeKV": true,
+      "guardManifestSha256": "50cdf1e96b7bc22fc7393457582a7a1cdd0f605adc8e10b4a8c923f0b2fa25a6",
+      "kvKeysAndPatterns": [
+        "pmb1:admission",
+        "pmb1:wake-revision",
+        "pmb1:wake-admission-sequence",
+        "pmb1:wake-value",
+        "pmb1:wake-result:<admission-id>"
+      ],
+      "namespace": null,
+      "population": null,
+      "providerKVBacking": "all exposed KV included; no object-local exclusion",
+      "readerClosedAlarmKeys": {
+        "invocation": "pmb1:alarm-invocation",
+        "sequence": "pmb1:wake-admission-sequence"
+      },
+      "readerClosedAlarmLimit": "null only; close requires null; no synthetic legacy marker is written",
+      "schemaObjects": 39,
+      "tables": [
+        "maintenance_control",
+        "pmb1_partition_binding",
+        "pmb1_partition_invocations",
+        "pmb1_wake_executions",
+        "pmb1_wake_results",
+        "pmb1_wake_work"
+      ]
+    }
+  },
+  "externalWritersRequiringActualCensus": [
+    "old/current/temporary versions",
+    "operators",
+    "CI",
+    "migrations/import/restore/schema authority",
+    "provider bookkeeping",
+    "secret-store/native writer"
+  ],
+  "profile": "pmb1-private-application-no-real-v1",
+  "sourceOnly": true,
+  "writerSourceInventory": [
+    {
+      "effectLines": [
+        41,
+        151,
+        175,
+        218
+      ],
+      "module": "src/admin_api.ts"
+    },
+    {
+      "effectLines": [
+        64,
+        65,
+        68,
+        74,
+        84
+      ],
+      "module": "src/admission.ts"
+    },
+    {
+      "effectLines": [
+        66,
+        71,
+        93,
+        104
+      ],
+      "module": "src/album_attachment_store.ts"
+    },
+    {
+      "effectLines": [
+        30,
+        142
+      ],
+      "module": "src/album_binding_store.ts"
+    },
+    {
+      "effectLines": [
+        173
+      ],
+      "module": "src/album_create_repair_store.ts"
+    },
+    {
+      "effectLines": [
+        63,
+        97
+      ],
+      "module": "src/album_local_removal_store.ts"
+    },
+    {
+      "effectLines": [
+        54,
+        56,
+        82,
+        92,
+        130
+      ],
+      "module": "src/album_materialization_store.ts"
+    },
+    {
+      "effectLines": [
+        13,
+        94
+      ],
+      "module": "src/album_obligation_store.ts"
+    },
+    {
+      "effectLines": [
+        112,
+        160,
+        163,
+        168,
+        193,
+        231
+      ],
+      "module": "src/album_title_store.ts"
+    },
+    {
+      "effectLines": [
+        25,
+        26,
+        31,
+        39,
+        45,
+        46,
+        47,
+        48
+      ],
+      "module": "src/auth_admission.ts"
+    },
+    {
+      "effectLines": [
+        27,
+        41,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        71,
+        72,
+        73,
+        74,
+        75
+      ],
+      "module": "src/browser_sessions.ts"
+    },
+    {
+      "effectLines": [
+        35,
+        41,
+        44,
+        45,
+        47,
+        48,
+        49,
+        52,
+        139,
+        175,
+        178
+      ],
+      "module": "src/dispatch_worker.ts"
+    },
+    {
+      "effectLines": [
+        53,
+        55,
+        75,
+        80,
+        81,
+        102,
+        103,
+        105,
+        106,
+        108,
+        130,
+        134,
+        138,
+        139,
+        143,
+        144,
+        146,
+        150,
+        152,
+        154,
+        157
+      ],
+      "module": "src/fail_polite.ts"
+    },
+    {
+      "effectLines": [
+        9,
+        22,
+        23,
+        24,
+        29,
+        31,
+        39,
+        47,
+        50,
+        52,
+        57,
+        63
+      ],
+      "module": "src/flickr_oauth.ts"
+    },
+    {
+      "effectLines": [
+        23,
+        24,
+        28,
+        36,
+        37,
+        39,
+        68,
+        76,
+        79,
+        82,
+        84,
+        111,
+        112,
+        116,
+        119,
+        120
+      ],
+      "module": "src/flickr_rate.ts"
+    },
+    {
+      "effectLines": [
+        142,
+        143,
+        144,
+        145,
+        147,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187
+      ],
+      "module": "src/flickr_reads.ts"
+    },
+    {
+      "effectLines": [
+        13,
+        27,
+        30
+      ],
+      "module": "src/google_identity.ts"
+    },
+    {
+      "effectLines": [
+        46,
+        48,
+        54,
+        68,
+        69,
+        75,
+        82,
+        100,
+        198,
+        204,
+        206,
+        218,
+        221,
+        223,
+        224,
+        259,
+        262,
+        270,
+        272,
+        273,
+        275,
+        277,
+        278
+      ],
+      "module": "src/group_discovery.ts"
+    },
+    {
+      "effectLines": [
+        25
+      ],
+      "module": "src/intake_api.ts"
+    },
+    {
+      "effectLines": [
+        85,
+        251
+      ],
+      "module": "src/main_entry_maintenance.ts"
+    },
+    {
+      "effectLines": [
+        8,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        22,
+        28,
+        29,
+        30,
+        31,
+        40,
+        41,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        96,
+        97
+      ],
+      "module": "src/native_lifecycle.ts"
+    },
+    {
+      "effectLines": [
+        20,
+        24,
+        25,
+        26,
+        58,
+        87,
+        99,
+        100,
+        112,
+        116,
+        120,
+        129,
+        135,
+        153,
+        201
+      ],
+      "module": "src/partition_maintenance.ts"
+    },
+    {
+      "effectLines": [
+        45,
+        62,
+        65,
+        66,
+        70,
+        71,
+        74,
+        87,
+        117,
+        118
+      ],
+      "module": "src/photo_memberships.ts"
+    },
+    {
+      "effectLines": [
+        14
+      ],
+      "module": "src/photo_thumbnails.ts"
+    },
+    {
+      "effectLines": [
+        75,
+        88,
+        126,
+        127,
+        129,
+        131,
+        132,
+        135,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193
+      ],
+      "module": "src/plugin_codes.ts"
+    },
+    {
+      "effectLines": [
+        94
+      ],
+      "module": "src/publish_services.ts"
+    },
+    {
+      "effectLines": [
+        23,
+        50,
+        58,
+        63,
+        65,
+        75,
+        83,
+        88,
+        90,
+        97,
+        98
+      ],
+      "module": "src/quota_credit.ts"
+    },
+    {
+      "effectLines": [
+        27,
+        34,
+        50,
+        53,
+        55,
+        58,
+        60,
+        62,
+        66
+      ],
+      "module": "src/scheduling.ts"
+    },
+    {
+      "effectLines": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "module": "src/session_inventory.ts"
+    },
+    {
+      "effectLines": [
+        41,
+        44,
+        165
+      ],
+      "module": "src/submission_status.ts"
+    },
+    {
+      "effectLines": [
+        83,
+        118,
+        151,
+        154,
+        159
+      ],
+      "module": "src/upload_authorization.ts"
+    },
+    {
+      "effectLines": [
+        97,
+        110,
+        111,
+        113,
+        115,
+        117,
+        122
+      ],
+      "module": "src/upload_photo_binding.ts"
+    },
+    {
+      "effectLines": [
+        48,
+        65,
+        128,
+        129,
+        158
+      ],
+      "module": "src/worker.ts"
+    }
+  ]
+}

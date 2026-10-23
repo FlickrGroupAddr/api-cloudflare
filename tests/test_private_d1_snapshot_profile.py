@@ -6,10 +6,12 @@ import copy
 import json
 import sqlite3
 import unittest
+from unittest.mock import patch
 
 from scripts import fixed_origin_preservation as preservation
 from scripts import private_d1_snapshot_codec as codec
 from scripts import private_d1_snapshot_profile as profile
+from scripts import private_d1_snapshot_reader as reader
 from scripts import private_no_real_guards as guards
 from tests import test_private_d1_snapshot_reader as reader_tests
 
@@ -504,6 +506,122 @@ class ApplicationProfileTests(unittest.TestCase):
 
 class ApplicationProfileReaderTests(reader_tests.SnapshotReaderTests):
     """Inherited strict tests also guard against accidental compatibility defaults."""
+
+    def test_no_real_finite_source_input_boundaries_and_cli_parser_parity(self):
+        for selected, cap in (
+            (None, reader.MAX_INPUT_BYTES),
+            (profile.PROFILE, reader.MAX_INPUT_BYTES),
+            (profile.NO_REAL_PROFILE, reader.NO_REAL_MAX_INPUT_BYTES),
+        ):
+            with self.subTest(profile=selected):
+                value = {"padding": ""}
+                if selected is not None:
+                    value["profile"] = selected
+                value["padding"] = "x" * (cap - len(reader.canonical(value)))
+                self.assertEqual(len(reader.canonical(value)), cap)
+                reader._bounded_inputs(value, {})
+                path = self.root / "source-boundary.json"
+                path.write_bytes(reader.canonical(value))
+                self.assertEqual(reader._read_json(path), value)
+                value["padding"] += "x"
+                path.write_bytes(reader.canonical(value))
+                with self.assertRaisesRegex(reader.SnapshotError, "snapshot_input_limit"):
+                    reader._read_json(path)
+                with self.assertRaisesRegex(reader.SnapshotError, "snapshot_input_limit"):
+                    reader._bounded_inputs(value, {})
+                # Consent shares the PLAN's finite profile-bound allowance.
+                plan = {} if selected is None else {"profile": selected}
+                with self.assertRaisesRegex(reader.SnapshotError, "snapshot_input_limit"):
+                    reader._bounded_inputs(plan, value)
+        self.credential.assert_not_called()
+        self.transport.assert_not_called()
+
+    def test_oversized_plan_or_consent_refuses_before_credentials_and_transport(self):
+        for selected, cap in (
+            (None, reader.MAX_INPUT_BYTES),
+            (profile.NO_REAL_PROFILE, reader.NO_REAL_MAX_INPUT_BYTES),
+        ):
+            for consent_oversized in (False, True):
+                plan, consent = self.inputs()
+                if selected is not None:
+                    plan["profile"] = selected
+                target = consent if consent_oversized else plan
+                target["padding"] = "x" * cap
+                self.refuse(lambda plan=plan, consent=consent: self.collect(plan, consent))
+                self.credential.assert_not_called()
+                self.transport.assert_not_called()
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.journal.exists())
+
+    def test_no_real_response_bound_is_explicit_finite_and_not_a_runtime_grant(self):
+        self.db.execute("CREATE TABLE _cf_KV(key PRIMARY KEY,value) WITHOUT ROWID")
+        manifest = install_no_real_manifest(self.db, self.rows)
+        self.queries.clear()
+
+        def discovery(sql):
+            self.queries.append(sql)
+            return self.rows(sql)
+
+        codec.collect_snapshot(discovery, page_size=2, profile_manifest=manifest)
+        plan, _ = self.inputs()
+        plan.update(
+            profile=profile.NO_REAL_PROFILE,
+            profileManifest=manifest,
+            maxResponseBytes=reader.NO_REAL_MAX_RESPONSE_BYTES,
+        )
+        consent = self.consent(plan)
+        consent.update(profile=plan["profile"], profileManifest=manifest)
+        # Pure admission only. No credential/transport can be supplied by a limit.
+        reader._prepare(plan, reader.digest(plan), consent, reader_tests.NOW)
+        self.refuse(lambda: self.collect(plan, consent, transport=None))
+        self.credential.assert_not_called()
+        self.transport.assert_not_called()
+        for field, too_large in (
+            ("maxResponseBytes", reader.NO_REAL_MAX_RESPONSE_BYTES + 1),
+            ("maxTotalBytes", reader.MAX_TOTAL_BYTES + 1),
+        ):
+            changed = {**plan, field: too_large}
+            current = self.consent(changed)
+            current.update(profile=plan["profile"], profileManifest=manifest)
+            self.refuse(lambda changed=changed, current=current: self.collect(changed, current))
+            self.credential.assert_not_called()
+            self.transport.assert_not_called()
+        legacy, _ = self.inputs()
+        legacy["maxResponseBytes"] = reader.MAX_RESPONSE_BYTES + 1
+        self.refuse(lambda: self.collect(legacy, self.consent(legacy)))
+        self.credential.assert_not_called()
+        self.transport.assert_not_called()
+
+    def test_no_real_cli_bounded_parse_uses_same_collect_gate_without_token_read(self):
+        # Source-parser parity at the expanded bound, before ordinary manifest
+        # admission. Unknown fields still refuse inside collect before delivery.
+        plan = {"profile": profile.NO_REAL_PROFILE, "padding": "x" * reader.MAX_INPUT_BYTES}
+        consent = {"profile": profile.NO_REAL_PROFILE}
+        plan_path, consent_path = self.root / "plan.json", self.root / "consent.json"
+        plan_path.write_bytes(reader.canonical(plan))
+        consent_path.write_bytes(reader.canonical(consent))
+        with patch.object(reader, "collect", wraps=reader.collect) as collected:
+            result = reader.main(
+                [
+                    "--plan",
+                    str(plan_path),
+                    "--consent",
+                    str(consent_path),
+                    "--expected-plan-sha256",
+                    reader.digest(plan),
+                    "--token-file",
+                    str(self.root / "MUST-NOT-BE-READ"),
+                    "--output",
+                    str(self.output),
+                    "--journal",
+                    str(self.journal),
+                ]
+            )
+        self.assertEqual(result, 1)
+        self.assertEqual(collected.call_count, 1)
+        self.assertEqual(collected.call_args.args[0], plan)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.journal.exists())
 
     def test_explicit_profile_plan_consent_and_scoped_private_output(self):
         self.db.executescript("CREATE TABLE _cf_KV(key PRIMARY KEY,value) WITHOUT ROWID;")

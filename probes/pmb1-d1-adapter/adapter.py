@@ -3,6 +3,7 @@
 import hashlib
 import json
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol
@@ -29,6 +30,32 @@ Phase = Literal["latched", "dispatching", "refused", "unknown", "confirmed"]
 
 class Refusal(ValueError):
     """Invalid or exhausted finite source operation."""
+
+
+@dataclass(frozen=True)
+class SourceDescriptor:
+    """Trusted construction-time prospective source, never request/JSON input.
+
+    The new candidate's reviewed assembly supplies immutable manifest bytes and
+    a LOCAL source-byte recheck. It is not a verifier of native truth or a PASS
+    port. Existing fixed SQL/control source is still checked against original
+    pins by Adapter. Only the exact candidate schema manifest changes.
+    """
+
+    candidate: str
+    manifest: bytes
+    recheck: Callable[[], None]
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.candidate) is not str
+            or len(self.candidate) != 64
+            or any(c not in "0123456789abcdef" for c in self.candidate)
+            or type(self.manifest) is not bytes
+            or not self.manifest
+            or not callable(self.recheck)
+        ):
+            raise Refusal("invalid_source_descriptor")
 
 
 def generation(value: object, *, increment: bool = False) -> str:
@@ -294,6 +321,7 @@ class Adapter:
         *,
         target_id: str,
         confirmations: Confirmations | None = None,
+        source: SourceDescriptor | None = None,
     ):
         if writer is observer:
             raise Refusal("writer_is_not_independent_observer")
@@ -305,13 +333,30 @@ class Adapter:
         if type(target_id) is not str or not 1 <= len(target_id) <= 128 or not target_id.isascii():
             raise Refusal("invalid_target_binding")
         self.target_id, self.confirmations = target_id, confirmations
+        if source is not None and type(source) is not SourceDescriptor:
+            raise Refusal("untrusted_source_descriptor_shape")
+        self.source = source
         self.last_time = -1.0
+
+    @property
+    def candidate(self) -> str:
+        return CANDIDATE if self.source is None else self.source.candidate
+
+    def _source_files(self) -> dict[str, bytes]:
+        files = verify_source()
+        if self.source is not None:
+            # Never accept SQL, a network verifier or a success assertion from
+            # an intent. The trusted local callback must raise on byte drift.
+            if self.source.recheck() is not None:
+                raise Refusal("source_recheck_not_a_local_void_check")
+            files["manifest.json"] = self.source.manifest
+        return files
 
     def check(self, intent: Intent, *, reconciliation: bool = False) -> float:
         if type(intent) is not Intent or type(intent.window) is not Window:
             raise Refusal("invalid_intent")
         intent.window.validate()
-        if intent.candidate != CANDIDATE or intent.operation not in ("close", "reopen"):
+        if intent.candidate != self.candidate or intent.operation not in ("close", "reopen"):
             raise Refusal("invalid_intent")
         generation(intent.expected, increment=True)
         if intent.target_id != self.target_id or type(intent.target_id) is not str:
@@ -331,7 +376,7 @@ class Adapter:
         self.last_time = now
         if not intent.window.starts <= now < end:
             raise Refusal("deadline_or_not_started")
-        verify_source()
+        self._source_files()
         after = self.clock.now()
         if (
             type(after) not in (int, float)
@@ -344,7 +389,7 @@ class Adapter:
         return end
 
     def observe(self, intent: Intent, *, reconciliation: bool = False) -> tuple[str, str]:
-        files = verify_source()
+        files = self._source_files()
         replies = []
         for name in ("readback.sql", "schema.sql"):
             end = self.check(intent, reconciliation=reconciliation)
@@ -357,10 +402,10 @@ class Adapter:
         return validate_control(replies[0])
 
     def close(self, key: str, expected: str, window: Window) -> Result:
-        return self.execute(Intent(key, "close", expected, window, self.target_id))
+        return self.execute(Intent(key, "close", expected, window, self.target_id, self.candidate))
 
     def reopen(self, key: str, expected: str, window: Window) -> Result:
-        return self.execute(Intent(key, "reopen", expected, window, self.target_id))
+        return self.execute(Intent(key, "reopen", expected, window, self.target_id, self.candidate))
 
     def execute(self, intent: Intent) -> Result:
         # Intent binds an identity, never SQL, a transport selector or a caller batch.
@@ -437,7 +482,7 @@ class Adapter:
             if self.journal.claim_dispatch(intent.key, end) is not True:
                 raise Refusal("dispatch_claim_unconfirmed")
             end = self.check(intent)
-            files = verify_source()
+            files = self._source_files()
             update = FixedUpdate(files[f"{intent.operation}.sql"].decode(), intent.expected)
             end = self.check(intent)
             receipt = self.writer.dispatch(update, end)
