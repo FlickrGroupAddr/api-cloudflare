@@ -1,0 +1,57 @@
+{
+  "name": "fga-pmb1-unregistered-source-only",
+  "main": "entry.ts",
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "send_metrics": false,
+  "vars": {
+    "PMB1_CONFIGURATION": "UNCONFIGURED",
+    "FGA_READ_ENABLED": "0",
+    "FGA_DISPATCH_ENABLED": "0",
+    "FGA_ADMIN_ENABLED": "0"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "UNBOUND-PMB1-APPLICATION"
+    },
+    {
+      "binding": "PMB1_MAIN_JOURNAL",
+      "database_name": "UNBOUND-PMB1-EXTERNAL-JOURNAL"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "COORD",
+        "class_name": "PartitionWorker"
+      },
+      {
+        "name": "PMB1_OWNERS",
+        "class_name": "NativeCaptureOwner"
+      },
+      {
+        "name": "PMB1_CAPTURE_CONTROL",
+        "class_name": "NativeCaptureControl"
+      }
+    ]
+  },
+  "exports": {
+    "PartitionWorker": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "NativeCaptureOwner": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "NativeCaptureControl": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "actualImmutableVersion": null,
+  "actualQualification": false,
+  "actualResourceMapping": null,
+  "bindings": {
+    "ASSETS": {
+      "actualId": null,
+      "optional": true
+    },
+    "AUTH_LIMITER_KEY": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "COORD": {
+      "actualNamespace": null,
+      "class": "PartitionWorker",
+      "migration": null
+    },
+    "DB": {
+      "actualId": null,
+      "authority": "all 65 application D1 tables"
+    },
+    "FLICKR_APPLICATION": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "FLICKR_GRANT": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "FLICKR_TEMP_0": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "FLICKR_TEMP_1": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "FLICKR_TEMP_2": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "FLICKR_TEMP_3": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "FLICKR_TEMP_4": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "NATIVE_WRITER_TOKEN": {
+      "actualId": null,
+      "ordinarySecretBinding": true
+    },
+    "PMB1_CAPTURE_CONTROL": {
+      "actualNamespace": null,
+      "authority": "external capture reservations",
+      "class": "NativeCaptureControl",
+      "migration": null
+    },
+    "PMB1_CAPTURE_CONTROL_PLAN": {
+      "actualValue": null,
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+    },
+    "PMB1_CAPTURE_CONTROL_REF": {
+      "actualValue": null,
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+    },
+    "PMB1_CONFIGURATION": {
+      "authority": "exact source/profile/selectors; not independent custody"
+    },
+    "PMB1_MAIN_JOURNAL": {
+      "actualId": null,
+      "authority": "separately owned journal; outside compared stores"
+    },
+    "PMB1_OWNERS": {
+      "actualNamespace": null,
+      "class": "NativeCaptureOwner",
+      "migration": null
+    },
+    "PMB1_READ_NAMESPACE": {
+      "actualValue": null,
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+    },
+    "PMB1_READ_PACKETS": {
+      "actualValue": null,
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+    }
+  },
+  "custody": "ReviewedCoverage has no environment, HTTP, JSON or packet loader; absent facts refuse",
+  "d1Operation": "fixed_update_with_exact_count_positional_v1",
+  "objectBoundary": "pmb1-private-object-kv-interface-v1",
+  "operatorAdapters": {
+    "d1": "../pmb1-native-d1-binding/positional_receipt_successor.py",
+    "object": "../pmb1-native-object-reader/native-source.ts"
+  },
+  "profile": "pmb1-private-application-no-real-v1",
+  "registration": false,
+  "retained": "copy exact emitted bytes and configuration; never rebuild rollback modules; force=false",
+  "schema": "pmb1-static-binding-manifest-v1",
+  "unconfiguredDefault": "all requests refuse 503; scheduled refuses before effects"
+}

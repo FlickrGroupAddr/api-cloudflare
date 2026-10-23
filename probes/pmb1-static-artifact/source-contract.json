@@ -1,0 +1,11 @@
+{
+  "actualImmutableVersion": null,
+  "actualQualification": false,
+  "actualResourceMapping": null,
+  "d1Operation": "fixed_update_with_exact_count_positional_v1",
+  "objectBoundary": "pmb1-private-object-kv-interface-v1",
+  "profile": "pmb1-private-application-no-real-v1",
+  "registration": false,
+  "schema": "pmb1-static-source-contract-v1",
+  "sourceContextSha2_256": "2749e5d5890dcd732b3bc3fa7a99454898dc9cca6faec8e551c257a374108446"
+}
