@@ -45,7 +45,7 @@ class SyntheticEvidence:
             states[role] = recovery.RoleState(
                 exists,
                 "identity-" + role if exists else None,
-                True,
+                role != "sourceManifest",
                 True,
                 1,
                 False,
@@ -113,9 +113,10 @@ class RecoveryTests(unittest.TestCase):
         fixture.plan["parent_id"] = base.PARENT_ID
         for key in ("parent_credential", "child_credential", "journal", "claim", "evidence"):
             fixture.plan[key] = fixture.plan[key].replace("\\", "/")
-        fixture.plan["source_sha2_256"]["scripts/provision_work_plan_token.py"] = (
-            recovery.PRODUCER_PIN
-        )
+        source_root = Path(issuer.__file__).resolve().parents[1]
+        fixture.plan["source_sha2_256"] = {
+            name: recovery.digest((source_root / name).read_bytes()) for name in issuer.SOURCE_FILES
+        }
         fixture.refresh()
         original_plan = fixture.inputs.plan.read_bytes()
         fixture.run_issuer()
@@ -132,6 +133,7 @@ class RecoveryTests(unittest.TestCase):
             childCredential=fixture.plan["child_credential"].replace("\\", "/"),
             issuerJournal=fixture.plan["journal"].replace("\\", "/"),
         )
+        roles["sourceManifest"] = (fixture.source / recovery.SOURCE_MANIFEST).as_posix()
         # Exact path strings are producer fields, so original source uses canonical
         # slash spelling too; this changes only synthetic fixture bytes.
         original = recovery.document(original_plan)
@@ -162,6 +164,14 @@ class RecoveryTests(unittest.TestCase):
             issuerPlan=original_plan,
             issuerEvidence=original_evidence,
             terminal=b'{"recordedAt":"2026-10-21T12:00:00Z","synthetic":true}',
+        )
+        self.records["sourceManifest"] = recovery.encoded(
+            {
+                "schemaVersion": 1,
+                "kind": "ungranted_screenshot_post_successor",
+                "sources": dict(original["source_sha2_256"]),
+                "productionQualified": False,
+            }
         )
         self.records["witness"] = recovery.encoded(
             {
@@ -532,6 +542,70 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(recovery.Refused, "independent_actual_packet_review_required"):
             self.dispatch(packet, review)
         self.assertEqual(self.loaded, [])
+
+    def test_public_manifest_inventory_cannot_claim_private_or_share_identity(self):
+        for state in (
+            recovery.RoleState(True, "manifest", True, True, 1, False),
+            recovery.RoleState(True, "identity-terminal", False, True, 1, False),
+            recovery.RoleState(True, "manifest", False, True, 2, False),
+            recovery.RoleState(True, "manifest", False, True, 1, True),
+        ):
+            self.verifier.overrides = {"sourceManifest": state}
+            with self.subTest(state=state), self.assertRaises(recovery.Refused):
+                self.prepare()
+        self.assertNotIn("source", self.verifier.calls)
+
+    def test_only_exact_public_manifest_role_and_equal_optional_source_pin_allowed(self):
+        original = copy.deepcopy(self.req)
+        for path in (
+            self.req["roles"]["sourceManifest"].upper(),
+            self.req["sourceRoot"] + "/copied-manifest.json",
+            (self.root / "copied-manifest.json").as_posix(),
+        ):
+            self.req.clear()
+            self.req.update(copy.deepcopy(original))
+            self.req["roles"]["sourceManifest"] = path
+            self.refresh()
+            with (
+                self.subTest(path=path),
+                self.assertRaisesRegex(recovery.Refused, "source_manifest_required"),
+            ):
+                self.prepare()
+        self.req.clear()
+        self.req.update(copy.deepcopy(original))
+        path = self.req["roles"]["sourceManifest"]
+        self.req["sourcePins"][path] = self.req["pins"]["sourceManifest"]
+        self.refresh()
+        self.prepare()
+        self.req["sourcePins"][path] = "0" * 64
+        self.refresh()
+        with self.assertRaisesRegex(recovery.Refused, "dual_pin_mismatch"):
+            self.prepare()
+
+    def test_manifest_schema_map_and_other_private_roles_remain_closed(self):
+        original_manifest = recovery.document(self.records["sourceManifest"])
+        for change in (
+            lambda value: value.update(kind="other"),
+            lambda value: value.update(productionQualified=True),
+            lambda value: value.update(schemaVersion=True),
+            lambda value: value["sources"].pop("scripts/provision_work_plan_token.py"),
+            lambda value: value["sources"].update({"../escape.py": "a" * 64}),
+            lambda value: value["sources"].update({"SCRIPT.py": "a" * 64, "script.py": "a" * 64}),
+        ):
+            manifest = copy.deepcopy(original_manifest)
+            change(manifest)
+            self.records["sourceManifest"] = recovery.encoded(manifest)
+            self.refresh()
+            with self.assertRaises(recovery.Refused):
+                self.prepare()
+        self.records["sourceManifest"] = recovery.encoded(original_manifest)
+        for role in ("terminal", "witness", "parentCredential", "issuerJournal", "plan"):
+            original_path = self.req["roles"][role]
+            self.req["roles"][role] = self.req["sourceRoot"] + "/" + role
+            self.refresh()
+            with self.subTest(role=role), self.assertRaises(recovery.Refused):
+                self.prepare()
+            self.req["roles"][role] = original_path
 
 
 if __name__ == "__main__":

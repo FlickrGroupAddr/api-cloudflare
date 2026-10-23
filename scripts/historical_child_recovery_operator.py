@@ -43,6 +43,22 @@ class EvidenceRef:
 
 
 @dataclass(frozen=True)
+class OriginalManifestBinding:
+    """Primary-authenticated ORIGINAL source provenance, never a JSON default.
+
+    The external Primary judgment authenticates these exact original root,
+    commit, manifest and complete manifest map plus retained provenance bytes.
+    Construction or hash equality alone cannot authenticate their meaning.
+    """
+
+    source_root: str
+    source_commit: str
+    sha2_256: str
+    source_pins: dict[str, str]
+    provenance: EvidenceRef
+
+
+@dataclass(frozen=True)
 class ReviewedFacts:
     """Primary-retained independent judgment, never parsed from an untrusted file.
 
@@ -57,6 +73,7 @@ class ReviewedFacts:
     current_pins: dict[str, str]
     fact_evidence: dict[str, EvidenceRef]
     packet_review: EvidenceRef | None
+    original_manifest: OriginalManifestBinding | None = None
 
 
 def fact_reference(refs: dict[str, EvidenceRef]) -> str:
@@ -322,6 +339,23 @@ class Operator:
         self.facts = copy.deepcopy(facts)
         self.req = recovery._request(raw, facts.request_digest)
         self.raw = raw
+        original = facts.original_manifest
+        if (
+            type(original) is not OriginalManifestBinding
+            or original.source_root != self.req["sourceRoot"]
+            or original.sha2_256 != self.req["pins"]["sourceManifest"]
+            or type(original.source_pins) is not dict
+            or not original.source_pins
+            or any(
+                original.source_pins.get(name) != pin
+                for name, pin in facts.producer_source_pins.items()
+            )
+            or type(original.provenance) is not EvidenceRef
+        ):
+            raise recovery.Refused("operator_original_manifest_provenance_required")
+        recovery._text(original.source_commit, r"[a-f0-9]{40}")
+        recovery._text(original.sha2_256, r"[a-f0-9]{64}")
+        recovery._text(original.provenance.sha2_256, r"[a-f0-9]{64}")
         if (
             set(facts.original_pins) != recovery.HISTORY
             or set(facts.current_pins) != recovery.CURRENT
@@ -338,6 +372,9 @@ class Operator:
             if path not in self.req["sourcePins"]:
                 raise recovery.Refused("operator_own_source_pin_required")
             expected[path] = self.req["sourcePins"][path]
+        manifest_path = self.req["roles"]["sourceManifest"]
+        if manifest_path in self.req["sourcePins"]:
+            expected[manifest_path] = original.sha2_256
         if expected != self.req["sourcePins"]:
             raise recovery.Refused("operator_complete_source_binding_required")
         # Source bytes are checked before any application import/protected read.
@@ -347,6 +384,13 @@ class Operator:
         paths = [recovery._path(p) for p in self.req["roles"].values()]
         paths += [recovery._path(p) for p in self.req["sourcePins"]]
         paths += [recovery._path(self.req[k]) for k in ("namespace", "oldNamespace", "sourceRoot")]
+        provenance = recovery._path(original.provenance.path)
+        if any(
+            provenance == path or provenance.is_relative_to(path) or path.is_relative_to(provenance)
+            for path in paths
+        ):
+            raise recovery.Refused("operator_manifest_provenance_alias_refused")
+        paths.append(provenance)
         fact_refs = {}
         for ref in facts.fact_evidence.values():
             path = recovery._path(ref.path)
@@ -366,6 +410,27 @@ class Operator:
         self._written: set[str] = set()
         self._fact_inventory: dict[str, tuple[int, int]] = {}
         self._file_inventory: dict[str, tuple[int, int]] = {}
+
+    def _read_source_manifest(self, limit: int) -> bytes:
+        """One exact PUBLIC role, stable source reader; no private ACL assertion."""
+        path = self.req["roles"]["sourceManifest"]
+        info = _regular(Path(path))
+        if (
+            self._file_inventory.get(path) != (info.st_dev, info.st_ino)
+            or not 0 < info.st_size <= limit
+        ):
+            raise recovery.Refused("operator_manifest_inventory_changed")
+        raw = _source_bytes(Path(path))
+        final = _regular(Path(path))
+        original = self.facts.original_manifest
+        if (
+            original is None
+            or (final.st_dev, final.st_ino) != self._file_inventory[path]
+            or recovery.digest(raw) != original.sha2_256
+            or recovery.source_manifest(raw)["sources"] != original.source_pins
+        ):
+            raise recovery.Refused("operator_original_manifest_changed")
+        return raw
 
     def _helpers(self):
         if self._execution is None:
@@ -392,12 +457,16 @@ class Operator:
     def inventory(self, roles: dict[str, str], namespace: str) -> dict[str, recovery.RoleState]:
         if roles != self.req["roles"] or namespace != self.req["namespace"]:
             raise recovery.Refused("operator_exact_roles_required")
+        original = self.facts.original_manifest
+        if original is None:
+            raise recovery.Refused("operator_original_manifest_provenance_required")
         result = {}
         # Stat/link inventory precedes project imports and private content reads.
         entries = (
             roles
             | {"namespace": namespace}
             | {"fact:" + role: ref.path for role, ref in self.facts.fact_evidence.items()}
+            | {"manifestProvenance": original.provenance.path}
         )
         seen_facts = set()
         unique_entries = {}
@@ -425,20 +494,28 @@ class Operator:
                 parent = path.parent
                 while not parent.exists() and parent != parent.parent:
                     parent = parent.parent
-                self._private(parent.as_posix(), directory=True)
-                if role.startswith("fact:"):
+                if role == "sourceManifest":
+                    _regular(parent, directory=True)
+                else:
+                    self._private(parent.as_posix(), directory=True)
+                if role.startswith("fact:") or role == "manifestProvenance":
                     raise recovery.Refused("operator_fact_evidence_missing")
-                result[role] = recovery.RoleState(False, None, True, False, 0, False)
+                result[role] = recovery.RoleState(
+                    False, None, role != "sourceManifest", False, 0, False
+                )
                 continue
-            self._private(value, directory=role == "namespace")
-            info = path.stat()
+            if role == "sourceManifest":
+                info = _regular(path)
+            else:
+                self._private(value, directory=role == "namespace")
+                info = path.stat()
             self._file_inventory[value] = (info.st_dev, info.st_ino)
             if role.startswith("fact:"):
                 self._fact_inventory[value] = (info.st_dev, info.st_ino)
             result[role] = recovery.RoleState(
                 True,
                 f"{info.st_dev}:{info.st_ino}",
-                True,
+                role != "sourceManifest",
                 stat.S_ISREG(info.st_mode),
                 info.st_nlink,
                 False,
@@ -446,7 +523,11 @@ class Operator:
         identities = [s.identity for s in result.values() if s.exists]
         if len(identities) != len(set(identities)):
             raise recovery.Refused("operator_file_identity_alias_refused")
-        return {role: state for role, state in result.items() if not role.startswith("fact:")}
+        return {
+            role: state
+            for role, state in result.items()
+            if not role.startswith("fact:") and role != "manifestProvenance"
+        }
 
     def source_closure(self, pins: dict[str, str]) -> None:
         if pins != self.req["sourcePins"]:
@@ -466,6 +547,8 @@ class Operator:
             or not 0 < limit <= 16777216
         ):
             raise recovery.Refused("operator_metadata_role_refused")
+        if role == "sourceManifest":
+            return self._read_source_manifest(limit)
         return self._read(path, limit)
 
     def original_latch(self, journal: str, plan_digest: str, child_id: str) -> dict:
@@ -532,6 +615,20 @@ class Operator:
                     raise recovery.Refused("operator_authenticated_packet_review_required")
             elif expected.get(role) != recovery.digest(raw):
                 raise recovery.Refused("operator_authenticated_evidence_required")
+        if kind in {"historical", "current"}:
+            original = self.facts.original_manifest
+            if (
+                original is None
+                or recovery.document(records["issuerPlan"])["source_commit"]
+                != original.source_commit
+            ):
+                raise recovery.Refused("operator_original_manifest_commit_mismatch")
+            self._read_source_manifest(16777216)
+            if (
+                recovery.digest(self._read(original.provenance.path, 16777216))
+                != original.provenance.sha2_256
+            ):
+                raise recovery.Refused("operator_original_manifest_provenance_changed")
         if kind != "historical":
             if recovery.document(records["witness"])["evidenceReference"] != fact_reference(
                 self.facts.fact_evidence
@@ -578,6 +675,8 @@ class Operator:
         expected = {
             (self.sources.root / name).as_posix() for name in self._producer.SOURCE_FILES
         } | {self.req["controllerSource"], Path(__file__).as_posix()}
+        if self.req["roles"]["sourceManifest"] in self.req["sourcePins"]:
+            expected.add(self.req["roles"]["sourceManifest"])
         if set(self.req["sourcePins"]) != expected:
             raise recovery.Refused("operator_complete_source_closure_required")
         self.sources.recheck()

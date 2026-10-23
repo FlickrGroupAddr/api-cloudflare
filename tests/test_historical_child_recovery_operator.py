@@ -30,11 +30,31 @@ class OperatorTests(unittest.TestCase):
         self.addCleanup(self.fixture.doCleanups)
         f = self.fixture
         self.req = copy.deepcopy(f.req)
-        self.req["sourceRoot"] = ROOT.as_posix()
+        self.source = f.fixture.source
+        for name in issuer.SOURCE_FILES:
+            target = self.source / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / name).read_bytes())
+        self.req["sourceRoot"] = self.source.as_posix()
         self.pins = {
             name: recovery.digest((ROOT / name).read_bytes()) for name in issuer.SOURCE_FILES
         }
-        self.req["sourcePins"] = {(ROOT / name).as_posix(): pin for name, pin in self.pins.items()}
+        self.req["sourcePins"] = {
+            (self.source / name).as_posix(): pin for name, pin in self.pins.items()
+        }
+        self.req["roles"]["sourceManifest"] = (self.source / recovery.SOURCE_MANIFEST).as_posix()
+        self.manifest_raw = recovery.encoded(
+            {
+                "schemaVersion": 1,
+                "kind": "ungranted_screenshot_post_successor",
+                "sources": self.pins,
+                "productionQualified": False,
+            }
+        )
+        f.records["sourceManifest"] = self.manifest_raw
+        self.req["pins"]["sourceManifest"] = recovery.digest(self.manifest_raw)
+        manifest_path = Path(self.req["roles"]["sourceManifest"])
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
         for source in (recovery, operator):
             path = Path(str(source.__file__)).as_posix()
             self.req["sourcePins"][path] = recovery.digest(Path(path).read_bytes())
@@ -57,6 +77,8 @@ class OperatorTests(unittest.TestCase):
         self.req["pins"]["judgment"] = recovery.digest(judgment)
         Path(self.req["roles"]["judgment"]).write_bytes(judgment)
         self.raw = recovery.encoded(self.req)
+        provenance_path = f.root / "synthetic-original-manifest-provenance.txt"
+        provenance_path.write_bytes(b"INVENTED original root, manifest and commit provenance")
         refs = {}
         for role in operator.FACTS:
             path = f.root / ("synthetic-fact-" + role)
@@ -90,6 +112,15 @@ class OperatorTests(unittest.TestCase):
             {role: self.req["pins"][role] for role in recovery.CURRENT},
             refs,
             None,
+            operator.OriginalManifestBinding(
+                self.source.as_posix(),
+                recovery.document(f.records["issuerPlan"])["source_commit"],
+                recovery.digest(self.manifest_raw),
+                self.pins,
+                operator.EvidenceRef(
+                    provenance_path.as_posix(), recovery.digest(provenance_path.read_bytes())
+                ),
+            ),
         )
         self.op = operator.Operator(self.raw, facts=self.facts)
         # Production ACL implementation is loaded from exact bytes; temporary
@@ -121,7 +152,7 @@ class OperatorTests(unittest.TestCase):
         self.assertIsNot(producer, issuer)
         self.assertIsNot(producer.metadata, issuer.metadata)
         self.assertEqual(
-            producer.__file__, (ROOT / "scripts/provision_work_plan_token.py").as_posix()
+            producer.__file__, (self.source / "scripts/provision_work_plan_token.py").as_posix()
         )
         self.assertEqual(producer.MAX_REQUESTS, 5)
         self.assertEqual(producer.SOURCE_FILES, issuer.SOURCE_FILES)
@@ -149,7 +180,7 @@ class OperatorTests(unittest.TestCase):
     def test_missing_own_source_and_missing_producer_closure_refuse(self):
         for path in (
             Path(operator.__file__).as_posix(),
-            (ROOT / issuer.SOURCE_FILES[0]).as_posix(),
+            (self.source / issuer.SOURCE_FILES[0]).as_posix(),
         ):
             req = copy.deepcopy(self.req)
             req["sourcePins"].pop(path)
@@ -162,7 +193,7 @@ class OperatorTests(unittest.TestCase):
         for value in (
             self.req["roles"]["parentCredential"].upper().replace("C:", "C:"),
             self.req["namespace"] + "/fact",
-            ROOT.as_posix() + "/fact",
+            self.source.as_posix() + "/fact",
         ):
             refs = dict(self.facts.fact_evidence)
             refs["identityCustody"] = operator.EvidenceRef(value, "0" * 64)
@@ -436,6 +467,162 @@ class OperatorTests(unittest.TestCase):
         )
         for stage in ("connect", "tls", "send"):
             self.assertEqual(events[events.index(stage) - 1], "fence")
+
+    def test_public_manifest_has_public_inventory_and_never_private_reader(self):
+        states = self.op.inventory(self.req["roles"], self.req["namespace"])
+        self.assertFalse(states["sourceManifest"].private)
+        self.assertTrue(states["terminal"].private)
+        manifest = self.req["roles"]["sourceManifest"]
+        self.assertNotIn(manifest, [call.args[0] for call in self.op._private.call_args_list])
+        with patch.object(self.op, "_read", side_effect=AssertionError("private reader forbidden")):
+            self.assertEqual(
+                self.op.read_metadata("sourceManifest", manifest, 16777216), self.manifest_raw
+            )
+
+    def test_missing_or_wrong_original_provenance_refuses_before_source_loading(self):
+        original = self.facts.original_manifest
+        assert original is not None
+        for binding in (
+            None,
+            dataclasses.replace(original, source_root=self.source.as_posix() + "/other"),
+            dataclasses.replace(original, sha2_256="0" * 64),
+            dataclasses.replace(original, source_pins={}),
+            dataclasses.replace(
+                original, provenance=operator.EvidenceRef(self.req["roles"]["terminal"], "0" * 64)
+            ),
+        ):
+            with self.subTest(binding=type(binding)), self.assertRaises(recovery.Refused):
+                operator.Operator(
+                    self.raw, facts=dataclasses.replace(self.facts, original_manifest=binding)
+                )
+
+    def test_wrong_request_root_copy_or_case_never_selects_another_manifest(self):
+        for path in (
+            self.req["roles"]["sourceManifest"].upper(),
+            (self.fixture.root / "copy.json").as_posix(),
+        ):
+            req = copy.deepcopy(self.req)
+            req["roles"]["sourceManifest"] = path
+            raw = recovery.encoded(req)
+            with self.assertRaises(recovery.Refused):
+                operator.Operator(
+                    raw, facts=dataclasses.replace(self.facts, request_digest=recovery.digest(raw))
+                )
+        req = copy.deepcopy(self.req)
+        req["sourceRoot"] += "/other"
+        req["roles"]["sourceManifest"] = req["sourceRoot"] + "/" + recovery.SOURCE_MANIFEST
+        req["sourcePins"] = {
+            path.replace(self.source.as_posix(), req["sourceRoot"]): pin
+            for path, pin in req["sourcePins"].items()
+        }
+        raw = recovery.encoded(req)
+        with self.assertRaisesRegex(recovery.Refused, "manifest_provenance_required"):
+            operator.Operator(
+                raw, facts=dataclasses.replace(self.facts, request_digest=recovery.digest(raw))
+            )
+
+    def test_public_manifest_changed_bytes_and_replaced_identity_refuse(self):
+        self.op.inventory(self.req["roles"], self.req["namespace"])
+        path = Path(self.req["roles"]["sourceManifest"])
+        path.write_bytes(self.manifest_raw + b" ")
+        with self.assertRaisesRegex(recovery.Refused, "manifest_changed"):
+            self.op.read_metadata("sourceManifest", path.as_posix(), 16777216)
+        replacement = path.with_name("replacement.json")
+        replacement.write_bytes(self.manifest_raw)
+        replacement.replace(path)
+        with self.assertRaisesRegex(recovery.Refused, "inventory_changed"):
+            self.op.read_metadata("sourceManifest", path.as_posix(), 16777216)
+
+    def test_original_manifest_full_map_and_commit_are_independently_bound(self):
+        original = self.facts.original_manifest
+        assert original is not None
+        binding = dataclasses.replace(
+            original, source_pins=original.source_pins | {"extra.py": "0" * 64}
+        )
+        op = operator.Operator(
+            self.raw, facts=dataclasses.replace(self.facts, original_manifest=binding)
+        )
+        with patch.object(
+            op,
+            "_private",
+            side_effect=lambda path, **kw: operator._regular(
+                Path(path), directory=kw.get("directory", False)
+            ),
+        ):
+            op.inventory(self.req["roles"], self.req["namespace"])
+            with self.assertRaisesRegex(recovery.Refused, "manifest_changed"):
+                op.read_metadata("sourceManifest", self.req["roles"]["sourceManifest"], 16777216)
+        binding = dataclasses.replace(original, source_commit="0" * 40)
+        op = operator.Operator(
+            self.raw, facts=dataclasses.replace(self.facts, original_manifest=binding)
+        )
+        records = {role: Path(self.req["roles"][role]).read_bytes() for role in recovery.HISTORY}
+        with self.assertRaisesRegex(recovery.Refused, "commit_mismatch"):
+            op.authenticate("historical", self.raw, records)
+
+    def test_manifest_provenance_bytes_are_rechecked(self):
+        self.op.inventory(self.req["roles"], self.req["namespace"])
+        original = self.facts.original_manifest
+        assert original is not None
+        Path(original.provenance.path).write_bytes(b"changed invented provenance")
+        records = {role: Path(self.req["roles"][role]).read_bytes() for role in recovery.HISTORY}
+        with self.assertRaisesRegex(recovery.Refused, "provenance_changed"):
+            self.op.authenticate("historical", self.raw, records)
+
+    def test_equal_explicit_manifest_source_pin_deduplicates_only_known_meaning(self):
+        req = copy.deepcopy(self.req)
+        path = req["roles"]["sourceManifest"]
+        req["sourcePins"][path] = req["pins"]["sourceManifest"]
+        raw = recovery.encoded(req)
+        op = operator.Operator(
+            raw, facts=dataclasses.replace(self.facts, request_digest=recovery.digest(raw))
+        )
+        with patch.object(
+            op,
+            "_private",
+            side_effect=lambda path, **kw: operator._regular(
+                Path(path), directory=kw.get("directory", False)
+            ),
+        ):
+            states = op.inventory(req["roles"], req["namespace"])
+        self.assertFalse(states["sourceManifest"].private)
+        self.assertEqual(op.read_metadata("sourceManifest", path, 16777216), self.manifest_raw)
+        op.producer()
+
+    def test_public_manifest_hardlink_and_unknown_reparse_refuse(self):
+        path = Path(self.req["roles"]["sourceManifest"])
+        original_stat = Path.stat
+
+        def hardlink_metadata(target, *args, **kwargs):
+            info = original_stat(target, *args, **kwargs)
+            if target == path:
+                return types.SimpleNamespace(
+                    **{name: getattr(info, name) for name in dir(info) if name.startswith("st_")}
+                    | {"st_nlink": 2}
+                )
+            return info
+
+        # Synthetic link metadata; no Windows hardlink privilege or actual alias.
+        with (
+            patch.object(Path, "stat", hardlink_metadata),
+            self.assertRaisesRegex(recovery.Refused, "hardlink_refused"),
+        ):
+            self.op.inventory(self.req["roles"], self.req["namespace"])
+
+        def reparse(target, *args, **kwargs):
+            info = original_stat(target, *args, **kwargs)
+            if target == path:
+                return types.SimpleNamespace(
+                    **{name: getattr(info, name) for name in dir(info) if name.startswith("st_")}
+                    | {
+                        "st_file_attributes": getattr(info, "st_file_attributes", 0)
+                        | stat.FILE_ATTRIBUTE_REPARSE_POINT
+                    }
+                )
+            return info
+
+        with patch.object(Path, "stat", reparse), self.assertRaises(recovery.Refused):
+            self.op.inventory(self.req["roles"], self.req["namespace"])
 
 
 if __name__ == "__main__":

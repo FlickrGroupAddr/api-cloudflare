@@ -20,6 +20,7 @@ PARENT_CUTOFF = "2026-10-26T12:00:00Z"
 DECISION = "call_8562d3b067e14c66ba2f351e1ea50eb2"
 CONTRACT = "call_85ff42c39e6343dcbd60e8d1d7ee6c32"
 PRODUCER_PIN = "1761e3c8b91bc9846eb2b332f0c4a275c9aba07f9cdb903374035231465aa286"
+SOURCE_MANIFEST = "probes/group-post-characterization/screenshot-successor-manifest.json"
 MAX_REQUESTS = 5
 MAX_REQUEST_BYTES = 40960
 MAX_RESPONSE_BYTES = 262144
@@ -286,14 +287,26 @@ def _request(raw: bytes, expected_digest: str) -> dict[str, Any]:
     ):
         raise Refused("exclusive_recovery_namespace_required")
     paths = {key: _path(value) for key, value in req["roles"].items()}
+    manifest = (source_root / SOURCE_MANIFEST).as_posix()
+    if req["roles"]["sourceManifest"] != manifest:
+        raise Refused("exact_original_source_manifest_required")
     if (
         namespace.is_relative_to(source_root)
         or old.is_relative_to(source_root)
-        or any(path.is_relative_to(source_root) for path in paths.values())
+        or any(
+            path.is_relative_to(source_root)
+            for role, path in paths.items()
+            if role != "sourceManifest"
+        )
     ):
         raise Refused("private_roles_outside_source_required")
     names = [str(p).casefold() for p in (*paths.values(), namespace, old)]
-    names += [str(_path(p)).casefold() for p in req["sourcePins"]]
+    if (
+        manifest in req["sourcePins"]
+        and req["sourcePins"][manifest] != req["pins"]["sourceManifest"]
+    ):
+        raise Refused("source_manifest_dual_pin_mismatch")
+    names += [str(_path(p)).casefold() for p in req["sourcePins"] if p != manifest]
     if len(names) != len(set(names)):
         raise Refused("role_source_alias_refused")
     for role, name in OUTPUTS.items():
@@ -338,7 +351,7 @@ def _inventory(req: dict, verifier: EvidenceVerifier, *, prepared: bool) -> None
                 raise Refused("occupied_role_or_sidecar_refused")
         elif (
             not state.exists
-            or not state.private
+            or state.private != (role != "sourceManifest")
             or state.reparse
             or (role != "namespace" and (not state.regular or state.links != 1))
         ):
@@ -347,6 +360,31 @@ def _inventory(req: dict, verifier: EvidenceVerifier, *, prepared: bool) -> None
             identities.append(_text(state.identity))
     if len(identities) != len(set(identities)):
         raise Refused("file_identity_alias_refused")
+
+
+def source_manifest(raw: bytes) -> dict:
+    """Validate fixed original public descriptor schema, never follow its paths."""
+    value = _closed(document(raw), {"schemaVersion", "kind", "sources", "productionQualified"})
+    if (
+        type(value["schemaVersion"]) is not int
+        or value["schemaVersion"] != 1
+        or value["kind"] != "ungranted_screenshot_post_successor"
+        or value["productionQualified"] is not False
+        or type(value["sources"]) is not dict
+        or not 0 < len(value["sources"]) <= 100
+    ):
+        raise Refused("original_source_manifest_schema_required")
+    for name, pin in value["sources"].items():
+        _text(name, r"[^\\:\x00-\x1f\x7f]{1,2048}")
+        canonical = _path("C:/source/" + name)
+        if canonical.as_posix() != "C:/source/" + name or not canonical.is_relative_to(
+            _path("C:/source")
+        ):
+            raise Refused("original_source_manifest_map_required")
+        _text(pin, r"[a-f0-9]{64}")
+    if len({name.casefold() for name in value["sources"]}) != len(value["sources"]):
+        raise Refused("original_source_manifest_map_required")
+    return value
 
 
 def _latch(req: dict, verifier: EvidenceVerifier) -> None:
@@ -462,6 +500,19 @@ def _prepare(
     verifier.authenticate("historical", raw, {k: records[k] for k in HISTORY})
     verifier.authenticate("current", raw, records)
     issue = _closed(document(records["issuerPlan"]), ISSUE_FIELDS)
+    manifest = source_manifest(records["sourceManifest"])
+    if any(
+        manifest["sources"].get(name) != pin for name, pin in issue["source_sha2_256"].items()
+    ) or {
+        path: pin
+        for path, pin in req["sourcePins"].items()
+        if _path(path).is_relative_to(_path(req["sourceRoot"]))
+        and path != req["roles"]["sourceManifest"]
+    } != {
+        (_path(req["sourceRoot"]) / name).as_posix(): pin
+        for name, pin in issue["source_sha2_256"].items()
+    }:
+        raise Refused("original_source_manifest_producer_map_mismatch")
     # Full original issue/approval/evidence/journal validation belongs to the
     # pinned verifier closure; the unchanged producer validates the final plan.
     if (
