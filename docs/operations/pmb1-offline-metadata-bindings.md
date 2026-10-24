@@ -40,3 +40,29 @@ this status. Independent genuine acquisition and semantic review remain separate
 Run `uv run --frozen --no-sync python -B
 tests/test_prepare_pmb1_metadata_bindings.py` from the API repository root.
 Tests use invented in-memory identities and do not read private original records.
+
+
+## Separate local custody boundary
+
+The pure binding helper does not allocate protected storage. A local execution
+packet must separately pin its exact destination, current operator and native
+custody implementation. A syntax-valid SID or path is not current custody proof.
+Keep the original helpers' historical allowlists unchanged; an exact new path
+needs its own reviewed source variant and applicable action scope.
+
+For an execution-capable native wrapper, check current admission immediately
+before each native metadata, conversion or operational dispatch, including calls
+made inside inherited methods. Checking only the outer method leaves a gap if
+admission expires or is revoked between native calls.
+
+Only cleanup of genuinely acquired, tracked resources may continue after the
+operational gate closes. Consume each cleanup attempt before native dispatch.
+False, nonzero-error or raising results remain unknown and cannot authorize a
+second attempt. Preserve that unknown outcome while allowing cleanup of other
+owned resources that have not been attempted. A newly acquired resource may reuse
+a numeric handle only with a distinct, genuinely observed acquisition generation.
+
+The separate local source variant passed 28 mocked tests and eight independent
+checks of these boundaries. No real native creation, private-record collection
+or actual custody qualification follows from those tests. The public helper
+continues to return disabled requests and NO_GO.
