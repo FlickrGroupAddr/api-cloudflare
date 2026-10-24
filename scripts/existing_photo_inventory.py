@@ -19,6 +19,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -120,7 +121,13 @@ class InventoryReader(Protocol):
     def get(self, path: str) -> tuple[int, bytes]: ...
 
 
-def collect(reader: InventoryReader, directory: Path) -> dict[str, Any]:
+def collect(
+    reader: InventoryReader,
+    directory: Path,
+    *,
+    monotonic: Callable[[], float] = time.monotonic,
+    captured_at: str | None = None,
+) -> dict[str, Any]:
     """Capture bounded metadata inputs. Restoration and live edge gates are separate."""
     directory.mkdir(parents=True, exist_ok=False)
     private = directory / "private"
@@ -128,7 +135,7 @@ def collect(reader: InventoryReader, directory: Path) -> dict[str, Any]:
     rows: dict[str, Any] = {}
     captured: dict[str, Any] = {}
     envelopes: dict[str, Any] = {}
-    deadline = time.monotonic() + TOTAL_SECONDS
+    deadline = monotonic() + TOTAL_SECONDS
     requests = 0
     total_bytes = 0
 
@@ -138,7 +145,7 @@ def collect(reader: InventoryReader, directory: Path) -> dict[str, Any]:
             if (
                 requests >= MAX_REQUESTS
                 or total_bytes >= MAX_TOTAL_BYTES
-                or time.monotonic() >= deadline
+                or monotonic() >= deadline
             ):
                 rows[label] = {"state": "unavailable", "reason": "budget_exhausted"}
                 return None
@@ -551,7 +558,7 @@ def collect(reader: InventoryReader, directory: Path) -> dict[str, Any]:
     )
     receipt = {
         "schemaVersion": 2,
-        "capturedAt": datetime.now(UTC).isoformat(),
+        "capturedAt": captured_at if captured_at is not None else datetime.now(UTC).isoformat(),
         "worker": WORKER,
         "hostname": HOST,
         "method": "GET-only Cloudflare API",
