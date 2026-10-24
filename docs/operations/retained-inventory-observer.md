@@ -74,3 +74,33 @@ private binding must preserve its independently authorized pin, disclose this
 gap for a Primary decision and stop on mismatch. Trying a different digest,
 format, path or root requires a separate decision; it is not an observer
 fallback.
+
+## Closed failure diagnostics
+
+The diagnostic revision adds only finite labels to the safe report. `phase`
+identifies the gate reached: `DISABLED`, `ATTEMPT_GATE`, `CLOCK_GATE`,
+`PRIMARY_ADMISSION`, `INDEX_DIGEST`, `INDEX_ROWS`, `RESTORATION_DIGEST`,
+`RESTORATION_SHAPE` or `COMPLETE`. Each of the two fixed record roles also has
+`METADATA_BEFORE`, `PRIVACY_PREFLIGHT`, `CONTENT_READ`, `CONTENT_SIZE` and
+`METADATA_AFTER` phases, prefixed `INDEX_` or `RESTORATION_`.
+
+`category` is one of `NONE`, `ATTEMPT_GATE`, `CLOCK`, `PRIMARY_ADMISSION`,
+`METADATA`, `PRIVACY`, `CONTENT_READ`, `CONTENT_SIZE`, `INDEX_DIGEST`,
+`INDEX_ROWS`, `RESTORATION_DIGEST` or `RESTORATION_SHAPE`. A clock failure can
+occur while another phase is active; the category then reads `CLOCK` without
+claiming the native operation was preempted.
+
+If a metadata, privacy or content callback raises, `failedCallbackKind` reports
+`OUTER_SNAPSHOT`, `PRIVACY` or `CONTENT_READ` and `failedCallbackEffects` reads
+`UNKNOWN`: the callback may have performed only part of its native operations.
+Otherwise these two fields read `NONE`. They describe callback completion,
+not a claim of zero native effects. An inner privacy failure during a content
+helper preserves both its `PRIVACY` classification and the existing conservative
+`READ_MAY_HAVE_OCCURRED` / per-record maximum possible read extent. No raw
+exception text, record values, filenames or identities become diagnostic labels.
+
+These new labels classify only executions of this exact diagnostic revision.
+An earlier stopped observation with less detailed diagnostics retains an unknown
+cause. Source changes cannot retroactively attribute that stop, justify another
+read or restore a spent admission. Limits, pinned helpers, access authority,
+historical meaning and `NO_GO` remain unchanged.

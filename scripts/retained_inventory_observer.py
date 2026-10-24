@@ -172,6 +172,10 @@ class Observer:
     ):
         report = {
             "status": "DISABLED",
+            "phase": "DISABLED",
+            "category": "NONE",
+            "failedCallbackKind": "NONE",
+            "failedCallbackEffects": "NONE",
             "contentCallsAttempted": 0,
             "contentCallsCompleted": 0,
             "validatedBytesReturned": 0,
@@ -189,9 +193,13 @@ class Observer:
         if execute is not True:
             return Outcome(report, None)
         try:
+            report.update(phase="ATTEMPT_GATE", category="ATTEMPT_GATE")
             require(not self.spent)
             self.spent = True
-            require(callable(admission) and callable(wall_clock) and callable(monotonic))
+            report.update(phase="PRIMARY_ADMISSION", category="PRIMARY_ADMISSION")
+            require(callable(admission))
+            report.update(phase="CLOCK_GATE", category="CLOCK")
+            require(callable(wall_clock) and callable(monotonic))
             require(
                 all(
                     type(t) is datetime and t.tzinfo == UTC and t.microsecond == 0
@@ -206,24 +214,29 @@ class Observer:
 
             def fence():
                 nonlocal last_wall, last_mono
-                now, tick = wall_clock(), monotonic()
-                require(
-                    type(now) is datetime
-                    and now.tzinfo == UTC
-                    and starts_at <= now < ends_at
-                    and now >= last_wall
-                )
-                require(
-                    type(tick) in (int, float)
-                    and math.isfinite(cast(float, tick))
-                    and last_mono <= cast(float, tick)
-                    and 0 <= cast(float, tick) - initial < 30
-                )
+                try:
+                    now, tick = wall_clock(), monotonic()
+                    require(
+                        type(now) is datetime
+                        and now.tzinfo == UTC
+                        and starts_at <= now < ends_at
+                        and now >= last_wall
+                    )
+                    require(
+                        type(tick) in (int, float)
+                        and math.isfinite(cast(float, tick))
+                        and last_mono <= cast(float, tick)
+                        and 0 <= cast(float, tick) - initial < 30
+                    )
+                except BaseException:
+                    report["category"] = "CLOCK"
+                    raise
                 last_wall, last_mono = now, tick
 
             fence()
             # Called before even private metadata. Must consume a genuine scope-
             # bound Primary admission, including global no-retry across restarts.
+            report.update(phase="PRIMARY_ADMISSION", category="PRIMARY_ADMISSION")
             require(admission(self.spec["scopeSha2_256"], starts_at, ends_at) is True)
             fence()
 
@@ -239,43 +252,76 @@ class Observer:
                 )
                 fence()
                 report["privacyCallsAttempted"] += 1
-                self.backend.privacy(path, directory=directory)
+                try:
+                    self.backend.privacy(path, directory=directory)
+                except BaseException:
+                    report.update(
+                        category="PRIVACY",
+                        failedCallbackKind="PRIVACY",
+                        failedCallbackEffects="UNKNOWN",
+                    )
+                    raise
                 report["privacyCallsCompleted"] += 1
                 fence()
 
             def snapshot(path):
                 fence()
                 report["outerSnapshotsAttempted"] += 1
-                result = self.backend.snapshot(path)
+                try:
+                    result = self.backend.snapshot(path)
+                except BaseException:
+                    report.update(
+                        category="METADATA",
+                        failedCallbackKind="OUTER_SNAPSHOT",
+                        failedCallbackEffects="UNKNOWN",
+                    )
+                    raise
                 report["outerSnapshotsCompleted"] += 1
                 fence()
                 return result
 
-            def read(path, maximum):
+            def read(path, maximum, role):
+                report.update(phase=role + "_METADATA_BEFORE", category="METADATA")
                 before = snapshot(path)
+                report.update(phase=role + "_PRIVACY_PREFLIGHT", category="PRIVACY")
                 privacy(path.parent, directory=True)
                 privacy(path)
                 fence()
+                report.update(phase=role + "_CONTENT_READ", category="CONTENT_READ")
                 report["contentCallsAttempted"] += 1
                 report["failedReadMaximumBytes"] = maximum
                 report["failureEffects"] = "READ_MAY_HAVE_OCCURRED"
-                raw = self.backend.stable_bytes(path, maximum, privacy)
+                try:
+                    raw = self.backend.stable_bytes(path, maximum, privacy)
+                except BaseException:
+                    if report["failedCallbackKind"] == "NONE":
+                        report.update(
+                            failedCallbackKind="CONTENT_READ", failedCallbackEffects="UNKNOWN"
+                        )
+                    raise
                 report["contentCallsCompleted"] += 1
+                report.update(phase=role + "_CONTENT_SIZE", category="CONTENT_SIZE")
                 require(type(raw) is bytes and 0 < len(raw) <= maximum)
                 report["validatedBytesReturned"] += len(raw)
                 report["failedReadMaximumBytes"] = 0
                 report["failureEffects"] = "NONE"
                 fence()
+                report.update(phase=role + "_METADATA_AFTER", category="METADATA")
                 require(snapshot(path) == before)
                 return raw
 
-            index = read(Path(self.spec["index"]), 65536)
+            index = read(Path(self.spec["index"]), 65536, "INDEX")
+            report.update(phase="INDEX_DIGEST", category="INDEX_DIGEST")
             require(digest(index) == self.spec["indexSha2_256"])
+            report.update(phase="INDEX_ROWS", category="INDEX_ROWS")
             count, pin = selected_row(index)
-            restoration = read(Path(self.spec["restoration"]), 262144)
+            restoration = read(Path(self.spec["restoration"]), 262144, "RESTORATION")
+            report.update(phase="RESTORATION_DIGEST", category="RESTORATION_DIGEST")
             require(len(restoration) == count and digest(restoration) == pin)
+            report.update(phase="RESTORATION_SHAPE", category="RESTORATION_SHAPE")
             projection = historical_projection(restoration)
             fence()
+            report.update(phase="COMPLETE", category="NONE")
             report["status"] = "HISTORICAL_RECORDS_HELD_NO_FACT_VERDICT"
             return Outcome(report, HeldObservation(index, restoration, projection))
         except BaseException:

@@ -146,6 +146,10 @@ class RetainedInventoryTests(unittest.TestCase):
                 "privateWrites",
                 "providerCalls",
                 "credentialReads",
+                "phase",
+                "category",
+                "failedCallbackKind",
+                "failedCallbackEffects",
             },
         )
         self.assertNotIn("invented-sensitive-worker", json.dumps(outcome.report))
@@ -260,6 +264,143 @@ class RetainedInventoryTests(unittest.TestCase):
         self.assertIsNone(outcome.held)
         self.assertEqual(outcome.report["contentCallsCompleted"], 1)
         self.assertEqual(len(self.reads()), 1)
+
+    def test_index_failure_categories_are_distinct_without_values(self):
+        self.observer = subject.Observer(dict(self.spec, indexSha2_256="0" * 64), self.adapter)
+        outcome = self.run_observer()
+        self.assertEqual(
+            (outcome.report["phase"], outcome.report["category"]), ("INDEX_DIGEST", "INDEX_DIGEST")
+        )
+        self.setUp()
+        changed = b'{"files":[],"invented-sensitive-value":true}'
+        self.adapter.records[Path(self.spec["index"])] = changed
+        self.observer = subject.Observer(
+            dict(self.spec, indexSha2_256=subject.digest(changed)), self.adapter
+        )
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["category"], "INDEX_ROWS")
+        self.assertEqual(len(self.reads()), 1)
+        self.assertEqual(outcome.report["failedCallbackEffects"], "NONE")
+        self.assertNotIn("sensitive", json.dumps(outcome.report))
+
+    def test_restoration_digest_and_shape_categories(self):
+        self.adapter.records[Path(self.spec["restoration"])] = b'{"invented":true}'
+        self.assertEqual(self.run_observer().report["category"], "RESTORATION_DIGEST")
+        self.setUp()
+        malformed = b'{"invented-sensitive-field":true}'
+        index = json.loads(self.index)
+        delta = len(malformed) - index["files"][0]["bytes"]
+        index["files"][0].update(bytes=len(malformed), sha256=subject.digest(malformed))
+        index["files"][-1]["bytes"] -= delta
+        changed = encode(index)
+        self.adapter.records[Path(self.spec["index"])] = changed
+        self.adapter.records[Path(self.spec["restoration"])] = malformed
+        self.observer = subject.Observer(
+            dict(self.spec, indexSha2_256=subject.digest(changed)), self.adapter
+        )
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["category"], "RESTORATION_SHAPE")
+        self.assertIsNone(outcome.held)
+        self.assertNotIn("sensitive", json.dumps(outcome.report))
+
+    def test_metadata_exception_has_unknown_partial_callback_effects(self):
+        def failed(path):
+            raise OSError("invented-sensitive-metadata")
+
+        self.adapter.snapshot = failed
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["phase"], "INDEX_METADATA_BEFORE")
+        self.assertEqual(outcome.report["category"], "METADATA")
+        self.assertEqual(outcome.report["failedCallbackKind"], "OUTER_SNAPSHOT")
+        self.assertEqual(outcome.report["failedCallbackEffects"], "UNKNOWN")
+        self.assertEqual(outcome.report["outerSnapshotsAttempted"], 1)
+        self.assertEqual(outcome.report["outerSnapshotsCompleted"], 0)
+        self.assertEqual(self.reads(), [])
+        self.assertNotIn("sensitive", json.dumps(outcome.report))
+
+    def test_privacy_exception_before_content_has_unknown_effects(self):
+        def failed(path, *, directory=False):
+            raise PermissionError("invented-sensitive-privacy")
+
+        self.adapter.privacy = failed
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["phase"], "INDEX_PRIVACY_PREFLIGHT")
+        self.assertEqual(outcome.report["category"], "PRIVACY")
+        self.assertEqual(outcome.report["failedCallbackKind"], "PRIVACY")
+        self.assertEqual(outcome.report["failedCallbackEffects"], "UNKNOWN")
+        self.assertEqual(outcome.report["contentCallsAttempted"], 0)
+        self.assertEqual(outcome.report["failedReadMaximumBytes"], 0)
+
+    def test_privacy_failure_inside_content_keeps_both_unknown_extents(self):
+        count = [0]
+
+        def failed(path, *, directory=False):
+            count[0] += 1
+            if count[0] == 3:
+                raise OSError("invented-sensitive-native")
+
+        self.adapter.privacy = failed
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["phase"], "INDEX_CONTENT_READ")
+        self.assertEqual(outcome.report["category"], "PRIVACY")
+        self.assertEqual(outcome.report["failedCallbackKind"], "PRIVACY")
+        self.assertEqual(outcome.report["failedCallbackEffects"], "UNKNOWN")
+        self.assertEqual(outcome.report["failureEffects"], "READ_MAY_HAVE_OCCURRED")
+        self.assertEqual(outcome.report["failedReadMaximumBytes"], 65536)
+        self.assertEqual(outcome.report["privacyCallsAttempted"], 3)
+        self.assertEqual(outcome.report["privacyCallsCompleted"], 2)
+
+    def test_content_exception_has_closed_category_and_unknown_callback_effects(self):
+        def failed(path, maximum, privacy):
+            raise OSError("invented-sensitive-read")
+
+        self.adapter.stable_bytes = failed
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["category"], "CONTENT_READ")
+        self.assertEqual(outcome.report["failedCallbackKind"], "CONTENT_READ")
+        self.assertEqual(outcome.report["failedCallbackEffects"], "UNKNOWN")
+        self.assertEqual(outcome.report["failedReadMaximumBytes"], 65536)
+        self.assertNotIn("sensitive", json.dumps(outcome.report))
+
+    def test_clock_and_admission_failures_have_no_native_effect_claim(self):
+        self.options["wall_clock"] = lambda: self.now + timedelta(seconds=31)
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["category"], "CLOCK")
+        self.assertEqual(outcome.report["failedCallbackKind"], "NONE")
+        self.assertEqual(outcome.report["failedCallbackEffects"], "NONE")
+        self.assertEqual(self.adapter.calls, [])
+        self.setUp()
+        self.options["admission"] = lambda *_: False
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["category"], "PRIMARY_ADMISSION")
+        self.assertEqual(outcome.report["currentFactQualification"], "NO_GO")
+        self.assertEqual(self.run_observer().report["category"], "ATTEMPT_GATE")
+
+    def test_missing_or_noncallable_admission_is_not_a_clock_failure(self):
+        for admission in (None, False, "invented-noncallable"):
+            self.observer = subject.Observer(self.spec, self.adapter)
+            self.options["admission"] = admission
+            outcome = self.run_observer()
+            self.assertEqual(outcome.report["phase"], "PRIMARY_ADMISSION")
+            self.assertEqual(outcome.report["category"], "PRIMARY_ADMISSION")
+            self.assertEqual(outcome.report["failedCallbackKind"], "NONE")
+            self.assertEqual(outcome.report["failedCallbackEffects"], "NONE")
+            self.assertEqual(self.adapter.calls, [])
+            self.assertEqual(self.run_observer().report["category"], "ATTEMPT_GATE")
+
+    def test_callable_admission_with_noncallable_clock_is_clock_failure(self):
+        admissions = []
+        self.options["admission"] = lambda *_: admissions.append(True)
+        self.options["wall_clock"] = None
+        outcome = self.run_observer()
+        self.assertEqual(outcome.report["phase"], "CLOCK_GATE")
+        self.assertEqual(outcome.report["category"], "CLOCK")
+        self.assertEqual(admissions, [])
+        self.assertEqual(self.adapter.calls, [])
+        # Original left-to-right refusal order: admission validity comes first.
+        self.observer = subject.Observer(self.spec, self.adapter)
+        self.options["admission"] = None
+        self.assertEqual(self.run_observer().report["category"], "PRIMARY_ADMISSION")
 
 
 if __name__ == "__main__":
