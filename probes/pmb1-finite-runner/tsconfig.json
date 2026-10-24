@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["interfaces.ts", "native_composition.ts", "native_dispatch.ts"]
+}

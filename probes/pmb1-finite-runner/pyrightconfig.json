@@ -1,0 +1,7 @@
+{
+  "extends": "../../pyproject.toml",
+  "include": ["."],
+  "extraPaths": [".", "../.."],
+  "venvPath": "../..",
+  "venv": ".venv"
+}
