@@ -17,6 +17,14 @@ base_sources = packager.sources
 
 def sources() -> dict[str, str]:
     result = base_sources()
+    for directory in ["pmb1-fresh-native-capture", "pmb1-runtime-evidence"]:
+        for path in (packager.ROOT / "probes" / directory).rglob("*"):
+            if (
+                path.is_file()
+                and path.name not in {"source-contract.json", "source-manifest.json"}
+                and path.suffix in {".ts", ".sql", ".json", ".py", ".mjs", ".cjs"}
+            ):
+                result[path.relative_to(packager.ROOT).as_posix()] = packager.pin(path)
     # The reused build and native isolation guard remain separately pinned.
     for name in ["build.py", "isolate.cjs", "test-isolate.cjs", "retained.py"]:
         path = BASE / name

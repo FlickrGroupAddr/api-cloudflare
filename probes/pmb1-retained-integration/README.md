@@ -42,24 +42,36 @@ documented emulator-only override 2026-08-06. These tests prove neither configur
 date fit nor any managed/native qualification. Source-shaped fixture census,
 automatic metadata and authenticated-record names are invented test evidence.
 
-## Remaining delivery contract
+## Accepted runtime delivery successor
 
-The current inputs have finite UTC custody (at most ten minutes). Compiling fresh
-inputs into immutable retained bytes cannot refresh them for a later restoration.
-No existing accepted native control method supplies freshly independently
-authenticated semantic census/custody/retirement records across Worker isolates.
-Its packet/configuration parameters establish binding and bounds, not truth.
+Terry accepted the #0251 scoped external-D1 contract on 2026-10-23. The default
+entry now uses `runtime_facts.ts`, `fresh_composition.ts` and the separately named
+`pmb1-fresh-native-capture` successor. Legacy source assemblies remain intact as
+historical SOURCE mechanisms and regression tests; they are not a freshness
+fallback.
 
-Before complete maintenance integration, identify and review a conventional
-trusted operator delivery boundary for fresh independently authenticated facts,
-or obtain an explicit accepted source-contract decision for how retained exact
-bytes consume that boundary. It must retain exact candidate/artifact/resource
-identity, complete writer/creator population, common closed interval, terminal
-old execution/operation custody, freshness, finite acquisition and unknown/spent
-outcome refusal. A service-binding name, environment string or a new signature
-protocol is not silently substituted here. This checkpoint implements no new
-security service or protocol and does not authorize one.
+The fixed protected ledger selects exactly one published unretired envelope for
+its qualified exact executing target and operation. The primary journal control
+binds the immutable lifecycle/generation. Protected review/custody/attempt records
+remain per envelope. Source reservation, per-object raw consumption and terminal
+events share the sole D1 authority; no legacy controller is reset or migrated.
+Each complete included object has a distinct explicitly allocated raw attempt.
+Full native source/packet/population validation precedes storage acquisition.
 
-Actual census/source oracle, effective custody, native fit, campaign footprint,
-immutable deployment retention, managed qualification and owner acceptance remain
-separate gates. Source success cannot pass the prospective qualification gate.
+The fresh configuration carries `domainControl` separately from the immutable
+main-journal binding. Its D1 state and generation belong to the exact operation
+phase; a pre-close open observation must not be silently rebound to a later
+closed generation. A changed phase needs its corresponding reviewed facts.
+
+No actual qualified publisher/holder inventory, current executing attribution,
+custody, source census, terminal operations or managed observations is supplied
+by this source revision. Actual qualification data and the exact native authority
+selection path must qualify before positive maintenance can run. The default
+remains NO-GO. The ordinary authenticated closed GET remains independent of the
+evidence channel, including missing/retired/expired/unknown evidence.
+
+SOURCE tests exercise the actual protected SQL ledger, owner consumption before
+native SQL/KV/alarm acquisition, a complete two-object population and all 65 D1
+tables. They also exercise separately allocated fresh intervals on the same
+journal/binding/object resources after expiry and cold reconstruction. Invented
+records and local engines never qualify the actual provider.

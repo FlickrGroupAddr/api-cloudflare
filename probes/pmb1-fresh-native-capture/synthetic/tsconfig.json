@@ -1,0 +1,1 @@
+{"extends":"../../pmb1-retained-integration/tsconfig.json","include":["*.ts"]}

@@ -14,7 +14,8 @@
     "COORD": {
       "actualNamespace": null,
       "class": "PartitionWorker",
-      "migration": null
+      "migration": null,
+      "authority": "same native owning context for ordinary partition, fixed private control and fresh capture"
     },
     "DB": {
       "actualId": null,
@@ -60,11 +61,13 @@
     },
     "PMB1_CAPTURE_CONTROL_PLAN": {
       "actualValue": null,
-      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader",
+      "freshSuccessorUses": false
     },
     "PMB1_CAPTURE_CONTROL_REF": {
       "actualValue": null,
-      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader",
+      "freshSuccessorUses": false
     },
     "PMB1_MAIN_JOURNAL": {
       "actualId": null,
@@ -73,7 +76,9 @@
     "PMB1_OWNERS": {
       "actualNamespace": null,
       "class": "NativeCaptureOwner",
-      "migration": null
+      "migration": null,
+      "freshSuccessorUses": false,
+      "authority": "unchanged legacy owning reader; not the current fresh COORD state"
     },
     "PMB1_READ_NAMESPACE": {
       "actualValue": null,
@@ -81,20 +86,38 @@
     },
     "PMB1_READ_PACKETS": {
       "actualValue": null,
-      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader"
+      "source": "NativeCaptureOwner/NativeCaptureControl; fixed bounded configuration, no request loader",
+      "freshSuccessorUses": false
+    },
+    "PMB1_VERSION_METADATA": {
+      "actualQualification": false,
+      "actualId": null,
+      "source": "Native provider WorkerVersionMetadata getter; independent qualification required"
+    },
+    "PMB1_PRIVATE_MAIN": {
+      "authority": "same Worker named private native RPC; qualified holder policy and existing outer control ledger; no public HTTP",
+      "service": "fga-pmb1-unregistered-source-only",
+      "actualId": null,
+      "entrypoint": "PrivateMainMaintenance"
     }
   },
-  "custody": "Source-local trusted-primary/reviewer assembly only; no environment, HTTP, JSON or packet truth loader; fresh runtime delivery remains unimplemented",
+  "custody": "Accepted #0251 protected external-D1 delivery only after independently qualified SOURCE publisher path, holder policy and native getter; exact native version and compiled context select one complete finite reviewed envelope",
   "d1Operation": "fixed_update_with_exact_count_positional_v1",
   "objectBoundary": "pmb1-private-object-kv-interface-v1",
   "operatorAdapters": {
     "d1": "../pmb1-native-d1-binding/positional_receipt_successor.py",
-    "object": "../pmb1-native-object-reader/native-source.ts"
+    "object": "../pmb1-fresh-native-capture/source.ts"
   },
   "profile": "pmb1-private-application-no-real-v1",
   "registration": false,
   "retained": "copy exact emitted bytes and configuration; never rebuild rollback modules; force=false",
   "schema": "pmb1-retained-integration-binding-manifest-v1",
-  "trustedSource": "reviewed_facts.ts; absent actual facts; maintenance refuses",
-  "unconfiguredDefault": "ordinary exact current-installation GET uses real registry/authentication/read-only lookup; all maintenance and other entries refuse without fresh facts"
+  "trustedSource": "runtime_facts.ts plus pmb1-fresh-native-capture/qualification.ts stable SOURCE anchors; actual qualification data absent; maintenance refuses",
+  "unconfiguredDefault": "ordinary exact current-installation GET uses real registry/authentication/read-only lookup; all maintenance and other entries refuse without fresh facts",
+  "activeFreshPath": {
+    "rawCaptureAuthority": "PMB1_MAIN_JOURNAL",
+    "class": "PartitionWorker",
+    "binding": "COORD",
+    "sameOrdinaryControlSnapshotStorage": true
+  }
 }

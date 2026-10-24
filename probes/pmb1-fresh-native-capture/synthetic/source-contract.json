@@ -1,0 +1,13 @@
+{
+  "actualImmutableVersion": null,
+  "actualQualification": false,
+  "actualResourceMapping": null,
+  "d1Operation": "fixed_update_with_exact_count_positional_v1",
+  "fixtureSourceManifestSha2_256": "0442b0b9cec4a97ebce13c59a18b438da8e842aae8213770c74c1893e23e374c",
+  "objectBoundary": "pmb1-private-object-kv-interface-v1",
+  "profile": "pmb1-private-application-no-real-v1",
+  "registration": false,
+  "schema": "pmb1-static-source-contract-v1",
+  "sourceContextSha2_256": "585026e9eb948f6d25a9543eb52afef0fb5625a8a1717ebdb789d487f93910e7",
+  "syntheticPrivateRpcFixture": true
+}

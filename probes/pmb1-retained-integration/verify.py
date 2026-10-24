@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 from retained import retained_bytes, sha2_256
@@ -14,6 +15,9 @@ def verify(build: Path, node: Path, receipt: Path) -> None:
     here = Path(__file__).resolve().parent
     home = receipt / "empty-home"
     home.mkdir()
+    native_root = Path(
+        tempfile.mkdtemp(prefix="pmb1-native-", dir=here.parents[1] / ".probe-build")
+    )
     env = {k: v for k, v in os.environ.items() if k.upper() in {"SYSTEMROOT", "WINDIR", "COMSPEC"}}
     for name in [
         "USERPROFILE",
@@ -33,6 +37,7 @@ def verify(build: Path, node: Path, receipt: Path) -> None:
             "CI": "true",
             "NO_COLOR": "1",
             "PMB1_ARTIFACT_DIRECTORY": str(build),
+            "PMB1_NATIVE_FIXTURE_ROOT": str(native_root),
             "NODE_OPTIONS": "--require=" + str(here / "test-isolate.cjs"),
             "PMB1_HOST_RECEIPT": str(receipt / "host.json"),
         }

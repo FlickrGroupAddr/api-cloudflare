@@ -6,6 +6,7 @@ import { resolve,join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { Miniflare,Log,LogLevel } from 'miniflare';
 import { DatabaseSync } from 'node:sqlite';
+import { setupLedger } from '../pmb1-runtime-evidence/fixture.mjs';
 const build=resolve(process.env.PMB1_ARTIFACT_DIRECTORY);
 const manifest=JSON.parse(readFileSync(join(build,'artifact-manifest.json')));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
@@ -26,13 +27,15 @@ test('complete retained modules/configuration and all source/toolchain/runtime i
 });
 test('missing trusted facts and arbitrary HTTP/environment truth cannot admit maintenance, including restart/race',async()=>{
  let outbound=0;
+ const nativePath=resolve(process.env.PMB1_NATIVE_FIXTURE_ROOT);
  const options={modules:true,modulesRoot:join(build,'emitted'),scriptPath:join(build,'emitted/entry.js'),compatibilityDate:'2026-08-06',compatibilityFlags:['nodejs_compat'],
   log:new Log(LogLevel.ERROR),cf:false,port:0,inspectorPort:0,host:'127.0.0.1',
+  durableObjectsPersist:join(nativePath,'do'),d1Persist:join(nativePath,'d1'),
   d1Databases:{DB:'bbbbbbbb-0000-4000-8000-000000000000',PMB1_MAIN_JOURNAL:'aaaaaaaa-0000-4000-8000-000000000000'},
   durableObjects:{COORD:{className:'PartitionWorker',useSQLite:true},PMB1_OWNERS:{className:'NativeCaptureOwner',useSQLite:true},PMB1_CAPTURE_CONTROL:{className:'NativeCaptureControl',useSQLite:true}},
   bindings:{PMB1_CONFIGURATION:JSON.stringify({coverage:{complete:true},actualQualification:true}),PMB1_TRUSTED_INPUTS:'{"trusted":true}',FGA_READ_ENABLED:'1'},outboundService:()=>{outbound++;throw Error('outbound_forbidden');}};
  const mf=new Miniflare(options);try{
-  const db=await mf.getD1Database('DB'),raw=new DatabaseSync(':memory:');
+  const db=await mf.getD1Database('DB'),external=await mf.getD1Database('PMB1_MAIN_JOURNAL'),raw=new DatabaseSync(':memory:');
   try {
    raw.exec(readFileSync(new URL('../pmb1-integer-candidate/d1-schema.sql',import.meta.url),'utf8'));
    const token=Array(13).fill('0000').join('-');
@@ -53,7 +56,19 @@ test('missing trusted facts and arbitrary HTTP/environment truth cannot admit ma
    assert.deepEqual(await response.json(),{schemaVersion:1,installationId:'installation',installationRevision:7,installationState:'active',presentedCredentialState:'current'});
    assert.equal((await db.prepare('SELECT state FROM maintenance_control').first()).state,'closed');
    await assert.rejects(db.prepare("UPDATE installations SET label='forbidden'").run(),/maintenance_closed/);
-   await mf.setOptions(options);assert.equal((await request()).status,200);
+   // A real immutable protocol record is expired. Its invented payload supplies
+   // no semantic authority. Restoring identical retained bytes/configuration
+   // must keep the ordinary authenticated lookup independent of the channel.
+   const expired=await setupLedger({synthetic:true},['synthetic/object'],{now:100000,
+     binding:{databaseId:'aaaaaaaa-0000-4000-8000-000000000000'}});
+   try{
+    const schema=expired.db.raw.prepare("SELECT type,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name GLOB 'pmb1_evidence_*' ORDER BY rowid").all();
+    for(const row of schema)await external.prepare(row.sql).run();
+    await external.batch(expired.prepared.statements.map(s=>external.prepare(s.sql).bind(...s.args)));
+    const snapshot=async()=>{const handle=await mf.getD1Database('PMB1_MAIN_JOURNAL');return Promise.all(['pmb1_evidence_envelopes','pmb1_evidence_chunks','pmb1_evidence_events'].map(table=>handle.prepare('SELECT * FROM '+table).all().then(r=>r.results)));};
+    const before=await snapshot();assert(expired.header.throughMs<Date.now());
+    await mf.setOptions(options);assert.equal((await request()).status,200);assert.deepEqual(await snapshot(),before);
+   }finally{expired.close();}
   }finally{raw.close();}
   for(const path of ['/admin/login','/maintenance','/other'])assert.equal((await mf.dispatchFetch('https://synthetic.invalid'+path)).status,503);
   await mf.setOptions(options);

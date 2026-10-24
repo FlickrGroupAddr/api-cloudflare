@@ -52,6 +52,19 @@
     "NativeCaptureControl": {
       "type": "durable-object",
       "storage": "sqlite"
+    },
+    "PrivateMainMaintenance": {
+      "type": "worker"
     }
-  }
+  },
+  "version_metadata": {
+    "binding": "PMB1_VERSION_METADATA"
+  },
+  "services": [
+    {
+      "binding": "PMB1_PRIVATE_MAIN",
+      "service": "fga-pmb1-unregistered-source-only",
+      "entrypoint": "PrivateMainMaintenance"
+    }
+  ]
 }

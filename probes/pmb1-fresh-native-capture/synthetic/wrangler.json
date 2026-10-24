@@ -1,0 +1,68 @@
+{
+  "name": "fga-pmb1-synthetic-rpc-only",
+  "main": "entry.ts",
+  "compatibility_date": "2026-10-16",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "send_metrics": false,
+  "version_metadata": {
+    "binding": "PMB1_VERSION_METADATA"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "UNBOUND-SYNTHETIC-DOMAIN"
+    },
+    {
+      "binding": "PMB1_MAIN_JOURNAL",
+      "database_name": "UNBOUND-SYNTHETIC-JOURNAL"
+    },
+    {
+      "database_name": "UNBOUND-SYNTHETIC-INDEPENDENT-ORACLE",
+      "binding": "ORACLE_DB"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "COORD",
+        "class_name": "SyntheticCaptureOwner"
+      },
+      {
+        "name": "DRIVER",
+        "class_name": "SyntheticSourceDriver"
+      },
+      {
+        "name": "ORACLE_OWNERS",
+        "class_name": "SyntheticOracleOwner"
+      }
+    ]
+  },
+  "exports": {
+    "SyntheticCaptureOwner": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "SyntheticSourceDriver": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "SyntheticOracleOwner": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "SyntheticPrivateMainMaintenance": {
+      "type": "worker"
+    }
+  },
+  "services": [
+    {
+      "binding": "PMB1_PRIVATE_MAIN",
+      "service": "fga-pmb1-synthetic-rpc-only",
+      "entrypoint": "SyntheticPrivateMainMaintenance"
+    }
+  ]
+}
