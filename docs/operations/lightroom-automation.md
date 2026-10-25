@@ -114,3 +114,76 @@ native interaction. Plugin Manager was closed afterward. No new plugin was
 installed and no credential was entered.
 This recovers the automation prerequisite for #0022, #0027, and #0029; their
 workflow-specific and owner review gates remain separate.
+
+## Reviewed command manifests
+
+Use `scripts/run_reviewed_manifest.py` for literal command-manifest ingress.
+Default invocation is disabled and exits without reading a manifest or launching
+a child. `--check` validates without dispatch. `--execute` launches one child and
+returns its exit status; a failure does not trigger a retry.
+
+Both active modes require `--manifest <absolute-json-path>` and
+`--sha2-256 <exact-lowercase-reviewed-digest>`. The JSON document has exactly:
+
+```json
+{
+  "executable": "<absolute-native-executable>",
+  "cwd": "<absolute-working-directory>",
+  "environmentOverrides": {"NAME": "literal value"},
+  "argv": ["literal", "argument", "strings"]
+}
+```
+
+- `argv` excludes the executable. Do not stringify parsed non-string values,
+  rebuild command text, invoke a shell, or parse the packet with a date-coercing
+  JSON reader. Python JSON retains ISO UTC strings unchanged.
+- The checked bytes are bounded to 1 MiB, read from a stable regular file without
+  symbolic-link/reparse-point path components or hardlink aliases, and matched
+  to the exact digest.
+  Duplicate keys, unknown fields, non-string arguments/environment values, NULs,
+  invalid paths/encodings, and oversized inputs refuse before child launch.
+- Limits: 512 argv members; 32,767 characters per literal string; 4,096 per path;
+  128 environment overrides. Native Windows command/environment limits count
+  UTF-16 code units. Windows batch executables refuse because they require a shell.
+- The actual child receives `[executable, *argv]` with `shell=False`, the manifest
+  working directory, and inherited environment with the literal overrides applied.
+  Manifest values are not printed. Child output remains the child's responsibility.
+
+Before dispatch, the operator must still bind the stage-specific expected script,
+argv prefix/width, source and packet identities, and reviewed environment. The
+manifest hash and `--execute` flag establish neither approval nor a current valid
+run. Existing authorization, credentials, finite limits, deadlines, claims,
+cleanup, terminal-state, and no-replay checks remain owned by the underlying
+protocol. The launcher supplies no fresh deadline, automatic retry, provider
+logic, forced termination, positive qualification, or revival of a spent run.
+
+The regression suite launches only a benign native Python receiver with synthetic
+28/50/62-argument vectors and proves exact strings, UTC parsing, cwd and environment
+at that boundary. Separate full rehearsal must exercise the real entrypoint and
+the relevant pure stage validators before any newly authorized live attempt.
+
+### Before issuing a qualification token
+
+Complete local preparation before selecting live execution clocks:
+
+1. Independently review the exact launcher and run its native argument regression
+   tests. Rehearse the full local operator sequence through that same entry point,
+   with provider and GUI test doubles identified explicitly.
+2. Check prospective stage manifests with `--check`; independently bind each
+   stage's executable, argument prefix and width, source pins, cwd and environment.
+   Keep UTC values as literal strings throughout.
+3. Recompute the declared source/role inventory and validate record fields and
+   finite timing relationships. Resolve changed declarations before issuance;
+   never skip a role to satisfy an old count or retime an old observation.
+4. Prepare the ordered handoffs: observed issuer exit, immutable terminal ledger
+   snapshot, independent issuer-result review, collector packet/result review,
+   current native/history evidence, independent final-packet judgment, finalize,
+   and a separate explicit operator release.
+5. Establish applicable owner authority before starting the new attempt's fixed
+   clocks. Preserve spent claims and stopped runs. Unknown outcomes stop without
+   automatic replay; successful local checks supply no current credential,
+   provider, native or catalog facts.
+
+Local rehearsal success is a prerequisite to proposing another live attempt,
+not a POST qualification result. Native observations, actual provider receipts,
+cleanup, exact-child retirement and the existing release gates remain separate.
