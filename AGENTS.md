@@ -566,3 +566,13 @@ planned workers for the new remaining turns 1-3 before ending every turn.
   Respect current session limits, depth one and role-based models; do not change
   persistent configuration to fit the roster. Plan-specific stricter rules,
   including localswim #0112's model and four-agent ceiling, remain in force.
+
+## Recommendation labels
+
+Terry set this standing preference on 2026-10-29:
+
+- Whenever offering choices, tag exactly one option **RECOMMENDED** whenever
+  a defensible recommendation is possible.
+- State the reason briefly when it helps the decision. Do not tag multiple
+  options as recommended or imply a recommendation when the evidence does
+  not support one.
